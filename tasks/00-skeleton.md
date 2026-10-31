@@ -61,9 +61,9 @@ would refuse: it was made from a clone where the hook was not yet active, and
 it is the adoption commit the runbook (§1.2) allows as one scene. The gate's
 own tests live in `.claude/hooks/`, outside the `tests/` role, on purpose.
 
-Remote: `github.com/erezschatz/Boking-Clever` as created (the name has a
-typo; renaming it on GitHub keeps redirects — D15 names the intended
-`Boxing-Clever`). Local clone `~/dev/boxing-clever-gh`, hooks path set.
+Remote: `github.com/erezschatz/Boxing-Clever` (created as `Boking-Clever`,
+a typo, renamed the same day; D15 holds). Local clone
+`~/dev/boxing-clever-gh`, hooks path set.
 
 Verified: a fresh read of the repo answers what the app is (SPEC), what was
 decided (DECISIONS), what comes next (PLAN → tasks/01). Erez has not yet run
