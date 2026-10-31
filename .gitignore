@@ -3,3 +3,4 @@ data/
 front/dist/
 .DS_Store
 .claude/settings.local.json
+deno.lock

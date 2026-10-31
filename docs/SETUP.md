@@ -22,7 +22,8 @@ Read only for toolchain or deployment problems.
 No pnpm, no npm, and no Node for the app itself; Node is used only to run the
 gate's own tests (`node --test`, runbook Appendix J). Dependencies are declared in
 `deno.json` `imports`; Atrium's `import_map.json` must carry the same
-entries at deploy (D1).
+entries at deploy (D1). `deno.lock` is not tracked, as in Atrium: the
+import map there is the one resolution that matters.
 
 ## Tasks (`deno.json`)
 
