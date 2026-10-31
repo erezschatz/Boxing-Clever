@@ -1,0 +1,2 @@
+#!/bin/sh
+exec deno run --allow-run=git,deno,/bin/sh --allow-read --allow-env "$(git rev-parse --show-toplevel)/.claude/hooks/check-unit.mjs" --staged

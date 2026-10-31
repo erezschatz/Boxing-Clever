@@ -1,0 +1,43 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "deno",
+            "args": [
+              "run",
+              "--allow-run=git,deno,/bin/sh",
+              "--allow-read",
+              "--allow-env",
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/check-unit.mjs",
+              "--branch"
+            ]
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "Bash(git commit *)",
+            "command": "deno",
+            "args": [
+              "run",
+              "--allow-run=git,deno,/bin/sh",
+              "--allow-read",
+              "--allow-env",
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/check-unit.mjs",
+              "--staged"
+            ],
+            "onFailure": "block"
+          }
+        ]
+      }
+    ]
+  }
+}
