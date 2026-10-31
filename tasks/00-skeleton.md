@@ -7,11 +7,11 @@ understand without this conversation: what the app is, what is decided, what
 comes next, and how the old app did it.
 
 **Acceptance.**
-- [ ] `CLAUDE.md`, `docs/SPEC.md`, `docs/DECISIONS.md` (D1–D15), `docs/PLAN.md`, `docs/SETUP.md`, `docs/BOXING-CLEVER-V1.md`, `docs/IMPORT.md`, `docs/TBRB.md`, `tasks/00`–`15`, `tasks/README.md`
-- [ ] `docs/UNITIES.md` (the runbook) planted and carried out: commit gate, `scripts/compile-changelog.mjs`, Claude Code bindings
-- [ ] `docs/reference/` holds v1's scorecard mock-ups and the Numbers sheet (binary, committed once)
-- [ ] `deno.json` with the tasks listed in SETUP.md (they may fail until 01)
-- [ ] Pushed to `github.com/erezschatz/Boxing-Clever`; `~/dev/Boxing-Clever-gh` is the clone
+- [x] `CLAUDE.md`, `docs/SPEC.md`, `docs/DECISIONS.md` (D1–D15), `docs/PLAN.md`, `docs/SETUP.md`, `docs/BOXING-CLEVER-V1.md`, `docs/IMPORT.md`, `docs/TBRB.md`, `tasks/00`–`15`, `tasks/README.md`
+- [x] `docs/UNITIES.md` (the runbook) planted and carried out: commit gate, `scripts/compile-changelog.mjs`, Claude Code bindings
+- [x] `docs/reference/` holds v1's scorecard mock-ups and the Numbers sheet (binary, committed once)
+- [x] `deno.json` with the tasks listed in SETUP.md (they may fail until 01)
+- [x] Pushed to `github.com/erezschatz/Boxing-Clever`; `~/dev/Boxing-Clever-gh` is the clone
 
 ## Notes
 
@@ -43,3 +43,28 @@ Adoption record (runbook §4.3), written at kickoff on 2026-10-31:
 - `docs/UNITIES.md` is the copy Erez supplied on 2026-10-31; he noted later
   amendments exist that mostly concern the adapted staging. If a newer copy
   turns up, replace the file and re-run the runbook (it is idempotent).
+
+## What was done
+
+2026-10-31. Kickoff interview answered in conversation and written into
+`docs/SPEC.md`, `docs/DECISIONS.md` (D1–D15) and `docs/PLAN.md`; the
+predecessor studied in `~/dev/Boxing-Clever` and described in
+`docs/BOXING-CLEVER-V1.md`; the Numbers sheet measured (218 events, 1,103
+bouts, 2,211 fighter rows) and its shape written into `docs/IMPORT.md`;
+Atrium's chamber contract read from `~/dev/Atrium` and written into SPEC.
+The runbook was carried out for the strict staging — see Notes above for the
+roles, the two Deno deviations and the verification output.
+
+Commit `9785b17` is the skeleton. It carries source (`mod.ts`,
+`scripts/compile-changelog.mjs`) with no change under `tests/`, which the gate
+would refuse: it was made from a clone where the hook was not yet active, and
+it is the adoption commit the runbook (§1.2) allows as one scene. The gate's
+own tests live in `.claude/hooks/`, outside the `tests/` role, on purpose.
+
+Remote: `github.com/erezschatz/Boking-Clever` as created (the name has a
+typo; renaming it on GitHub keeps redirects — D15 names the intended
+`Boxing-Clever`). Local clone `~/dev/boxing-clever-gh`, hooks path set.
+
+Verified: a fresh read of the repo answers what the app is (SPEC), what was
+decided (DECISIONS), what comes next (PLAN → tasks/01). Erez has not yet run
+anything on his machine; that is task 01.
