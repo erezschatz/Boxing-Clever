@@ -30,10 +30,10 @@ import map there is the one resolution that matters.
 ```
 deno task dev      # deno serve --watch on http://localhost:8890, data/boxing.db
 deno task test     # all tiers, in-memory SQLite
-deno task check    # type-check server and front
+deno task check    # type-check mod.ts and tests/
 deno task build    # emit front/dist/ for deployment (D7)
 deno task migrate  # apply pending migrations to data/boxing.db
-deno task fmt / lint   # fmt covers code only; Markdown and the runbook's scripts are excluded
+deno lint / deno fmt --check   # built-ins, not tasks; fmt covers code only (Markdown and the runbook's scripts excluded)
 deno task hooks     # once per clone: git config core.hooksPath .githooks
 deno task changelog -- <version>   # the only writer of CHANGELOG.md
 deno task check-unit-test          # the gate's own tests (node --test)

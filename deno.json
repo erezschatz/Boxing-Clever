@@ -17,7 +17,7 @@
   "tasks": {
     "dev": "deno serve --watch --port 8890 --allow-net --allow-read --allow-write --allow-env mod.ts",
     "test": "deno test --allow-read --allow-env tests/",
-    "check": "deno check mod.ts",
+    "check": "deno check mod.ts tests/",
     "migrate": "deno run --allow-read --allow-write --allow-env server/db/migrate.ts",
     "build": "echo 'task 06: emit front/dist' && exit 1",
     "tbrb-daily": "deno run --allow-net --allow-read --allow-write --allow-env scripts/tbrb-daily.ts",
