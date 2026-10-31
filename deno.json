@@ -12,11 +12,10 @@
   },
   "imports": {
     "hono": "npm:hono@4",
-    "zod": "npm:zod@4",
-    "@std/assert": "jsr:@std/assert@1"
+    "zod": "npm:zod@4"
   },
   "tasks": {
-    "dev": "deno run --watch --allow-net --allow-read --allow-write --allow-env mod.ts",
+    "dev": "deno serve --watch --port 8890 --allow-net --allow-read --allow-write --allow-env mod.ts",
     "test": "deno test --allow-read --allow-env tests/",
     "check": "deno check mod.ts",
     "migrate": "deno run --allow-read --allow-write --allow-env server/db/migrate.ts",
@@ -29,7 +28,12 @@
   "fmt": {
     "singleQuote": true,
     "lineWidth": 100,
-    "indentWidth": 2
+    "indentWidth": 2,
+    "exclude": [
+      "**/*.md",
+      ".claude/",
+      "scripts/compile-changelog.mjs"
+    ]
   },
   "lint": {
     "rules": {

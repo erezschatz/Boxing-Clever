@@ -68,12 +68,13 @@ Parity with v1 **plus**:
 
 The server is a chamber: `mod.ts` exports `{ domain: '', displayName:
 'Boxing Clever', fetch }` satisfying Atrium's `Chamber` interface. `fetch` is a
-Hono app's handler. Routes under `/api/*` are the API; everything else is
-served by Atrium's `makeSpaHandler` from `front/`. Atrium owns auth (session
-cookie on the Atrium domain), TLS, the process and the import map; the chamber
-owns nothing of that. `if (import.meta.main)` boots the same handler on a
-local port for development, with a stub for Atrium's static helper so the
-repo runs without Atrium checked out.
+Hono app's handler. Routes under `/api/*` are the API (an unregistered API path is a
+404, never the page); everything else is served from `front/` by the
+chamber's own thirty-line static handler (`server/static.ts`, index.html
+fallback), so the repo runs without Atrium checked out. Atrium owns auth
+(session cookie on the Atrium domain), TLS, the process and the import map;
+the chamber owns nothing of that. `deno serve mod.ts` boots the same handler
+on a local port for development; there is no `import.meta.main` block.
 
 Deployment: the repo is symlinked into Atrium's `chambers/` and registered in
 `chambers.json`; its dependencies are added to Atrium's import map. One
@@ -212,7 +213,7 @@ import map.
 | Validation | zod | class-validator + class-transformer | one schema per resource is also its TS type |
 | Database | `node:sqlite` (Deno built-in) | TypeORM + MySQL + Mongoose + MongoDB | one file, in-memory for tests, zero infrastructure (D3, D4) |
 | Templates | lit-html (pinned, from esm.sh) | React + Jotai + Bootstrap | templates only; no component framework (D6) |
-| Tests | `Deno.test` + `@std/assert` | — | built in |
+| Tests | `Deno.test` + `node:assert/strict` | — | both built into Deno; no package |
 | Numbers sheet | none — Numbers exports CSV, the importer reads CSV | numbers-parser | no dependency for a one-time step (D8) |
 
 Not in the list and not wanted: an ORM or query builder, a state library, a

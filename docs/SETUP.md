@@ -27,19 +27,19 @@ entries at deploy (D1).
 ## Tasks (`deno.json`)
 
 ```
-deno task dev      # standalone chamber on http://localhost:8890, watch mode, data/boxing.db
+deno task dev      # deno serve --watch on http://localhost:8890, data/boxing.db
 deno task test     # all tiers, in-memory SQLite
 deno task check    # type-check server and front
 deno task build    # emit front/dist/ for deployment (D7)
 deno task migrate  # apply pending migrations to data/boxing.db
-deno task fmt / lint
+deno task fmt / lint   # fmt covers code only; Markdown and the runbook's scripts are excluded
 deno task hooks     # once per clone: git config core.hooksPath .githooks
 deno task changelog -- <version>   # the only writer of CHANGELOG.md
 deno task check-unit-test          # the gate's own tests (node --test)
 ```
 
 Environment: `BOXING_DB` (path; default `data/boxing.db`, `:memory:` in
-tests), `BOXING_PORT` (standalone only, default 8890).
+tests). The standalone port is the `--port` in the `dev` task.
 
 ## Mounting in Atrium
 
