@@ -16,7 +16,7 @@ Read only for toolchain or deployment problems.
 
 | Tool | Version | Notes |
 |---|---|---|
-| Deno | 2.x (pin the exact version here once task 01 passes; 2.9.6 ran the gates in the cloud) | `node:sqlite` needs Deno ≥ 2.2. The Unities hooks need `--allow-run=git,deno,/bin/sh --allow-read --allow-env` — see tasks/00 Notes |
+| Deno | **current stable, kept upgraded** — never pinned. Floor: 2.9 (2026-10-31: 2.9.7 on the Mac, 2.9.6 in the cloud) | `node:sqlite` needs ≥ 2.2. When an upgrade breaks something, raise the floor here and say what broke. The Unities hooks need `--allow-run=git,deno,/bin/sh --allow-read --allow-env` — see tasks/00 Notes |
 | Atrium | `~/dev/Atrium` on the Mac | for mounted runs only; standalone runs do not need it |
 
 No pnpm, no npm, and no Node for the app itself; Node is used only to run the

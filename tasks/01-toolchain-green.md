@@ -12,5 +12,5 @@ login. Nothing else works yet, and that is fine.
 - [x] `mod.ts` exports a `Chamber`; `server/static.ts` serves `front/` so the repo runs without Atrium (was: a stub of Atrium's helper; see SPEC *Atrium*)
 - [ ] Symlinked into `~/dev/Atrium/chambers/boxing`, registered in `chambers.json`, reachable in the browser behind Atrium's login
 - [x] `deno task test` runs one trivial test green; `deno task check` passes; `deno task fmt --check` and `deno task lint` pass
-- [ ] Exact Deno version pinned in SETUP.md
+- [x] Deno version policy in SETUP.md — *reworded 2026-10-31*: no pin; Deno is kept on current stable, SETUP records the floor
 - [ ] Verified by Erez on the Mac (standalone and mounted)
