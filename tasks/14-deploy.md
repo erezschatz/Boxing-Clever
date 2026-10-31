@@ -6,6 +6,7 @@
 it; the old one is kept but no longer written to.
 
 **Acceptance.**
+- [ ] Mounted in Atrium: symlinked into `chambers/boxing`, registered in `chambers.json`, `hono` and `zod` in Atrium's import map, reachable behind the login (moved from task 01, D16)
 - [ ] `scripts/deploy.sh` (pull, migrate, build, restart) per SETUP.md; run on the Atrium server
 - [ ] Data cut over: final v1 dumps imported (task 10 re-run), rejects zero or accepted
 - [ ] v1 pm2 processes stopped; repo noted read-only in BOXING-CLEVER-V1.md

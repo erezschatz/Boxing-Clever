@@ -70,7 +70,7 @@ The server is a chamber: `mod.ts` exports `{ domain: '', displayName:
 'Boxing Clever', fetch }` satisfying Atrium's `Chamber` interface. `fetch` is a
 Hono app's handler. Routes under `/api/*` are the API (an unregistered API path is a
 404, never the page); everything else is served from `front/` by the
-chamber's own thirty-line static handler (`server/static.ts`, index.html
+chamber's own small static handler (`server/static.ts`, index.html
 fallback), so the repo runs without Atrium checked out. Atrium owns auth
 (session cookie on the Atrium domain), TLS, the process and the import map;
 the chamber owns nothing of that. `deno serve mod.ts` boots the same handler

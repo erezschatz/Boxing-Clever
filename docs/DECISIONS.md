@@ -139,3 +139,14 @@ folder `~/dev/Boxing-Clever-gh`; the project name is unchanged.
 **Rejected:** Phorge-first with a GitHub mirror later (the usual pattern).
 **Why:** Cross-session reach for Claude Code and visibility were asked for
 explicitly. The v1 repo stays on Phorge as the reference.
+
+### D16 · 2026-10-31 · Atrium mount deferred to deployment
+**Decision:** Development and verification run on the standalone track
+(`deno serve mod.ts`). Mounting in Atrium is first exercised in task 14, or
+earlier only if its absence becomes a showstopper.
+**Rejected:** Mounting the chamber in a local Atrium as part of task 01.
+**Why:** Atrium does not run on the development machine; it runs on the
+server. The chamber contract is three fields and a fetch handler, and
+`server/static.ts` already removes the one place a local Atrium would have
+been needed. Verifying the mount early would cost a local Atrium setup for
+no information the deploy step will not give.
