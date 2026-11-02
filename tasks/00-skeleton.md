@@ -68,3 +68,15 @@ a typo, renamed the same day; D15 holds). Local clone
 Verified: a fresh read of the repo answers what the app is (SPEC), what was
 decided (DECISIONS), what comes next (PLAN → tasks/01). Erez has not yet run
 anything on his machine; that is task 01.
+
+## What was done
+
+2026-11-02. `.githooks/pre-commit` had been committed as mode 100644 in
+`9785b17`, so git ignored it in this clone ("not set as executable"). Since
+then only Claude Code's `PreToolUse` gate has checked commits. Commits from a
+shell or an editor were not checked. The test in the Notes above ran in
+Claude's workspace, where the bit must have been set on disk without being
+recorded in git. The file is now 100755 in the index. Verified on the Mac
+with `git hook run pre-commit`: a staged source-only probe to `mod.ts` is
+refused with exit 2 ("no test change; no doc change; no task change"), and
+the mode change alone passes with exit 0. The probe was reverted.
