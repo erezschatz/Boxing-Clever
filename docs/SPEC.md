@@ -95,11 +95,14 @@ browser (lit-html, fetch)  ──►  /api/*  Hono routes (server/api/)
 - `server/rules/` is imported by both `server/api/` and `front/` (the browser
   computes running totals with the same functions the server validates with).
   It has no imports of its own.
-- `server/db/` is one module per table, each exporting plain functions that
-  take a `Database` and parameters. Transactions are explicit
+- `server/db/` is one module per table (`fighter.ts`, `round-score.ts`, …),
+  each exporting plain functions that take a `Database` and parameters;
+  `connection.ts` opens the file with foreign keys on. Updates take the
+  whole row (the API merges a PATCH first), so no SQL is assembled. Transactions are explicit
   (`db.exec('BEGIN')`/`COMMIT`) in the one module that needs them.
 - `server/migrations/NNN-name.sql` are applied by `server/db/migrate.ts`
-  (~40 lines: a `schema_version` table, apply in order, inside a transaction).
+  (~50 lines: a `schema_version` table, apply in order, each file and its
+  version row in one transaction).
 - `front/` is static ESM: `index.html` with an import map, `app.ts`
   compiled on the fly by Deno in dev and emitted once at deploy (D7).
 
@@ -110,17 +113,21 @@ none. All ids are `INTEGER PRIMARY KEY`.
 
 | Table | Holds | Notes |
 |---|---|---|
-| `weight_class` | the 18 classes: name, alternate name, lbs, kg | seeded by migration 001 |
+| `weight_class` | the 18 classes: name, alternate name, lbs, kg | seeded by migration 002 in v1's order; Heavyweight's limit is null (D17) |
 | `fighter` | first/last name, nickname, colors, weight + unit, **current** record (won, lost, draws, nc, kos) | the record is derived data that is stored: updated transactionally on finalise, recomputable by `scripts/recompute-records.ts` |
-| `fighter_alias` | fighter_id, alias text | names as TBRB and the sheet spell them; merge keeps aliases |
+| `fighter_alias` | fighter_id, alias text | names as TBRB and the sheet spell them; merge keeps aliases; an alias names one fighter (D19) |
 | `event` | date, location | |
-| `bout` | event_id, card_order, weight_class_id, scheduled_rounds, fighter_a_id, fighter_b_id, **corner_a** (`red`/`blue`), a/b **as-of snapshot** (record ×5, weight, unit, colors, tbrb_rank), result (decision_type, winner `A`/`B`/`draw`/`none`, round, time), judges ×3 ×2, is_draft | the snapshot is what v1's Mongo document was for and is kept on purpose (D4) |
+| `bout` | event_id, card_order, weight_class_id, scheduled_rounds, fighter_a_id, fighter_b_id, **corner_a** (`red`/`blue`, null when not recorded), a/b **as-of snapshot** (record ×5, weight, unit, colors, tbrb_rank), result (decision_type, winner `A`/`B`/`draw`/`none`, round, time), judges ×3 ×2, is_draft | the snapshot is what v1's Mongo document was for and is kept on purpose (D4); its columns are `a_won` … `a_tbrb_rank`, `b_won` …, null until first save; result columns `decision_type`, `winner`, `result_round`, `result_time`; judges `judge1_a` … `judge3_b` |
 | `round_score` | bout_id, round_no, side, points | one row per fighter per round actually scored; the stoppage round has points `0` (see Scoring) |
 | `deduction` | bout_id, round_no, side, points, reason | reasons: knockdown, low blow, holding, headbutt, other — a free text alongside |
 | `title` | sanctioning_body, area, weight_class_id, status | unique on the four |
 | `bout_title` | bout_id, title_id, holder_side (`A`/`B`/`vacant`) | champion and title-for-title fall out of this |
 | `tbrb_snapshot` | snapshot_date, weight_class_id, rank (0 = champion), fighter_name, fighter_id (nullable) | one row per ranked name per snapshot; resolution to `fighter_id` by alias, never fuzzy (TBRB.md) |
 | `import_batch`, `import_reject` | source, started_at, counts; row text + reason | the staged importer's audit trail (IMPORT.md) |
+
+Constraints: the schema refuses shapes no card could have; the rules judge
+the card as a whole (D18). A deduction references its side's `round_score`
+row, so none can exist in an unrecorded round.
 
 What is *not* a table: a `violation_type` lookup — reasons are a checked
 string; a `judge` table — three ring-side cards per bout is the whole model.

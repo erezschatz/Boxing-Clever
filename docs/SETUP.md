@@ -39,8 +39,9 @@ deno task changelog -- <version>   # the only writer of CHANGELOG.md
 deno task check-unit-test          # the gate's own tests (node --test)
 ```
 
-Environment: `BOXING_DB` (path; default `data/boxing.db`, `:memory:` in
-tests). The standalone port is the `--port` in the `dev` task.
+Environment: `BOXING_DB` (path; default `data/boxing.db` in this repo,
+resolved from the module, not the working directory, so it holds under
+Atrium; `:memory:` in tests). The standalone port is the `--port` in the `dev` task.
 
 ## Mounting in Atrium
 

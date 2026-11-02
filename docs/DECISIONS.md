@@ -150,3 +150,48 @@ server. The chamber contract is three fields and a fetch handler, and
 `server/static.ts` already removes the one place a local Atrium would have
 been needed. Verifying the mount early would cost a local Atrium setup for
 no information the deploy step will not give.
+
+### D17 · 2026-11-02 · Heavyweight has no weight limit in the table
+**Decision:** `weight_class.lbs` and `kg` are nullable, and Heavyweight's are
+null: the class has a floor, not a limit. kg for the other classes is
+lbs × 0.45359237 to three decimals.
+**Rejected:** Copying v1's seed, which gives Heavyweight Cruiserweight's
+200 lbs / 90.718 kg; a sentinel such as 999.
+**Why:** v1's row is a typo that would make a 250 lb heavyweight look over
+the limit the moment anything compares weights (phase 2 trajectories, or a
+weigh-in check). Null is what "no limit" means; a sentinel is a number that
+lies. v1's hand-typed kg were off in the third decimal for six classes, so
+they are computed rather than copied. Atomweight stays: v1 has it and the
+spec says 18, though TBRB ranks men only and will never list it.
+
+### D18 · 2026-11-02 · The schema refuses shapes; the rules judge cards
+**Decision:** SQL constraints enforce what no valid card could contain:
+the checked sets (side, corner, holder side, decision code, winner,
+deduction reason, weight unit, import source), points 0–10, ranges on
+rounds, ranks and record counts, ISO dates on `event` and `tbrb_snapshot`,
+a result on every finalised bout,
+and a deduction only in a round that has a `round_score` row for that side
+(composite foreign key). Everything that depends on the card as a whole —
+which winner each decision type allows, no gaps, the stoppage round —
+is `server/rules/` (task 03), checked before anything is written.
+**Rejected:** Encoding the decision-type/winner table and the no-gaps
+invariant as triggers or CHECKs; leaving the schema unconstrained and
+trusting the rules alone.
+**Why:** Imports and hand-written scripts write to the database without
+going through the API, so the shapes must hold there too; but the rules
+are the subject matter of the app and belong in one readable place (CLAUDE.md
+*Code rules*), not duplicated as SQL that has to be kept in step.
+
+### D19 · 2026-11-02 · An alias names one fighter
+**Decision:** `fighter_alias.alias` is unique across all fighters. Two real
+fighters with the same name are told apart by giving one of them a
+distinguishing alias, by hand.
+**Rejected:** Letting the same alias belong to several fighters and having
+TBRB linking and the importers report the ambiguity.
+**Why:** D14 makes the alias the only way a name becomes a fighter; if one
+alias could resolve to two fighters, every lookup would need an ambiguity
+path, and the safe answer in every case would be "do not link". A unique
+alias makes that refusal happen once, when the second alias is added,
+instead of on every lookup. Same-name fighters among those watched are rare
+enough to handle by hand.
+
