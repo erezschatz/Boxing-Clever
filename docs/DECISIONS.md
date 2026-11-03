@@ -240,3 +240,114 @@ differences are kg conversions, by one cent, in 568 of them. The silent
 zero would let a typo store a fighter at 0 lbs; IMPORT.md requires a weight
 that cannot be parsed to be rejected, which needs "unreadable" to be
 distinguishable from 0.
+
+### D22 · 2026-11-03 · A technical decision or draw scores its last round (supersedes D20 in part)
+**Decision:** `TD` and `T` are no longer stoppages in D20's sense. They
+"go to the cards": the result round is required (on a scored card), is
+the last round recorded, and is scored like any other round (10–9, 9–10,
+or 10–10 when it ended almost at once), never 0–0. `KO` `TKO` `RTD` `DQ`
+keep D20's 0–0 stoppage round, and `NC` keeps D20's two shapes. For now an
+RTD is treated like a TKO: its result round is 0–0. Erez gave the usual
+convention, "ended at 3:00 of round X". Whether round X, which was fought
+in full, should then be scored rather than recorded 0–0, and whether RTD
+stays a code apart from TKO, are open (`tasks/questions-2026-11-03.md`).
+**Rejected:** D20's 0–0 for the technical round.
+**Why:** Erez, 2026-11-03: the judges score the round the fight was
+stopped in, and on a technical decision that score counts. D20 had reasoned
+that the card is bookkeeping and that a stopped round is never scored; that
+holds for a stoppage, not for a fight that goes to the cards.
+
+### D23 · 2026-11-03 · Deleting a finalised bout is guarded twice; deleting bouts never deletes the event
+**Decision:** Any bout can be deleted, finalised ones included, and every
+delete is confirmed. For a finalised bout the front end asks twice. First:
+"this is a finalised fight, are you sure?". Then a dialog showing what both
+fighters' records will become, with three choices: delete and reset the
+records, delete and keep the records, or cancel back to the fight. The API
+takes that choice as `DELETE /api/bouts/:id?records=reverse|keep` and
+answers `409` for a finalised bout without one. Deleting a bout never
+deletes its event, not even when it was the last bout. An event is deleted
+only by deleting the event. SPEC's existing rule that this refuses while
+any of its bouts is finalised is unchanged for now; whether it should
+instead go through the guarded flow is open (`tasks/questions-2026-11-03.md`).
+"Keep the records" leaves the result in the fighters' stored records with
+no bout behind it, which `scripts/recompute-records.ts` (D13) would undo;
+how a kept result survives a recompute is open in the same file.
+**Rejected:** Refusing to delete a finalised bout; always reversing the
+records; deleting an event along with its last bout.
+**Why:** Erez, 2026-11-03: a fight can be deleted even after finalising,
+but heavily guarded, and the user chooses whether the records are reset.
+The typical mistake is a fight entered under the wrong event (Dec 12 in
+Las Vegas instead of Dec 14 at MSG). The user deletes the fight and
+re-enters it under the right one, and the wrong event must still be there
+afterwards. Supersedes the promise of `tasks/delete-finalised-bout.md`
+("never leaves a record counting a fight that is no longer there");
+built under `tasks/guarded-bout-delete.md`.
+
+### D24 · 2026-11-03 · The sheet's rounds under 9 are 9 less knockdowns
+**Decision:** In the Numbers sheet, a side's round written as `8`, `7`, …
+is imported as points 9 with one one-point deduction per point below 9,
+and the round then passes §1. Erez named the two reasons to choose from,
+"general or KD". Claude chose `knockdown` as the default, on his "95% of
+the time it's a KD", and every such deduction carries the note `reason
+assumed (import)`, so the scorecard can mark it (task 07's marker). If the
+sheet's cell colours turn out to tell a knockdown from a foul, and can be
+read, the colour gives the reason instead
+(`tasks/sheet-deduction-colours.md`). A round where neither side has 10
+(`9`/`9`: the round's winner was docked a point) cannot say who won it;
+how to import it is open (`tasks/questions-2026-11-03.md`), and until then
+the importer rejects it. This is the one thing the importer infers, against
+IMPORT.md's "nothing is guessed" and task 11's promise; the note is what
+keeps it visible.
+**Rejected:** IMPORT.md's earlier plan to store `8` as points 8 with no
+deduction (it fails §1, so such a card could never be edited after import;
+task 03's open note); `other` ("general") as the default.
+**Why:** Erez, 2026-11-03: there is no 10–8 as points, it is a 10–9 with a
+deduction, so 8, 7 and below are 9-point rounds with 1, 2, 3… points
+deducted, and about 95% of them are knockdowns.
+
+### D25 · 2026-11-03 · A bout's TBRB rank is the last list before the fight; off the list is unranked
+**Decision:** A fighter's TBRB standing for a bout is read from the last
+snapshot prior to the fight, weekly or monthly. Two edges are open
+(`tasks/questions-2026-11-03.md`): whether a list dated the day of the fight
+counts, and whether a list can be too old to count (the 2024 → now history
+gap). Until they are answered, the rule is "on or before the fight date"
+with no age limit. Listed means
+that rank (0 champion); not listed means unranked. Claude added that there
+is no separate "unknown" standing, which follows from Erez's "if a fighter
+isn't ranked current to the fight … he's unranked". The rank is copied into
+the bout with the rest of the snapshot (first save and finalise, SPEC §7),
+but it is the one part of the snapshot that is re-derived later. When task 13's history tool stores an older snapshot, every bout
+dated in the span that snapshot now governs gets its rank re-read.
+**Rejected:** An "unknown" standing distinct from unranked; freezing
+imported bouts' ranks at import, before the history exists.
+**Why:** Erez, 2026-11-03: a ranking only matters if the fighter was ranked
+at the time of the fight (Usyk–Fury was C v #1), and it is always the last
+ranking prior to the fight. Imports (tasks 10–11) run before the history
+back-fill (13), so a rank frozen at import would be "unranked" for most
+historical bouts. This overrides the "never changed" in
+`server/migrations/001-schema.sql`'s comment and the "forever" in task 05's
+promise, for the rank only.
+
+### D26 · 2026-11-03 · Contracted weight, not a catchweight class; missing weight is marked
+**Decision:** A bout fought at a weight that is not a class limit records
+that contracted weight; there is no "Catchweight" class. Each side of a
+bout can be marked as having missed weight, and the mark is shown
+prominently on the scorecard and in the fighter's history. Both sides can
+be marked, or only one. The schema, API and display are
+`tasks/contracted-weight-and-missed-weight.md`, which must land before the
+imports (tasks 10–11).
+**Rejected:** A 19th weight class called Catchweight; deriving "missed
+weight" from the weigh-in figures.
+**Why:** Erez, 2026-11-03: "there's no catchweight", just two fighters
+fighting at a specific weight, either both coming in above it or one on it
+and the other not, and he wants a fighter who missed weight marked and
+highlighted. Claude's reason for marking rather than computing: the
+weigh-in figures alone don't settle it (rehydration clauses, agreed
+allowances).
+
+### D27 · 2026-11-03 · Imported rows are not linked to their batch
+**Decision:** `import_batch` and `import_reject` are the whole audit trail.
+No `bout` (or other) row records which batch wrote it.
+**Rejected:** An `import_batch_id` column on `bout`.
+**Why:** Erez, 2026-11-03: it does not matter which import wrote a bout.
+Closes the open note in task 02's record.

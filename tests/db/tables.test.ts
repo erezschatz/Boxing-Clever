@@ -3,7 +3,7 @@
 import { deepStrictEqual, strictEqual as assertEquals, throws } from 'node:assert/strict';
 import { testDatabase } from '../helpers/db.ts';
 import type { Database } from '../../server/db/connection.ts';
-import { deleteEvent, insertEvent } from '../../server/db/event.ts';
+import { deleteEvent, getEvent, insertEvent } from '../../server/db/event.ts';
 import {
   deleteFighter,
   type FighterFields,
@@ -274,9 +274,18 @@ Deno.test('a fighter with bouts cannot be deleted; one without can', () => {
   assertEquals(findFighterIdByAlias(db, 'Nobody'), undefined, 'its aliases go with it');
 });
 
-Deno.test('deleting a bout removes its card; deleting an event removes its bouts', () => {
+Deno.test('deleting bouts removes their cards and leaves their event in place', () => {
   const db = testDatabase();
   const { boutId, eventId, a, b } = setUpBout(db);
+  const other = insertBout(db, {
+    event_id: eventId,
+    card_order: 2,
+    weight_class_id: HEAVYWEIGHT,
+    scheduled_rounds: 10,
+    fighter_a_id: a,
+    fighter_b_id: b,
+    corner_a: null,
+  });
   insertRoundScore(db, { bout_id: boutId, round_no: 1, side: 'A', points: 10 });
   insertDeduction(db, {
     bout_id: boutId,
@@ -289,18 +298,22 @@ Deno.test('deleting a bout removes its card; deleting an event removes its bouts
   assertEquals(deleteBout(db, boutId), true);
   assertEquals(listRoundScores(db, boutId).length, 0);
   assertEquals(listDeductions(db, boutId).length, 0);
+  assertEquals(getEvent(db, eventId)?.id, eventId, 'the event stays');
+  deepStrictEqual(listBoutsForEvent(db, eventId).map((x) => x.id), [other]);
+  assertEquals(deleteBout(db, boutId), false, 'a second delete finds nothing');
 
-  const second = insertBout(db, {
-    event_id: eventId,
-    card_order: 2,
-    weight_class_id: HEAVYWEIGHT,
-    scheduled_rounds: 10,
-    fighter_a_id: a,
-    fighter_b_id: b,
-    corner_a: null,
-  });
+  assertEquals(deleteBout(db, other), true);
+  assertEquals(getEvent(db, eventId)?.id, eventId, 'not even when its last bout goes');
+});
+
+Deno.test('deleting an event removes its bouts', () => {
+  const db = testDatabase();
+  const { boutId, eventId } = setUpBout(db);
+  insertRoundScore(db, { bout_id: boutId, round_no: 1, side: 'A', points: 10 });
   assertEquals(deleteEvent(db, eventId), true);
-  assertEquals(getBout(db, second), undefined);
+  assertEquals(getEvent(db, eventId), undefined);
+  assertEquals(getBout(db, boutId), undefined);
+  assertEquals(listRoundScores(db, boutId).length, 0);
 });
 
 Deno.test('a TBRB list stores champion and ranks, linked or not', () => {

@@ -4,9 +4,11 @@ Two sources, one importer (`server/import/`), one audit trail
 (`import_batch`, `import_reject`). An import is **staged**: it parses
 everything, writes what it can inside one transaction per batch, and reports
 every row it could not place with the row's text and the reason. Nothing is
-silently skipped and nothing is guessed. The user fixes the source or the
-aliases and re-runs; a re-run of the same batch is idempotent (keyed on
-source + event date + fighter names).
+silently skipped and nothing is guessed, with one marked exception: the
+reason of a deduction the sheet folds into a round (D24). The user fixes the
+source or the aliases and re-runs; a re-run of the same batch is idempotent,
+keyed on event date + fighter names. The source is the batch being run,
+not a column on the row (D27).
 
 ## Source A — the Numbers sheet (task 11)
 
@@ -24,7 +26,7 @@ Layout, as measured on 2026-10-31:
 | `Colors` | `White/Black/Gold` | free text, kept as is |
 | `Weight` | `125.4lbs`, `14st 4lbs`, `10st 12lbs 8oz`, `72kg`; typos `lba`, `lb`, `ox`, `N oz` | parse with `rules/weight.ts`; reject on failure |
 | `Record` | `W(KO)-L-D`, `W-L-D`, `W(KO)-L`, `W(KO)-L-D-NC`, one `W(KO)N-L` typo | 2,015 of the first shape. This is the **as-of record** (SPEC §7) |
-| `1` … `12` | points per round | `x` = round not scheduled (6,099 cells); a stoppage time (`2:44`) or `KO`/`TKO` in the stoppage round's cell; numbers otherwise. An `8` or `7` is the round total *after* a deduction the sheet never itemised — stored as written, see "what the sheet cannot give" |
+| `1` … `12` | points per round | `x` = round not scheduled (6,099 cells); a stoppage time (`2:44`) or `KO`/`TKO` in the stoppage round's cell; numbers otherwise. A value under 9 is a 9 less deductions the sheet never itemised; see D24 |
 | `Total` | sum | checked against the parsed rounds; mismatch → reject |
 | `Decision` | 30+ spellings | `UD MD SD DEC TKO KO RSC RTD RET NC TD DQ D DRAW ND TUD MTD TSD KBO`; digits (`0 1 2 3 72 80 99 2.5`) are judge-count or stray; `Z\`che` is a typo. Mapping table in `server/import/decisions.ts`; anything unmapped → reject |
 | `Ref 1..3` | judges' totals, on 1,008 rows | optional |
@@ -36,12 +38,21 @@ inferred from totals for points decisions and from which row carries the
 stopped fighter's row has the time). Draws by total equality and a draw
 decision. When the inference is ambiguous → reject.
 
-### What the sheet cannot give and is not invented
+### What the sheet cannot give, and the one thing inferred
 
 - Corners (not recorded before v2) → `corner_a` null.
-- Deductions as such: a round written `8` is stored as points `8`,
-  deductions none. The round total is right; the reason is unknown and
-  stays unknown. The scorecard shows imported rounds with a marker.
+- Deductions as such, which the sheet folds into the round's number. A
+  side written below 9 is stored as points 9 with 9 − n one-point
+  deductions (D24), so `10`/`8` becomes 10–9 with one deduction and `10`/`7`
+  two. Their reason is the one inference: `knockdown` (about 95% of them,
+  per Erez), noted `reason assumed (import)` so the scorecard marks it.
+  Whether the sheet's cell colours tell a knockdown from a foul, and can be
+  read, is `tasks/sheet-deduction-colours.md`. A round with no 10 on either
+  side (`9`/`9`: the winner was docked) does not say who won it → reject,
+  until `tasks/questions-2026-11-03.md` answers it.
+- Technical decisions and draws (`TD`, `T`): D22 scores their last round,
+  but the sheet's stopped-round cell holds a time or a marker, and v1 stored
+  it 0–0. Not imported until `tasks/questions-2026-11-03.md` answers it.
 - The exact weight class when only a title line is present and the class
   name inside it does not match a known class or alternate name → reject.
 - Fighters are matched by exact full name after trimming `(c)`; a new name
@@ -69,4 +80,6 @@ fighters by exact name; both may exist and are merged by the user.
 
 v1 first (task 10), then the sheet (task 11): v1 is smaller and structured,
 and exercises the importer before the messy source. Both batches are
-re-runnable; the audit table says which batch wrote which row.
+re-runnable. The audit trail is per batch (counts and rejects); rows are
+not linked to the batch that wrote them, because which source a bout came
+from does not matter (D27).

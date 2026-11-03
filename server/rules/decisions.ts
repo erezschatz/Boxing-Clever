@@ -25,10 +25,12 @@ export type DecisionType =
 // What a decision says about the winner (§5): a side, a draw, or nobody.
 export type WinnerKind = 'side' | 'draw' | 'none';
 
-// What a decision says about the card's shape (§4, D20): every scheduled round
-// scored ("distance"), stopped in the result round ("stoppage"), or either
-// ("either": a no-contest can be a stoppage or an overturned distance fight).
-export type Ending = 'distance' | 'stoppage' | 'either';
+// What a decision says about the card's shape (§4, D20, D22): every scheduled
+// round scored ("distance"); stopped in the result round, which is 0–0
+// ("stoppage"); stopped and sent to the scorecards, so the result round is
+// scored like any other ("cards"); or a no-contest, which can be a stoppage
+// or an overturned distance fight ("either").
+export type Ending = 'distance' | 'stoppage' | 'cards' | 'either';
 
 type Decision = { label: string; winner: WinnerKind; ending: Ending; ko: boolean };
 
@@ -40,11 +42,11 @@ const DECISIONS: Record<DecisionType, Decision> = {
   KO: { label: 'Knockout', winner: 'side', ending: 'stoppage', ko: true },
   TKO: { label: 'Technical Knockout', winner: 'side', ending: 'stoppage', ko: true },
   RTD: { label: 'Corner Retirement', winner: 'side', ending: 'stoppage', ko: true },
-  TD: { label: 'Technical Decision', winner: 'side', ending: 'stoppage', ko: false },
+  TD: { label: 'Technical Decision', winner: 'side', ending: 'cards', ko: false },
   DQ: { label: 'Disqualification', winner: 'side', ending: 'stoppage', ko: false },
   NC: { label: 'No Contest', winner: 'none', ending: 'either', ko: false },
   MT: { label: 'Majority Draw', winner: 'draw', ending: 'distance', ko: false },
-  T: { label: 'Technical Draw', winner: 'draw', ending: 'stoppage', ko: false },
+  T: { label: 'Technical Draw', winner: 'draw', ending: 'cards', ko: false },
   D: { label: 'Draw', winner: 'draw', ending: 'distance', ko: false },
 };
 

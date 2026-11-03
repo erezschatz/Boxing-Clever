@@ -213,10 +213,9 @@ Deno.test('a stoppage needs the round it ended in, within the schedule', () => {
   // without the round, the 0–0 round cannot be told from a mis-scored one either
   assertEquals(broken({ ...c, result: result('TKO', 'A') }).includes('result-round'), true);
   assertEquals(broken({ ...c, result: result('TKO', 'A', 13) }).includes('result-round'), true);
-  for (const code of ['KO', 'TKO', 'RTD', 'TD', 'DQ'] as const) {
+  for (const code of ['KO', 'TKO', 'RTD', 'DQ'] as const) {
     deepStrictEqual(broken({ ...c, result: result(code, 'B', 2) }), [], code);
   }
-  deepStrictEqual(broken({ ...c, result: result('T', 'draw', 2) }), [], 'a technical draw');
   // a stoppage in the last scheduled round is still a stoppage
   const last = card({
     scheduled_rounds: 3,
@@ -225,6 +224,41 @@ Deno.test('a stoppage needs the round it ended in, within the schedule', () => {
     is_draft: false,
   });
   deepStrictEqual(broken(last), []);
+});
+
+Deno.test('a technical decision or draw scores the round it ended in (D22)', () => {
+  // Stopped in round 5 on a cut, then to the cards: the judges scored round 5.
+  const td = card({
+    rounds: [r(1, 10, 9), r(2, 9, 10), r(3, 10, 9), r(4, 10, 9), r(5, 10, 9)],
+    result: result('TD', 'A', 5, '1:12'),
+    is_draft: false,
+  });
+  deepStrictEqual(broken(td), []);
+  deepStrictEqual(
+    broken({ ...td, rounds: [...td.rounds.slice(0, 4), r(5, 10, 10)] }),
+    [],
+    'ended at once: 10–10',
+  );
+  deepStrictEqual(
+    broken({ ...td, result: result('T', 'draw', 5) }),
+    [],
+    'a technical draw too',
+  );
+  deepStrictEqual(
+    broken({ ...td, rounds: [...td.rounds.slice(0, 4), r(5, 0, 0)] }),
+    ['points'],
+    'never 0–0',
+  );
+  deepStrictEqual(broken({ ...td, rounds: [...td.rounds, r(6, 10, 9)] }), ['after-stoppage']);
+  deepStrictEqual(broken({ ...td, rounds: td.rounds.slice(0, 3) }), ['no-gaps']);
+  assertEquals(broken({ ...td, result: result('TD', 'A') }).includes('result-round'), true);
+  deepStrictEqual(broken(card({ result: result('TD', 'B'), is_draft: false })), [], 'unscored');
+
+  // the technical draw is held to the same shape
+  const t = { ...td, result: result('T', 'draw', 5) };
+  deepStrictEqual(broken({ ...t, rounds: [...td.rounds.slice(0, 4), r(5, 0, 0)] }), ['points']);
+  deepStrictEqual(broken({ ...t, rounds: [...td.rounds, r(6, 10, 9)] }), ['after-stoppage']);
+  assertEquals(broken({ ...t, result: result('T', 'draw') }).includes('result-round'), true);
 });
 
 Deno.test('a no-contest may be stopped or go the distance (D20)', () => {

@@ -95,10 +95,12 @@ export function validateCard(card: Card): CardProblem[] {
   if (!result && !card.is_draft) problem('finalise', 'a finalised bout needs a result');
   const code = result && isDecisionType(result.decision_type) ? result.decision_type : null;
 
-  // §4: the stoppage round is 0–0; every round before it is scored normally.
-  const stoppageRound = result && code ? stoppedIn(card, result) : null;
+  // §4: the card ends in the result round when the bout was stopped. After a
+  // stoppage that round is 0–0; after a technical decision or draw it went to
+  // the cards and is scored like the others (D22). Every other round is scored.
+  const end = result && code ? cardEnd(card, result) : null;
   for (const round of card.rounds) {
-    if (round.round_no === stoppageRound) {
+    if (end?.zero && round.round_no === end.round) {
       if (round.a !== 0 || round.b !== 0) {
         problem('stoppage-round', `round ${round.round_no} is the stoppage round and must be 0–0`);
       }
@@ -106,18 +108,19 @@ export function validateCard(card: Card): CardProblem[] {
       problem('points', `round ${round.round_no} must be 10–9, 9–10 or 10–10`);
     }
   }
-  if (stoppageRound && last > stoppageRound) {
-    problem('after-stoppage', `stopped in round ${stoppageRound}, but ${last} rounds are recorded`);
+  if (end && last > end.round) {
+    problem('after-stoppage', `stopped in round ${end.round}, but ${last} rounds are recorded`);
   }
-  if (stoppageRound && scored && last < stoppageRound) {
+  if (end && scored && last < end.round) {
     problem(
       'no-gaps',
-      `stopped in round ${stoppageRound}: rounds ${last + 1}–${stoppageRound} are missing`,
+      `stopped in round ${end.round}: rounds ${last + 1}–${end.round} are missing`,
     );
   }
 
   // A points decision, or a no-contest that was not stopped, goes the distance.
-  if (code && !stoppageRound && ending(code) !== 'stoppage' && scored) {
+  const kind = code && ending(code);
+  if (!end && (kind === 'distance' || kind === 'either') && scored) {
     if (last !== card.scheduled_rounds) {
       problem('distance', `a ${code} goes the distance: score all ${card.scheduled_rounds} rounds`);
     }
@@ -145,20 +148,27 @@ function isScoredRound({ a, b }: CardRound): boolean {
   return (a === 10 && b === 9) || (a === 9 && b === 10) || (a === 10 && b === 10);
 }
 
-// The round the card stops in, or null when the result went the distance.
-// A no-contest is a stoppage when it ended before the last scheduled round,
-// or in it with that round's row at 0–0; otherwise it went the distance (D20).
-function stoppedIn(card: Card, result: Result): number | null {
+// The round the card ends in, and whether it is a 0–0 stoppage round; null
+// when the result went the distance. A no-contest is a stoppage when it ended
+// before the last scheduled round, or in it with that round's row at 0–0;
+// otherwise it went the distance (D20).
+function cardEnd(card: Card, result: Result): { round: number; zero: boolean } | null {
   if (!isDecisionType(result.decision_type) || result.round === null) return null;
   if (!isWholeIn(result.round, 1, card.scheduled_rounds)) return null; // reported by checkResult
-  const kind = ending(result.decision_type);
-  if (kind === 'stoppage') return result.round;
-  if (kind === 'either') {
-    if (result.round < card.scheduled_rounds) return result.round;
-    const row = card.rounds.find((r) => r.round_no === result.round);
-    if (row && row.a === 0 && row.b === 0) return result.round;
+  const round = result.round;
+  switch (ending(result.decision_type)) {
+    case 'stoppage':
+      return { round, zero: true };
+    case 'cards':
+      return { round, zero: false };
+    case 'either': {
+      if (round < card.scheduled_rounds) return { round, zero: true };
+      const row = card.rounds.find((r) => r.round_no === round);
+      return row && row.a === 0 && row.b === 0 ? { round, zero: true } : null;
+    }
+    case 'distance':
+      return null;
   }
-  return null;
 }
 
 function checkResult(
@@ -177,7 +187,7 @@ function checkResult(
   const kind = ending(code);
   if (result.round === null) {
     // On an unscored card there is no stoppage round to place (D20).
-    if (kind === 'stoppage' && card.rounds.length > 0) {
+    if ((kind === 'stoppage' || kind === 'cards') && card.rounds.length > 0) {
       problem('result-round', `a ${code} needs the round it ended in`);
     }
   } else if (!isWholeIn(result.round, 1, card.scheduled_rounds)) {

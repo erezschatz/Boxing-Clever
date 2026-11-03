@@ -118,7 +118,7 @@ none. All ids are `INTEGER PRIMARY KEY`.
 | `fighter` | first/last name, nickname, colors, weight + unit, **current** record (won, lost, draws, nc, kos) | the record is derived data that is stored: updated transactionally on finalise, recomputable by `scripts/recompute-records.ts` |
 | `fighter_alias` | fighter_id, alias text | names as TBRB and the sheet spell them; merge keeps aliases; an alias names one fighter (D19) |
 | `event` | date, location | |
-| `bout` | event_id, card_order, weight_class_id, scheduled_rounds, fighter_a_id, fighter_b_id, **corner_a** (`red`/`blue`, null when not recorded), a/b **as-of snapshot** (record ×5, weight, unit, colors, tbrb_rank), result (decision_type, winner `A`/`B`/`draw`/`none`, round, time), judges ×3 ×2, is_draft | the snapshot is what v1's Mongo document was for and is kept on purpose (D4); its columns are `a_won` … `a_tbrb_rank`, `b_won` …, null until first save; result columns `decision_type`, `winner`, `result_round`, `result_time`; judges `judge1_a` … `judge3_b` |
+| `bout` | event_id, card_order, weight_class_id, scheduled_rounds, fighter_a_id, fighter_b_id, **corner_a** (`red`/`blue`, null when not recorded), a/b **as-of snapshot** (record ×5, weight, unit, colors, tbrb_rank), result (decision_type, winner `A`/`B`/`draw`/`none`, round, time), judges ×3 ×2, is_draft. *Pending D26: a contracted weight instead of a class, and a missed-weight mark per side* | the snapshot is what v1's Mongo document was for and is kept on purpose (D4); its columns are `a_won` … `a_tbrb_rank`, `b_won` …, null until first save; result columns `decision_type`, `winner`, `result_round`, `result_time`; judges `judge1_a` … `judge3_b` |
 | `round_score` | bout_id, round_no, side, points | one row per fighter per round actually scored; the stoppage round has points `0` (see Scoring) |
 | `deduction` | bout_id, round_no, side, points, reason | reasons: knockdown, low blow, holding, headbutt, other — a free text alongside |
 | `title` | sanctioning_body, area, weight_class_id, status | unique on the four |
@@ -153,8 +153,10 @@ origin; the three stoppage defects there are fixed by construction here.
    `RTD` `TD` `DQ` `NC` `MT` `T` (majority/technical draw) `D` (draw).
    Winner is a side for the first group and for KO/TKO/RTD/TD/DQ; `draw` for
    MT/T/D; `none` for NC. The wire carries the code, never a display label.
-   Which card shape each code implies (D20): `KO` `TKO` `RTD` `TD` `DQ` `T`
-   end in a stoppage round (§4) and need the result round; `UD` `MD` `SD`
+   Which card shape each code implies (D20, D22): `KO` `TKO` `RTD` `DQ` end
+   in a stoppage round (§4) and need the result round; `TD` and `T` were
+   stopped and went to the cards, so they need the result round too but
+   score it like any other round, and nothing comes after it; `UD` `MD` `SD`
    `DEC` `MT` `D` go the distance, every scheduled round scored; `NC` is a
    stoppage when it ended before the last scheduled round (or in it, at
    0–0), and went the distance otherwise. A card with no rounds at all
@@ -168,7 +170,9 @@ origin; the three stoppage defects there are fixed by construction here.
    applies the new in one transaction.
 7. **As-of snapshot.** On finalise (and on first save as draft) the bout
    stores both fighters' record, weight, colors and TBRB rank as they stand.
-   The snapshot never changes afterwards; the fighter row does.
+   The snapshot never changes afterwards; the fighter row does. The one
+   exception is the TBRB rank, which is re-derived when TBRB history is
+   back-filled (D25).
 
 ## API
 
@@ -187,7 +191,7 @@ list endpoint returns an array; every single endpoint the object.
 | GET/PATCH/DELETE | `/api/events/:id` | delete refuses if any bout is finalised |
 | GET | `/api/events/:id/bouts` | ordered by card_order |
 | POST | `/api/bouts` | |
-| GET/PATCH/DELETE | `/api/bouts/:id` | PATCH covers corners, titles with holder side, scheduled rounds |
+| GET/PATCH/DELETE | `/api/bouts/:id` | PATCH covers corners, titles with holder side, scheduled rounds. DELETE of a finalised bout needs `?records=reverse` (both records lose the result, in the same transaction) or `?records=keep`, else `409`; it never deletes the event, not even its last bout (D23) |
 | PUT | `/api/bouts/:id/card` | the whole scorecard: rounds, deductions, result, judges, is_draft; validated by the rules; finalise = `is_draft:false` with a result |
 | GET/POST | `/api/titles` | |
 | GET | `/api/tbrb/current` | latest snapshot, grouped by weight class |
@@ -201,7 +205,11 @@ lit-html templates, a hand-written `Component` base of ~40 lines (observe a
 store, re-render on change, `ref()` for focus), and a URL router. Pages:
 
 - `/` events list (newest first, collapsible by year as in v1)
-- `/events/:id` the card: bouts in order, add/edit bout, corners, titles
+- `/events/:id` the card: bouts in order, add/edit bout, corners, titles.
+  Deleting a bout is always confirmed. A finalised bout takes two dialogs
+  (D23): "this is a finalised fight, are you sure?", then one showing what
+  both fighters' records will become, with *delete and reset the records*,
+  *delete and keep the records*, and *cancel* (back to the fight).
 - `/bouts/:id` **the scorecard** — the heart of the app. Two columns
   (A left, B right), per round: points · deductions · total; grand totals;
   focus moves down the card as rounds are entered; deductions open a small
@@ -246,7 +254,7 @@ Three tiers, all run by `deno test`, all green before a step is done:
 2. **HTTP contract** — one test per endpoint via `app.request()` against an
    in-memory database: status, shape, 404 and 400 behaviour.
 3. **State across requests** — what a sequence leaves behind: snapshot taken
-   on first save and unchanged after; record moves once on finalise and not
+   on first save and unchanged after (the TBRB rank excepted, D25); record moves once on finalise and not
    again; result edit reverses and re-applies; merge repoints bouts, aliases
    and TBRB rows or nothing at all; importer rejects a bad row without
    losing the batch.

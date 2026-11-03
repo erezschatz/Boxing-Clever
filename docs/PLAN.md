@@ -34,6 +34,14 @@ what keeps it from dropping out between them.
 | 14 | [Deploy and retire v1](../tasks/14-deploy.md) — mounted in Atrium, data cut over, v1 read-only |
 | 15 | [Live use and fixes](../tasks/15-live-use.md) — a month of fights on the new app |
 
+Out-of-order work that a decision placed in the sequence:
+
+- [Guarded bout delete](../tasks/guarded-bout-delete.md) (D23) — its API with 04, its dialogs with 08.
+- [Contracted weight and missed weight](../tasks/contracted-weight-and-missed-weight.md) (D26) — before 10.
+- [Open questions, 2026-11-03](../tasks/questions-2026-11-03.md) — the TD/T and 9/9 import answers before 10–11; the rest before the step each names.
+- [Which TBRB list counts](../tasks/tbrb-rank-across-classes.md) — before 12.
+- [The sheet's colours](../tasks/sheet-deduction-colours.md) — before 11.
+
 ## Milestones
 
 - **After 05:** the data model is proven. A bout can be created, scored,

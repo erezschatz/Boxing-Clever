@@ -14,6 +14,15 @@ runs.
 record counting a fight that is no longer there.
 
 **Acceptance.**
-- [ ] SPEC states what `DELETE /api/bouts/:id` does with a finalised bout: refuse, or reverse the record in the same transaction; the choice is a DECISIONS entry
-- [ ] A tier-3 test states it
-- [ ] Settled before or within task 04 (bouts API) or task 05 (finalise)
+- [x] SPEC states what `DELETE /api/bouts/:id` does with a finalised bout: ~~refuse, or reverse the record in the same transaction~~ — *answered 2026-11-03 by D23*: the user chooses reverse or keep, after two confirmations
+- [x] ~~A tier-3 test states it~~ — moved to `tasks/guarded-bout-delete.md`
+- [x] ~~Settled before or within task 04 (bouts API) or task 05 (finalise)~~ — settled by D23 before task 04
+
+## What was done
+
+2026-11-03. Answered by Erez and recorded as D23, which supersedes this
+task's promise: a finalised bout can be deleted with its result kept in
+the records, because the user may choose that. SPEC *API* and *Front end*
+state the flow. The building and its tests continue in
+`tasks/guarded-bout-delete.md`; this task closes here.
+

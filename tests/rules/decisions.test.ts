@@ -56,11 +56,12 @@ Deno.test('§5: the label comes from the code', () => {
   assertEquals(new Set(labels).size, labels.length, 'every code has its own label');
 });
 
-Deno.test('§4, D20: which decisions end in a stoppage round', () => {
+Deno.test('§4, D20, D22: which decisions end in a stoppage round, and which go to the cards', () => {
   deepStrictEqual(
     DECISION_TYPES.filter((code) => ending(code) === 'stoppage').sort(),
-    ['DQ', 'KO', 'RTD', 'T', 'TD', 'TKO'],
+    ['DQ', 'KO', 'RTD', 'TKO'],
   );
+  deepStrictEqual(DECISION_TYPES.filter((code) => ending(code) === 'cards').sort(), ['T', 'TD']);
   deepStrictEqual(
     DECISION_TYPES.filter((code) => ending(code) === 'distance').sort(),
     ['D', 'DEC', 'MD', 'MT', 'SD', 'UD'],

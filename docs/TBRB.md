@@ -17,10 +17,19 @@ fighter card, their standing now and over time.
 fighter_id?)` — one row per listed name per snapshot. `rank` 0 is the
 champion. A snapshot is the whole list for one class on one date.
 
-The standing "as of" a date is the latest snapshot on or before that date.
-A bout's as-of rank is copied into the bout's snapshot columns at finalise
-(SPEC §7) so it survives later corrections to the snapshot table, and the
-importer fills it for historical bouts from whatever snapshots exist.
+The standing "as of" a date is the last snapshot prior to it, weekly or
+monthly (D25); whether a same-day list counts and whether a list can be too
+old are open in `tasks/questions-2026-11-03.md`, and until then it is "on
+or before, any age". A fighter on that list has its rank
+(0 is champion); a fighter not on it was unranked for that fight. There is
+no "unknown" standing. A bout's as-of rank is copied into the bout's
+snapshot columns at finalise (SPEC §7), and the importer fills it for
+historical bouts from whatever snapshots exist. When the history tool
+(task 13) stores an older snapshot, it re-derives the as-of rank of every
+bout whose date the new snapshot now governs, since those bouts were
+imported before the history existed. Which class's list counts for a
+fighter ranked in another class, or for a bout at a contracted weight, is
+`tasks/tbrb-rank-across-classes.md`.
 
 Names link to fighters only through `fighter_alias` (D14). Unlinked names
 are listed on a small admin page; linking one creates the alias and

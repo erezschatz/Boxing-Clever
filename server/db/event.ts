@@ -1,5 +1,7 @@
-// event: a date and a place. Its bouts go with it on delete (the API refuses
-// the delete first when any bout is finalised, SPEC API).
+// event: a date and a place. Deleting an event is its own act, and its bouts
+// go with it (the API refuses first when any bout is finalised, SPEC API).
+// Deleting bouts never deletes their event, not even the last one: a bout
+// filed under the wrong event is removed and the event stays (D23).
 import type { Database } from './connection.ts';
 
 export type EventFields = { date: string; location: string };
