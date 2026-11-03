@@ -2,25 +2,10 @@
 // and the result. This module covers the card details (SPEC API, PATCH
 // /bouts/:id); taking the snapshot and finalising are task 05.
 import type { Database } from './connection.ts';
-import type { WeightUnit } from './fighter.ts';
+import type { DecisionType, Winner } from '../rules/decisions.ts';
+import type { WeightUnit } from '../rules/weight.ts';
 
-export type Side = 'A' | 'B';
 export type Corner = 'red' | 'blue';
-export type DecisionType =
-  | 'UD'
-  | 'MD'
-  | 'SD'
-  | 'DEC'
-  | 'KO'
-  | 'TKO'
-  | 'RTD'
-  | 'TD'
-  | 'DQ'
-  | 'NC'
-  | 'MT'
-  | 'T'
-  | 'D';
-export type Winner = Side | 'draw' | 'none';
 
 export type BoutFields = {
   event_id: number;

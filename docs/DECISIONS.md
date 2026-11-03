@@ -195,3 +195,48 @@ alias makes that refusal happen once, when the second alias is added,
 instead of on every lookup. Same-name fighters among those watched are rare
 enough to handle by hand.
 
+
+### D20 · 2026-11-03 · Which decisions are stoppages, and what a card may look like
+**Decision:** The rules (`server/rules/decisions.ts`) give each decision code an
+ending. `KO` `TKO` `RTD` `TD` `DQ` `T` are stoppages: the result round is
+required and is the §4 stoppage round (0–0, deductions only), and nothing
+comes after it. This holds whichever round convention is used for an RTD.
+`UD` `MD` `SD` `DEC` `MT` `D` go the distance: every scheduled round is
+scored 10–9, 9–10 or 10–10, and the result round, if given, is the last one.
+`NC` is either, and the card says which: a stoppage when its result round
+is before the last scheduled round, or is the last with a 0–0 row;
+otherwise a fight overturned after going the distance, held to the
+distance shape. A card with no rounds at all is valid with any result,
+including a stoppage whose round is not known, for a bout watched but not
+scored and for v1's unscored bouts re-saved after import. Rounds are a set:
+the order they arrive in does not matter. Nothing checks that the scorecard
+agrees with the decision.
+**Rejected:** Scoring the partial round of a technical decision or draw as
+the judges do (it would make §4 depend on the decision type); requiring
+every finalised bout to carry a full card; one fixed shape for NC.
+**Why:** SPEC §4 states the stoppage rule without naming which results are
+stoppages, and the validator cannot work without knowing. The scorecard is
+the viewer's bookkeeping; the result is carried by the decision (v1
+CLAUDE.md), so an incomplete technical round is recorded the same way as a
+knockout round. The NC cases are both real: an accidental clash early, or a
+win overturned weeks later.
+
+### D21 · 2026-11-03 · The weight port: exact pound, unreadable stone is null
+**Decision:** `server/rules/weight.ts` keeps v1's six functions and their
+contracts: pounds as the pivot, two decimals, "S L O" stone entry and
+display, the same unit names. Two changes: kg converts with the exact
+international pound (0.45359237 kg) instead of v1's 2.20462, and
+`parseStoneLbsOz` returns null for input that is not one to three
+non-negative numbers, where v1 read junk or an empty string as 0. Each
+part is still read with `Number()` as in v1 (so ".5" and "1e1" parse), and
+an unknown unit still passes the weight through, as v1's `default`
+branches did.
+**Rejected:** Porting v1's factor and its silent zero unchanged.
+**Why:** The factor is the same one D17 uses for the weight classes; one
+constant for the app. Compared against v1's own file (2026-11-03: 0–200 in
+0.01 steps through all three units, 90–300 lbs in 0.05 steps back and to
+"S L O", 12 stone strings, 4 unit names; 81,019 calls), the only
+differences are kg conversions, by one cent, in 568 of them. The silent
+zero would let a typo store a fighter at 0 lbs; IMPORT.md requires a weight
+that cannot be parsed to be rejected, which needs "unreadable" to be
+distinguishable from 0.

@@ -2,7 +2,7 @@
 // the stoppage round is points 0 for both sides (SPEC Scoring §1, §4). Whether
 // a card's rows make sense together is server/rules/, not this module.
 import type { Database } from './connection.ts';
-import type { Side } from './bout.ts';
+import type { Side } from '../rules/decisions.ts';
 
 export type RoundScoreFields = { bout_id: number; round_no: number; side: Side; points: number };
 export type RoundScore = RoundScoreFields & { id: number };

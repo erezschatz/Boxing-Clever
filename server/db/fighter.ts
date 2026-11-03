@@ -1,8 +1,7 @@
 // fighter: who they are, and their current record. The record is stored
 // derived data (D13); it is moved on finalise (task 05), not edited here.
 import type { Database } from './connection.ts';
-
-export type WeightUnit = 'lbs' | 'kg' | 'st';
+import type { WeightUnit } from '../rules/weight.ts';
 
 export type FighterFields = {
   first_name: string;

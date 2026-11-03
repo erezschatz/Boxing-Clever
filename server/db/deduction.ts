@@ -2,9 +2,8 @@
 // and a deduction, never an 8 (SPEC Scoring §1). The database refuses a
 // deduction in a round that has no round_score row for that side.
 import type { Database } from './connection.ts';
-import type { Side } from './bout.ts';
-
-export type DeductionReason = 'knockdown' | 'low blow' | 'holding' | 'headbutt' | 'other';
+import type { Side } from '../rules/decisions.ts';
+import type { DeductionReason } from '../rules/scoring.ts';
 
 export type DeductionFields = {
   bout_id: number;

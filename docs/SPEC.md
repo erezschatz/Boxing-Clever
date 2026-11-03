@@ -94,7 +94,8 @@ browser (lit-html, fetch)  ──►  /api/*  Hono routes (server/api/)
 
 - `server/rules/` is imported by both `server/api/` and `front/` (the browser
   computes running totals with the same functions the server validates with).
-  It has no imports of its own.
+  It imports nothing outside itself (its files may import each other), and
+  a test enforces it.
 - `server/db/` is one module per table (`fighter.ts`, `round-score.ts`, …),
   each exporting plain functions that take a `Database` and parameters;
   `connection.ts` opens the file with foreign keys on. Updates take the
@@ -152,6 +153,14 @@ origin; the three stoppage defects there are fixed by construction here.
    `RTD` `TD` `DQ` `NC` `MT` `T` (majority/technical draw) `D` (draw).
    Winner is a side for the first group and for KO/TKO/RTD/TD/DQ; `draw` for
    MT/T/D; `none` for NC. The wire carries the code, never a display label.
+   Which card shape each code implies (D20): `KO` `TKO` `RTD` `TD` `DQ` `T`
+   end in a stoppage round (§4) and need the result round; `UD` `MD` `SD`
+   `DEC` `MT` `D` go the distance, every scheduled round scored; `NC` is a
+   stoppage when it ended before the last scheduled round (or in it, at
+   0–0), and went the distance otherwise. A card with no rounds at all
+   (watched, not scored) is valid with any result, the round included.
+   Rounds may arrive in any order. The scorecard never has to agree with
+   the decision.
 6. **Record update on finalise**, once and atomically: KO/TKO/RTD → winner
    won+1 kos+1, loser lost+1; other wins → won+1 / lost+1; draws → both
    draws+1; NC → both nc+1. Re-saving a finalised bout does not double count;
