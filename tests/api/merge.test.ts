@@ -4,7 +4,7 @@
 import { deepStrictEqual, strictEqual as assertEquals } from 'node:assert/strict';
 import {
   type Api,
-  finaliseByHand,
+  finalise,
   HEAVYWEIGHT,
   recordOf,
   testApi,
@@ -78,7 +78,7 @@ Deno.test('merge is all or nothing: a failure at the last step leaves everything
   api.db.exec(`CREATE TRIGGER refuse_delete BEFORE DELETE ON fighter
     BEGIN SELECT RAISE(ABORT, 'refused for the test'); END`);
 
-  finaliseByHand(api.db, dupBoutId, { decision_type: 'UD', winner: 'A' }); // so the record moves too
+  await finalise(api, dupBoutId, { decision_type: 'UD', winner: 'A' }); // so the record moves too
   const targetBefore = recordOf(api.db, aId);
 
   const { status } = await api.call('POST', `/api/fighters/${dupId}/merge/${aId}?records=add`);
@@ -96,7 +96,7 @@ Deno.test('merge is all or nothing: a failure at the last step leaves everything
 Deno.test('D31: a merge that moves finalised fights is refused with its preview until approved', async () => {
   const api = testApi();
   const { aId, dupId, dupBoutId } = await withDuplicate(api);
-  finaliseByHand(api.db, dupBoutId, { decision_type: 'UD', winner: 'A' }); // the duplicate won
+  await finalise(api, dupBoutId, { decision_type: 'UD', winner: 'A' }); // the duplicate won
   const targetBefore = recordOf(api.db, aId);
 
   for (const query of ['', '?records=yes']) {
@@ -116,7 +116,7 @@ Deno.test('D31: a merge that moves finalised fights is refused with its preview 
 Deno.test('D31: an approved merge counts the moved results, so a later reverse undoes exactly them', async () => {
   const api = testApi();
   const { aId, dupId, dupBoutId } = await withDuplicate(api);
-  finaliseByHand(api.db, dupBoutId, { decision_type: 'KO', winner: 'A' }); // the duplicate won by KO
+  await finalise(api, dupBoutId, { decision_type: 'KO', winner: 'A' }); // the duplicate won by KO
   const targetBefore = recordOf(api.db, aId); // 21-0, 14 KOs
 
   const merged = await api.call('POST', `/api/fighters/${dupId}/merge/${aId}?records=add`);

@@ -43,3 +43,22 @@ export function listTbrbRowsForFighter(db: Database, fighterId: number): TbrbSna
     'SELECT * FROM tbrb_snapshot WHERE fighter_id = ? ORDER BY snapshot_date, weight_class_id',
   ).all(fighterId) as TbrbSnapshot[];
 }
+
+// A fighter's standing in one class as of a date: their rank on that class's
+// last list on or before it (0 champion), or null when not on it, or when
+// no list is that old (D25; the same-day and age edges are open).
+export function rankAsOf(
+  db: Database,
+  fighterId: number,
+  weightClassId: number,
+  date: string,
+): number | null {
+  const row = db.prepare(
+    `SELECT rank FROM tbrb_snapshot
+     WHERE weight_class_id = :cls AND fighter_id = :fighter AND snapshot_date = (
+       SELECT MAX(snapshot_date) FROM tbrb_snapshot
+       WHERE weight_class_id = :cls AND snapshot_date <= :date
+     )`,
+  ).get({ cls: weightClassId, fighter: fighterId, date });
+  return (row?.rank as number | undefined) ?? null;
+}

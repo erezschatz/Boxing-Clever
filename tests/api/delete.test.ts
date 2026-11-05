@@ -2,7 +2,7 @@
 // moved both records; it is deleted only with the user's choice to reverse
 // them or keep them, and deleting bouts never deletes the event.
 import { deepStrictEqual, strictEqual as assertEquals } from 'node:assert/strict';
-import { finaliseByHand, fury, recordOf, testApi, usyk, usykFury } from '../helpers/api.ts';
+import { finalise, fury, recordOf, testApi, usyk, usykFury } from '../helpers/api.ts';
 import { getBout } from '../../server/db/bout.ts';
 import { getEvent } from '../../server/db/event.ts';
 
@@ -14,7 +14,7 @@ const before = {
 Deno.test('a finalised bout deleted with ?records=reverse moves both records back exactly', async () => {
   const api = testApi();
   const { aId, bId, boutId } = await usykFury(api);
-  finaliseByHand(api.db, boutId, { decision_type: 'SD', winner: 'A' });
+  await finalise(api, boutId, { decision_type: 'SD', winner: 'A' });
   deepStrictEqual(recordOf(api.db, aId), { ...before.a, won: 22 });
   deepStrictEqual(recordOf(api.db, bId), { ...before.b, lost: 1 });
 
@@ -41,7 +41,7 @@ Deno.test('reverse undoes a KO with its ko, and a draw on both sides', async () 
   ) {
     const api = testApi();
     const { aId, bId, boutId } = await usykFury(api);
-    finaliseByHand(api.db, boutId, outcome);
+    await finalise(api, boutId, outcome);
     deepStrictEqual(recordOf(api.db, aId), { ...before.a, ...aMoved }, outcome.decision_type);
     await api.call('DELETE', `/api/bouts/${boutId}?records=reverse`);
     deepStrictEqual(recordOf(api.db, aId), before.a, outcome.decision_type);
@@ -52,7 +52,7 @@ Deno.test('reverse undoes a KO with its ko, and a draw on both sides', async () 
 Deno.test('a finalised bout deleted with ?records=keep leaves both records as they are', async () => {
   const api = testApi();
   const { aId, bId, boutId } = await usykFury(api);
-  finaliseByHand(api.db, boutId, { decision_type: 'UD', winner: 'A' });
+  await finalise(api, boutId, { decision_type: 'UD', winner: 'A' });
   const a = recordOf(api.db, aId);
   const b = recordOf(api.db, bId);
   const { status, json } = await api.call('DELETE', `/api/bouts/${boutId}?records=keep`);
@@ -66,7 +66,7 @@ Deno.test('a finalised bout deleted with ?records=keep leaves both records as th
 Deno.test('a finalised bout deleted without a choice is 409 and nothing changes', async () => {
   const api = testApi();
   const { aId, boutId } = await usykFury(api);
-  finaliseByHand(api.db, boutId, { decision_type: 'UD', winner: 'A' });
+  await finalise(api, boutId, { decision_type: 'UD', winner: 'A' });
   const a = recordOf(api.db, aId);
   for (const query of ['', '?records=', '?records=yes']) {
     const { status, json } = await api.call('DELETE', `/api/bouts/${boutId}${query}`);
@@ -97,7 +97,7 @@ Deno.test('a finalised bout deleted without a choice is 409 and nothing changes'
 Deno.test('reverse that would take a record below zero is 409 and nothing changes', async () => {
   const api = testApi();
   const { bId, boutId } = await usykFury(api);
-  finaliseByHand(api.db, boutId, { decision_type: 'UD', winner: 'A' });
+  await finalise(api, boutId, { decision_type: 'UD', winner: 'A' });
   // The loss was corrected away by hand after finalise (D28).
   await api.call('PATCH', `/api/fighters/${bId}`, { lost: 0 });
   const refused = await api.call('DELETE', `/api/bouts/${boutId}?records=reverse`);
@@ -112,7 +112,7 @@ Deno.test("deleting an event's last bout leaves the event, draft or finalised", 
   for (const finalised of [false, true]) {
     const api = testApi();
     const { eventId, boutId } = await usykFury(api);
-    if (finalised) finaliseByHand(api.db, boutId, { decision_type: 'UD', winner: 'A' });
+    if (finalised) await finalise(api, boutId, { decision_type: 'UD', winner: 'A' });
     const res = await api.call('DELETE', `/api/bouts/${boutId}?records=reverse`);
     assertEquals(res.status, finalised ? 200 : 204); // a draft touches no record
     assertEquals(getEvent(api.db, eventId)?.id, eventId);
@@ -130,7 +130,7 @@ Deno.test('an event with a finalised bout cannot be deleted: 409, event and bout
     fighter_a_id: bId,
     fighter_b_id: aId,
   });
-  finaliseByHand(api.db, boutId, { decision_type: 'UD', winner: 'A' });
+  await finalise(api, boutId, { decision_type: 'UD', winner: 'A' });
   const { status, json } = await api.call('DELETE', `/api/events/${eventId}`);
   assertEquals(status, 409);
   assertEquals(typeof json.error, 'string');
@@ -142,7 +142,7 @@ Deno.test('an event with a finalised bout cannot be deleted: 409, event and bout
 Deno.test('a finalised bout keeps its fighters: PATCHing them is 409, other fields still change', async () => {
   const api = testApi();
   const { aId, bId, boutId } = await usykFury(api);
-  finaliseByHand(api.db, boutId, { decision_type: 'UD', winner: 'A' });
+  await finalise(api, boutId, { decision_type: 'UD', winner: 'A' });
   const swap = await api.call('PATCH', `/api/bouts/${boutId}`, {
     fighter_a_id: bId,
     fighter_b_id: aId,

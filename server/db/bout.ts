@@ -144,3 +144,60 @@ export function countFinalisedBouts(db: Database, eventId: number): number {
     .get(eventId);
   return row?.n as number;
 }
+
+// One fighter's side of the as-of snapshot (SPEC §7): their record, weight,
+// colors and TBRB rank on the night.
+export type SideSnapshot = {
+  won: number;
+  lost: number;
+  draws: number;
+  nc: number;
+  kos: number;
+  weight: number | null;
+  weight_unit: WeightUnit | null;
+  colors: string | null;
+  tbrb_rank: number | null;
+};
+
+// One side's snapshot, taken once (at the first save of the card, inside its
+// transaction). One side at a time, so retaking a replaced fighter's side
+// never touches the other (D32). The caller decides when; this only writes.
+export function setSideSnapshot(db: Database, id: number, side: 'a' | 'b', s: SideSnapshot) {
+  const sql = side === 'a'
+    ? `UPDATE bout SET a_won = :won, a_lost = :lost, a_draws = :draws, a_nc = :nc, a_kos = :kos,
+         a_weight = :weight, a_weight_unit = :weight_unit, a_colors = :colors,
+         a_tbrb_rank = :tbrb_rank
+       WHERE id = :id`
+    : `UPDATE bout SET b_won = :won, b_lost = :lost, b_draws = :draws, b_nc = :nc, b_kos = :kos,
+         b_weight = :weight, b_weight_unit = :weight_unit, b_colors = :colors,
+         b_tbrb_rank = :tbrb_rank
+       WHERE id = :id`;
+  return db.prepare(sql).run({ ...s, id }).changes > 0;
+}
+
+// A draft whose fighter was replaced holds a snapshot of the wrong person;
+// clearing it lets the next save take the right one (D32).
+export function clearSnapshot(db: Database, id: number, side: 'a' | 'b'): boolean {
+  const sql = side === 'a'
+    ? `UPDATE bout SET a_won = NULL, a_lost = NULL, a_draws = NULL, a_nc = NULL, a_kos = NULL,
+         a_weight = NULL, a_weight_unit = NULL, a_colors = NULL, a_tbrb_rank = NULL
+       WHERE id = ?`
+    : `UPDATE bout SET b_won = NULL, b_lost = NULL, b_draws = NULL, b_nc = NULL, b_kos = NULL,
+         b_weight = NULL, b_weight_unit = NULL, b_colors = NULL, b_tbrb_rank = NULL
+       WHERE id = ?`;
+  return db.prepare(sql).run(id).changes > 0;
+}
+
+// The three ring-side cards, each side's total or null when not known.
+export type Judges = [JudgeCard, JudgeCard, JudgeCard];
+export type JudgeCard = { a: number | null; b: number | null };
+
+export function setJudges(db: Database, id: number, judges: Judges): boolean {
+  const [j1, j2, j3] = judges;
+  const { changes } = db.prepare(
+    `UPDATE bout SET judge1_a = :j1a, judge1_b = :j1b, judge2_a = :j2a, judge2_b = :j2b,
+       judge3_a = :j3a, judge3_b = :j3b
+     WHERE id = :id`,
+  ).run({ j1a: j1.a, j1b: j1.b, j2a: j2.a, j2b: j2.b, j3a: j3.a, j3b: j3.b, id });
+  return changes > 0;
+}

@@ -6,13 +6,15 @@ import { z } from 'zod';
 import { type Database, transaction } from '../db/connection.ts';
 import {
   type BoutFields,
+  clearSnapshot,
   deleteBout,
   getBout,
   insertBout,
   nextCardOrder,
   updateBout,
 } from '../db/bout.ts';
-import { deleteBoutTitles, insertBoutTitle, listBoutTitles } from '../db/bout-title.ts';
+import { deleteBoutTitles, insertBoutTitle } from '../db/bout-title.ts';
+import { boutView, readCard } from './card.ts';
 import { type Fighter, getFighter, setFighterRecord } from '../db/fighter.ts';
 import {
   applyDelta,
@@ -21,7 +23,7 @@ import {
   recordDelta,
   reverseDelta,
 } from '../rules/records.ts';
-import { MAX_ROUNDS } from '../rules/scoring.ts';
+import { MAX_ROUNDS, validateCard } from '../rules/scoring.ts';
 import { conflict, type GetDb, notFound, pathId, readBody } from './http.ts';
 
 const rowId = z.int().positive();
@@ -62,14 +64,6 @@ const boutPatchSchema = z.strictObject(fields).partial();
 
 type TitleOnTheLine = z.infer<typeof titlesSchema>[number];
 
-// A bout as the API shows it: the row, with its titles beside it.
-function boutJson(db: Database, boutId: number) {
-  const bout = getBout(db, boutId)!;
-  const titles = listBoutTitles(db, boutId)
-    .map(({ title_id, holder_side }) => ({ title_id, holder_side }));
-  return { ...bout, titles };
-}
-
 function replaceTitles(db: Database, boutId: number, titles: TitleOnTheLine[]) {
   deleteBoutTitles(db, boutId);
   for (const t of titles) insertBoutTitle(db, { bout_id: boutId, ...t });
@@ -109,13 +103,13 @@ export function boutRoutes(db: GetDb): Hono {
       replaceTitles(db(), newId, titles);
       return newId;
     });
-    return c.json(boutJson(db(), boutId), 201);
+    return c.json(boutView(db(), boutId), 201);
   });
 
   routes.get('/:id', (c) => {
     const boutId = pathId(c);
     if (!boutId || !getBout(db(), boutId)) return notFound(c, 'bout');
-    return c.json(boutJson(db(), boutId));
+    return c.json(boutView(db(), boutId));
   });
 
   // Fields not sent keep their value; `titles`, when sent, is the whole list.
@@ -135,11 +129,28 @@ export function boutRoutes(db: GetDb): Hono {
     if (bout.is_draft === 0 && fightersChanged) {
       return conflict(c, 'the bout is finalised; its fighters cannot change');
     }
+    // The card already saved must still hold under the new schedule (SPEC
+    // Scoring §4: no round beyond it; a distance decision scores them all).
+    if (merged.scheduled_rounds !== bout.scheduled_rounds) {
+      const { rounds, deductions, result, is_draft } = readCard(db(), bout);
+      const problems = validateCard({
+        scheduled_rounds: merged.scheduled_rounds,
+        rounds,
+        deductions,
+        result,
+        is_draft,
+      });
+      if (problems.length > 0) return c.json({ error: 'invalid card', problems }, 400);
+    }
     transaction(db(), () => {
       updateBout(db(), boutId, merged);
       if (titles) replaceTitles(db(), boutId, titles);
+      // A draft's snapshot is of the fighter it was taken from; a new fighter
+      // gets theirs at the next save (D32).
+      if (merged.fighter_a_id !== bout.fighter_a_id) clearSnapshot(db(), boutId, 'a');
+      if (merged.fighter_b_id !== bout.fighter_b_id) clearSnapshot(db(), boutId, 'b');
     });
-    return c.json(boutJson(db(), boutId));
+    return c.json(boutView(db(), boutId));
   });
 
   // D23: a draft goes on request (204; no record is touched). A finalised

@@ -443,3 +443,42 @@ open: "make it explicit, tell me what happened, and ask me to approve it",
 the opposite of the delete's "this will reset X's record to 20-0". The
 server computes both previews, so the dialogs in task 08 show what the API
 will do instead of working it out themselves.
+
+### D32 · 2026-11-05 · The scorecard save: when the snapshot is taken, and three edges
+**Decision:** `PUT /api/bouts/:id/card` writes the whole card in one
+transaction. The first save of any kind, draft or final, takes the as-of
+snapshot (SPEC §7), before this bout's result is counted, and later saves
+never change it. Then:
+- **TBRB rank, interim.** The snapshot's rank is the fighter's rank on the
+  last list of the *bout's own class* on or before the event date (D25),
+  and null when not on it. Which class's list should count is still Erez's
+  question (`tasks/tbrb-rank-across-classes.md`), and a bout at a
+  contracted weight (D26) will need an answer from it.
+- **A draft's fighter replaced.** If `PATCH` puts another fighter in a
+  draft bout, that side's snapshot is cleared and taken again at the next
+  save. The other side keeps the snapshot it has, because each side is
+  written on its own. A finalised bout's fighters cannot change (D30).
+- **A finalised bout with no snapshot.** The imports (tasks 10–11) will
+  leave bouts like this, already counted in both records. They are
+  snapshotted with their own result taken off first, so the snapshot is
+  still the record before the fight.
+- **Back to draft.** Saving a finalised bout as a draft takes its result
+  off both records (`recordChange(before, null)`, task 03). A change that
+  would take a hand-corrected record (D28) below zero is `409`, as in the
+  guarded delete.
+- **The schedule.** `PATCH` of `scheduled_rounds` re-checks the saved card
+  against the new schedule with the rules, and is `400` with the problems
+  if the card no longer fits.
+The card goes over the wire in one shape: `{rounds, deductions, result,
+judges, is_draft}`. `GET` answers it as `card` with a read-only `totals`
+computed by the rules, so a client can GET, edit and PUT back.
+**Rejected:** v1's re-snapshot on every save (after finalise it captured
+the record with this fight already counted). Keeping a snapshot of a
+fighter who is no longer in the bout. Refusing a finalised bout's return
+to draft. A rank from the fighter's best class (that is the open question,
+not an interim).
+**Why:** SPEC §7 wants the fighters as they stood on the night, and §6
+wants the result counted once. The snapshot has to come before the count,
+and only once. A snapshot of a replaced fighter is not "as of" anyone in
+the fight. The bout's class is the one list a bout always has today, so
+it is the least surprising interim until Erez answers.

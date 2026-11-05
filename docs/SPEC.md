@@ -175,11 +175,15 @@ origin; the three stoppage defects there are fixed by construction here.
    draws+1; NC → both nc+1. Re-saving a finalised bout does not double count;
    editing the result of a finalised bout reverses the old increment and
    applies the new in one transaction.
-7. **As-of snapshot.** On finalise (and on first save as draft) the bout
-   stores both fighters' record, weight, colors and TBRB rank as they stand.
-   The snapshot never changes afterwards; the fighter row does. The one
-   exception is the TBRB rank, which is re-derived when TBRB history is
-   back-filled (D25).
+7. **As-of snapshot.** The first save of the card, draft or final, stores
+   both fighters' record, weight, colors and TBRB rank as they stand,
+   before this bout's result is counted. The snapshot never changes
+   afterwards; the fighter row does. The exceptions: the TBRB rank, which
+   is re-derived when TBRB history is back-filled (D25), and a draft whose
+   fighter is replaced, whose side is cleared and taken again at the next
+   save (D32). A bout already finalised and counted without a snapshot (an
+   import) is snapshotted with its own result taken off. The rank is read
+   from the bout's own class for now (D32).
 
 ## API
 
@@ -206,8 +210,8 @@ did, and its `409` carries a `preview` of what each choice would do (D31).
 | GET/PATCH/DELETE | `/api/events/:id` | delete refuses (`409`) if any bout is finalised; otherwise its bouts go with it |
 | GET | `/api/events/:id/bouts` | ordered by card_order |
 | POST | `/api/bouts` | `card_order` left out puts the bout last on its card; `titles` is `[{title_id, holder_side}]`. A bout is answered as its row with `titles` beside it |
-| GET/PATCH/DELETE | `/api/bouts/:id` | PATCH covers corners, titles with holder side (the list sent replaces the old one), scheduled rounds; a finalised bout's fighters cannot change (`409`, D30). DELETE of a finalised bout needs `?records=reverse` (both records lose the result, in the same transaction) or `?records=keep`, else `409` with a preview of both records before and after a reverse; a reverse that would go below zero is `409` too. Answers `200` with the choice made and both records before and after (D31); a draft's delete is `204`. It never deletes the event, not even its last bout (D23) |
-| PUT | `/api/bouts/:id/card` | the whole scorecard: rounds, deductions, result, judges, is_draft; validated by the rules; finalise = `is_draft:false` with a result |
+| GET/PATCH/DELETE | `/api/bouts/:id` | GET (and every write that answers a bout) gives the row with its snapshot and result, `titles`, and `card` in PUT's shape plus read-only `totals` (`{rounds: [{round_no, a, b}], a, b}`, from the rules). PATCH covers corners, titles with holder side (the list sent replaces the old one), scheduled rounds (re-checked against the saved card, `400` if it no longer fits); a finalised bout's fighters cannot change (`409`, D30). DELETE of a finalised bout needs `?records=reverse` (both records lose the result, in the same transaction) or `?records=keep`, else `409` with a preview of both records before and after a reverse; a reverse that would go below zero is `409` too. Answers `200` with the choice made and both records before and after (D31); a draft's delete is `204`. It never deletes the event, not even its last bout (D23) |
+| PUT | `/api/bouts/:id/card` | the whole scorecard, `{rounds: [{round_no, a, b}], deductions: [{round_no, side, points, reason, note}], result: {decision_type, winner, round, time} \| null, judges: [{a, b}] ×3, is_draft}`; `deductions` (none), `judges` (all null) and a deduction's `note` (null) may be left out. Validated by the rules (`400 {error, problems}`), then written in one transaction with the snapshot (§7) and the record change (§6); finalise = `is_draft:false` with a result. A change that would take a record below zero is `409` (D32). Answers the bout, as GET does |
 | GET/POST | `/api/titles` | |
 | GET | `/api/tbrb/current` | latest snapshot, grouped by weight class |
 | GET | `/api/tbrb/fighters/:id` | that fighter's rank history |

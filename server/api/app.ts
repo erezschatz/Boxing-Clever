@@ -9,6 +9,7 @@ import { fighterRoutes } from './fighters.ts';
 import { eventRoutes } from './events.ts';
 import { titleRoutes } from './titles.ts';
 import { boutRoutes } from './bouts.ts';
+import { cardRoutes } from './card.ts';
 
 export const VERSION = '2.0.0-draft';
 
@@ -21,6 +22,7 @@ export function createApp(db: GetDb): Hono {
   app.route('/api/events', eventRoutes(db));
   app.route('/api/titles', titleRoutes(db));
   app.route('/api/bouts', boutRoutes(db));
+  app.route('/api/bouts', cardRoutes(db));
 
   // An API path nobody registered is a 404, never the front page (D5).
   app.all('/api/*', (c) => c.json({ error: 'not found' }, 404));

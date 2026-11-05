@@ -3,9 +3,8 @@
 // database through the db modules.
 import { createApp } from '../../server/api/app.ts';
 import type { Database } from '../../server/db/connection.ts';
-import { getBout, setBoutResult } from '../../server/db/bout.ts';
-import { getFighter, setFighterRecord } from '../../server/db/fighter.ts';
-import { applyDelta, type Outcome, recordDelta } from '../../server/rules/records.ts';
+import { getFighter } from '../../server/db/fighter.ts';
+import type { Outcome } from '../../server/rules/records.ts';
 import { testDatabase } from './db.ts';
 
 export type Api = {
@@ -79,19 +78,16 @@ export async function usykFury(api: Api) {
   };
 }
 
-// Stands in for task 05's finalise until PUT /bouts/:id/card exists: the
-// result is set and both records move by the §6 delta, as finalise will do.
-
-export function finaliseByHand(db: Database, boutId: number, outcome: Outcome, round = 12) {
-  setBoutResult(db, boutId, { ...outcome, result_round: round, result_time: null, is_draft: 0 });
-  const bout = getBout(db, boutId)!;
-  const delta = recordDelta(outcome);
-  for (
-    const [fighterId, d] of [[bout.fighter_a_id, delta.a], [bout.fighter_b_id, delta.b]] as const
-  ) {
-    const { won, lost, draws, nc, kos } = getFighter(db, fighterId)!;
-    setFighterRecord(db, fighterId, applyDelta({ won, lost, draws, nc, kos }, d));
-  }
+// Finalises a bout over HTTP with an unscored card, which is valid with any
+// result (D20): the shortest way to a finalised bout whose records moved.
+export async function finalise(api: Api, boutId: number, outcome: Outcome) {
+  const res = await api.call('PUT', `/api/bouts/${boutId}/card`, {
+    rounds: [],
+    result: { ...outcome, round: null, time: null },
+    is_draft: false,
+  });
+  if (res.status !== 200) throw new Error(`finalise: ${res.status} ${JSON.stringify(res.json)}`);
+  return res.json;
 }
 
 export function recordOf(db: Database, fighterId: number) {
