@@ -1,6 +1,6 @@
 // /api/fighters: who they are, their record, their history as witnessed, and
 // merging a duplicate into the fighter it duplicates (SPEC API).
-import { Hono } from 'hono';
+import { type Context, Hono } from 'hono';
 import { z } from 'zod';
 import { transaction } from '../db/connection.ts';
 import {
@@ -12,9 +12,11 @@ import {
   setFighterRecord,
   updateFighter,
 } from '../db/fighter.ts';
-import { repointAliases } from '../db/fighter-alias.ts';
+import { listAliases, repointAliases } from '../db/fighter-alias.ts';
 import { countBoutsBetween, listBoutsForFighter, repointBoutFighter } from '../db/bout.ts';
-import { repointTbrbRows } from '../db/tbrb-snapshot.ts';
+import { listTbrbRowsForFighter, repointTbrbRows } from '../db/tbrb-snapshot.ts';
+import type { Side } from '../rules/decisions.ts';
+import { applyDelta, type FightRecord, resultsAdded } from '../rules/records.ts';
 import { conflict, type GetDb, notFound, pathId, readBody } from './http.ts';
 
 const count = z.int().nonnegative();
@@ -81,6 +83,73 @@ function save(db: GetDb, id: number | null, f: FighterBody): number {
   });
 }
 
+const nameOf = (f: Fighter) => `${f.first_name} ${f.last_name}`;
+const recordOf = (f: Fighter): FightRecord => ({
+  won: f.won,
+  lost: f.lost,
+  draws: f.draws,
+  nc: f.nc,
+  kos: f.kos,
+});
+
+// What merging :id into :targetId does, or why it cannot (D28, D31). The
+// duplicate's own typed-in record is dropped; only the results of its
+// finalised fights travel with those fights.
+type MergePlan =
+  | { ok: false; response: Response }
+  | { ok: true; preview: MergePreview; dupId: number; targetId: number };
+
+type MergePreview = {
+  duplicate: { id: number; name: string; record_dropped: FightRecord };
+  target: { id: number; name: string; before: FightRecord; after: FightRecord };
+  bouts: number;
+  finalised_bouts: number;
+  aliases: number;
+  tbrb_rows: number;
+};
+
+function mergePlan(c: Context, db: GetDb): MergePlan {
+  const dupId = pathId(c);
+  const targetId = pathId(c, 'targetId');
+  const dup = dupId && getFighter(db(), dupId);
+  const target = targetId && getFighter(db(), targetId);
+  if (!dupId || !dup) return { ok: false, response: notFound(c, 'fighter') };
+  if (!targetId || !target) return { ok: false, response: notFound(c, 'target fighter') };
+  if (dupId === targetId) {
+    return {
+      ok: false,
+      response: c.json({ error: 'a fighter cannot be merged into itself' }, 400),
+    };
+  }
+  // The same person cannot have fought themself; two who met are two people.
+  if (countBoutsBetween(db(), dupId, targetId) > 0) {
+    return {
+      ok: false,
+      response: conflict(c, 'these fighters fought each other, so they are not the same fighter'),
+    };
+  }
+  const bouts = listBoutsForFighter(db(), dupId);
+  const finalised = bouts.filter((b) => b.is_draft === 0).map((b) => ({
+    outcome: { decision_type: b.decision_type!, winner: b.winner! }, // set when finalised (D18)
+    side: (b.fighter_a_id === dupId ? 'A' : 'B') as Side,
+  }));
+  const before = recordOf(target);
+  const preview: MergePreview = {
+    duplicate: { id: dup.id, name: nameOf(dup), record_dropped: recordOf(dup) },
+    target: {
+      id: target.id,
+      name: nameOf(target),
+      before,
+      after: applyDelta(before, resultsAdded(finalised)),
+    },
+    bouts: bouts.length,
+    finalised_bouts: finalised.length,
+    aliases: listAliases(db(), dupId).length,
+    tbrb_rows: listTbrbRowsForFighter(db(), dupId).length,
+  };
+  return { ok: true, preview, dupId, targetId };
+}
+
 export function fighterRoutes(db: GetDb): Hono {
   const routes = new Hono();
 
@@ -120,27 +189,36 @@ export function fighterRoutes(db: GetDb): Hono {
     return c.json(listBoutsForFighter(db(), id));
   });
 
-  // :id is the duplicate, :targetId the fighter it duplicates. Bouts, aliases
-  // and TBRB rows move to the target and the duplicate is deleted, all in one
-  // transaction or not at all (SPEC Testing, tier 3). The target keeps its
-  // own record, as in v1 (D28).
+  // :id is the duplicate, :targetId the fighter it duplicates. GET says what
+  // a merge would do; POST does it. Bouts, aliases and TBRB rows move to the
+  // target and the duplicate is deleted, all in one transaction or not at all
+  // (SPEC Testing, tier 3). The duplicate's finalised fights are added to the
+  // target's record, so each is counted once, by its owner, and the
+  // duplicate's typed-in record is dropped. Every merge needs the user's
+  // ?records=add, else 409 with the preview (D31).
+  routes.get('/:id/merge/:targetId', (c) => {
+    const plan = mergePlan(c, db);
+    return plan.ok ? c.json(plan.preview) : plan.response;
+  });
+
   routes.post('/:id/merge/:targetId', (c) => {
-    const id = pathId(c);
-    const targetId = pathId(c, 'targetId');
-    if (!id || !getFighter(db(), id)) return notFound(c, 'fighter');
-    if (!targetId || !getFighter(db(), targetId)) return notFound(c, 'target fighter');
-    if (id === targetId) return c.json({ error: 'a fighter cannot be merged into itself' }, 400);
-    // The same person cannot have fought themself; two who met are two people.
-    if (countBoutsBetween(db(), id, targetId) > 0) {
-      return conflict(c, 'these fighters fought each other, so they are not the same fighter');
+    const plan = mergePlan(c, db);
+    if (!plan.ok) return plan.response;
+    const { preview, dupId, targetId } = plan;
+    if (c.req.query('records') !== 'add') {
+      return c.json({
+        error: 'approve what the merge does to the records with ?records=add',
+        preview,
+      }, 409);
     }
     transaction(db(), () => {
-      repointBoutFighter(db(), id, targetId);
-      repointAliases(db(), id, targetId);
-      repointTbrbRows(db(), id, targetId);
-      deleteFighter(db(), id);
+      repointBoutFighter(db(), dupId, targetId);
+      repointAliases(db(), dupId, targetId);
+      repointTbrbRows(db(), dupId, targetId);
+      setFighterRecord(db(), targetId, preview.target.after);
+      deleteFighter(db(), dupId);
     });
-    return c.json(getFighter(db(), targetId));
+    return c.json(preview); // what was done: the preview, now carried out
   });
 
   return routes;

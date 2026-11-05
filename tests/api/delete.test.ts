@@ -18,7 +18,15 @@ Deno.test('a finalised bout deleted with ?records=reverse moves both records bac
   deepStrictEqual(recordOf(api.db, aId), { ...before.a, won: 22 });
   deepStrictEqual(recordOf(api.db, bId), { ...before.b, lost: 1 });
 
-  assertEquals((await api.call('DELETE', `/api/bouts/${boutId}?records=reverse`)).status, 204);
+  const { status, json } = await api.call('DELETE', `/api/bouts/${boutId}?records=reverse`);
+  assertEquals(status, 200);
+  // It says what it did: both records, before and after.
+  deepStrictEqual(json, {
+    deleted: boutId,
+    records: 'reverse',
+    a: { id: aId, name: 'Oleksandr Usyk', before: { ...before.a, won: 22 }, after: before.a },
+    b: { id: bId, name: 'Tyson Fury', before: { ...before.b, lost: 1 }, after: before.b },
+  });
   assertEquals(getBout(api.db, boutId), undefined);
   deepStrictEqual(recordOf(api.db, aId), before.a);
   deepStrictEqual(recordOf(api.db, bId), before.b);
@@ -47,7 +55,9 @@ Deno.test('a finalised bout deleted with ?records=keep leaves both records as th
   finaliseByHand(api.db, boutId, { decision_type: 'UD', winner: 'A' });
   const a = recordOf(api.db, aId);
   const b = recordOf(api.db, bId);
-  assertEquals((await api.call('DELETE', `/api/bouts/${boutId}?records=keep`)).status, 204);
+  const { status, json } = await api.call('DELETE', `/api/bouts/${boutId}?records=keep`);
+  assertEquals(status, 200);
+  deepStrictEqual([json.records, json.a.after, json.b.after], ['keep', a, b]);
   assertEquals(getBout(api.db, boutId), undefined);
   deepStrictEqual(recordOf(api.db, aId), a);
   deepStrictEqual(recordOf(api.db, bId), b);
@@ -62,6 +72,23 @@ Deno.test('a finalised bout deleted without a choice is 409 and nothing changes'
     const { status, json } = await api.call('DELETE', `/api/bouts/${boutId}${query}`);
     assertEquals(status, 409, query);
     assertEquals(typeof json.error, 'string');
+    // The refusal shows what each choice would do (D31).
+    deepStrictEqual(json.preview, {
+      bout_id: boutId,
+      a: {
+        id: aId,
+        name: 'Oleksandr Usyk',
+        before: { ...before.a, won: 22 },
+        after_reverse: before.a,
+      },
+      b: {
+        id: json.preview.b.id,
+        name: 'Tyson Fury',
+        before: { ...before.b, lost: 1 },
+        after_reverse: before.b,
+      },
+      reverse_possible: true,
+    });
   }
   assertEquals(getBout(api.db, boutId)?.is_draft, 0);
   deepStrictEqual(recordOf(api.db, aId), a);
@@ -73,7 +100,10 @@ Deno.test('reverse that would take a record below zero is 409 and nothing change
   finaliseByHand(api.db, boutId, { decision_type: 'UD', winner: 'A' });
   // The loss was corrected away by hand after finalise (D28).
   await api.call('PATCH', `/api/fighters/${bId}`, { lost: 0 });
-  assertEquals((await api.call('DELETE', `/api/bouts/${boutId}?records=reverse`)).status, 409);
+  const refused = await api.call('DELETE', `/api/bouts/${boutId}?records=reverse`);
+  assertEquals(refused.status, 409);
+  assertEquals(refused.json.preview.reverse_possible, false);
+  assertEquals(refused.json.preview.b.after_reverse.lost, -1);
   assertEquals(getBout(api.db, boutId)?.id, boutId);
   assertEquals(recordOf(api.db, bId).lost, 0);
 });
@@ -84,7 +114,7 @@ Deno.test("deleting an event's last bout leaves the event, draft or finalised", 
     const { eventId, boutId } = await usykFury(api);
     if (finalised) finaliseByHand(api.db, boutId, { decision_type: 'UD', winner: 'A' });
     const res = await api.call('DELETE', `/api/bouts/${boutId}?records=reverse`);
-    assertEquals(res.status, 204);
+    assertEquals(res.status, finalised ? 200 : 204); // a draft touches no record
     assertEquals(getEvent(api.db, eventId)?.id, eventId);
     deepStrictEqual((await api.call('GET', `/api/events/${eventId}/bouts`)).json, []);
   }

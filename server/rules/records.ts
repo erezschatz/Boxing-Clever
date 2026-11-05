@@ -3,7 +3,14 @@
 // transaction, and scripts/recompute-records.ts uses the same arithmetic.
 //
 // Pure: imports nothing outside server/rules/.
-import { countsAsKo, type DecisionType, type Winner, winnerFits, winnerKind } from './decisions.ts';
+import {
+  countsAsKo,
+  type DecisionType,
+  type Side,
+  type Winner,
+  winnerFits,
+  winnerKind,
+} from './decisions.ts';
 
 export type FightRecord = { won: number; lost: number; draws: number; nc: number; kos: number };
 export type RecordDelta = { a: FightRecord; b: FightRecord };
@@ -47,6 +54,21 @@ export function recordChange(before: Outcome | null, after: Outcome | null): Rec
   const undo = before ? reverseDelta(recordDelta(before)) : { a: NONE, b: NONE };
   const apply = after ? recordDelta(after) : { a: NONE, b: NONE };
   return { a: add(undo.a, apply.a), b: add(undo.b, apply.b) };
+}
+
+// What a set of finalised fights added to one fighter's record, each fought
+// on the side given. A merge carries this from the duplicate to the target,
+// so each moved fight is counted in the record of the fighter who now owns it
+// and a later reverse (D23) takes off only what was put on (D31).
+export function resultsAdded(fights: { outcome: Outcome; side: Side }[]): FightRecord {
+  return fights.reduce((sum, { outcome, side }) => {
+    const delta = recordDelta(outcome);
+    return add(sum, side === 'A' ? delta.a : delta.b);
+  }, NONE);
+}
+
+export function isNegative(record: FightRecord): boolean {
+  return Object.values(record).some((n) => n < 0);
 }
 
 export function applyDelta(record: FightRecord, delta: FightRecord): FightRecord {

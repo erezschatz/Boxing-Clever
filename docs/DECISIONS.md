@@ -413,3 +413,33 @@ record increments to newly patched fighters.
 **Why:** The schema is the authority on shapes (D18), so the API reports
 its refusals rather than duplicating them. A strict body catches a client
 sending `record` or `id` and believing it was saved.
+
+### D31 · 2026-11-05 · A merge carries the duplicate's finalised results, shown first and approved (supersedes D28 in part)
+**Decision:** Merging a duplicate into a target adds the results of the
+duplicate's finalised fights to the target's record, so each fight is
+counted once, in the record of the fighter who now owns it. The
+duplicate's own typed-in record is still dropped (D28). Nothing changes
+the record without the user's approval:
+- `GET /api/fighters/:id/merge/:targetId` previews the merge: the target's
+  record before and after, the duplicate's record that is dropped, and how
+  many bouts (finalised among them), aliases and TBRB rows move;
+- `POST` with `?records=add` carries it out. Without that, `409` with the
+  same preview, and nothing changes. Every merge asks, even one that moves
+  no finalised fight, because it still drops the duplicate's record;
+- the answer is the preview, now carried out: what was done.
+The guarded bout delete (D23) works the same way. Its `409` carries a
+preview of both records before and after a reverse, and whether a reverse
+is possible. A finalised delete answers `200` with both records before and
+after (and which choice was made); a draft delete is still `204`, because it
+touches no record. The approval is not tied to the preview the user saw: if
+the duplicate gains a finalised fight between the preview and the POST, the
+POST counts it. For one user at one laptop that window is not real.
+**Rejected:** D28's merge that leaves the target's record alone. A merged
+fight deleted later with `?records=reverse` would take off a result the
+target never counted. Also rejected: summing the two records (D28's
+reason: a double count), and refusing reverse for merged fights.
+**Why:** Erez, 2026-11-05, choosing option 2 from the question D28 left
+open: "make it explicit, tell me what happened, and ask me to approve it",
+the opposite of the delete's "this will reset X's record to 20-0". The
+server computes both previews, so the dialogs in task 08 show what the API
+will do instead of working it out themselves.

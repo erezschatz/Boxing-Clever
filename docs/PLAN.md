@@ -37,6 +37,7 @@ what keeps it from dropping out between them.
 Out-of-order work that a decision placed in the sequence:
 
 - [Guarded bout delete](../tasks/guarded-bout-delete.md) (D23) — its API with 04, its dialogs with 08.
+- [Merge asks before records move](../tasks/merge-asks-before-records-move.md) (D31) — its API with 04, its dialog with 08.
 - [Contracted weight and missed weight](../tasks/contracted-weight-and-missed-weight.md) (D26) — before 10.
 - [Open questions, 2026-11-03](../tasks/questions-2026-11-03.md) — the TD/T and 9/9 import answers before 10–11; the rest before the step each names.
 - [Which TBRB list counts](../tasks/tbrb-rank-across-classes.md) — before 12.

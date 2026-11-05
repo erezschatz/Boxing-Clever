@@ -14,8 +14,13 @@ import {
 } from '../db/bout.ts';
 import { deleteBoutTitles, insertBoutTitle, listBoutTitles } from '../db/bout-title.ts';
 import { type Fighter, getFighter, setFighterRecord } from '../db/fighter.ts';
-import type { DecisionType, Winner } from '../rules/decisions.ts';
-import { applyDelta, type FightRecord, recordDelta, reverseDelta } from '../rules/records.ts';
+import {
+  applyDelta,
+  type FightRecord,
+  isNegative,
+  recordDelta,
+  reverseDelta,
+} from '../rules/records.ts';
 import { MAX_ROUNDS } from '../rules/scoring.ts';
 import { conflict, type GetDb, notFound, pathId, readBody } from './http.ts';
 
@@ -137,9 +142,10 @@ export function boutRoutes(db: GetDb): Hono {
     return c.json(boutJson(db(), boutId));
   });
 
-  // D23: a draft goes on request. A finalised bout needs the user's choice,
-  // ?records=reverse (both records lose the result, in the same transaction)
-  // or ?records=keep, else 409 and nothing is deleted. The event always stays.
+  // D23: a draft goes on request (204; no record is touched). A finalised
+  // bout needs the user's choice, ?records=reverse (both records lose the
+  // result, in the same transaction) or ?records=keep, else 409 with the
+  // preview and nothing is deleted. The event always stays.
   routes.delete('/:id', (c) => {
     const boutId = pathId(c);
     const bout = boutId && getBout(db(), boutId);
@@ -150,34 +156,58 @@ export function boutRoutes(db: GetDb): Hono {
       return c.body(null, 204);
     }
 
+    // What each choice does to the two records, shown before the user picks
+    // and returned after (D23, D31): `before` is now, `after_reverse` is the
+    // record once this result is taken off.
+    const undo = reverseDelta(recordDelta({
+      decision_type: bout.decision_type!, // set on every finalised bout (D18)
+      winner: bout.winner!,
+    }));
+    const side = (fighterId: number, delta: FightRecord) => {
+      const f = getFighter(db(), fighterId)!;
+      const before = recordOf(f);
+      return {
+        id: f.id,
+        name: `${f.first_name} ${f.last_name}`,
+        before,
+        after_reverse: applyDelta(before, delta),
+      };
+    };
+    const a = side(bout.fighter_a_id, undo.a);
+    const b = side(bout.fighter_b_id, undo.b);
+    // A record corrected by hand since finalise (D28) may no longer hold this
+    // result; reversing would take it below zero, so only keep is offered.
+    const reversePossible = !isNegative(a.after_reverse) && !isNegative(b.after_reverse);
+    const preview = { bout_id: boutId, a, b, reverse_possible: reversePossible };
+
     const choice = c.req.query('records');
     if (choice !== 'reverse' && choice !== 'keep') {
-      return conflict(c, 'the bout is finalised: say ?records=reverse or ?records=keep');
+      return c.json({
+        error: 'the bout is finalised: say ?records=reverse or ?records=keep',
+        preview,
+      }, 409);
     }
-    if (choice === 'keep') {
-      deleteBout(db(), boutId);
-      return c.body(null, 204);
-    }
-
-    const undo = reverseDelta(recordDelta({
-      decision_type: bout.decision_type as DecisionType, // set on every finalised bout (D18)
-      winner: bout.winner as Winner,
-    }));
-    const a = getFighter(db(), bout.fighter_a_id)!;
-    const b = getFighter(db(), bout.fighter_b_id)!;
-    const aAfter = applyDelta(recordOf(a), undo.a);
-    const bAfter = applyDelta(recordOf(b), undo.b);
-    // A record corrected by hand since finalise (D28) may no longer hold this
-    // result; reversing it would go below zero, so the user must choose keep.
-    if ([aAfter, bAfter].some((r) => Object.values(r).some((n) => n < 0))) {
-      return conflict(c, 'reversing would take a record below zero; delete with ?records=keep');
+    if (choice === 'reverse' && !reversePossible) {
+      return c.json({
+        error: 'reversing would take a record below zero; delete with ?records=keep',
+        preview,
+      }, 409);
     }
     transaction(db(), () => {
-      setFighterRecord(db(), a.id, aAfter);
-      setFighterRecord(db(), b.id, bAfter);
+      if (choice === 'reverse') {
+        setFighterRecord(db(), a.id, a.after_reverse);
+        setFighterRecord(db(), b.id, b.after_reverse);
+      }
       deleteBout(db(), boutId);
     });
-    return c.body(null, 204);
+    // What was done: the records as they now stand.
+    const now = (s: typeof a) => ({
+      id: s.id,
+      name: s.name,
+      before: s.before,
+      after: choice === 'reverse' ? s.after_reverse : s.before,
+    });
+    return c.json({ deleted: boutId, records: choice, a: now(a), b: now(b) });
   });
 
   return routes;

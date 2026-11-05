@@ -6,6 +6,7 @@ import {
   isNoChange,
   recordChange,
   recordDelta,
+  resultsAdded,
   reverseDelta,
 } from '../../server/rules/records.ts';
 
@@ -93,4 +94,18 @@ Deno.test('§6: reversing a result undoes it exactly', () => {
   const start = rec(5, 5, 5, 5, 5);
   deepStrictEqual(applyDelta(applyDelta(start, draw.a), reverseDelta(draw).a), start);
   deepStrictEqual(recordChange({ decision_type: 'MT', winner: 'draw' }, null), reverseDelta(draw));
+});
+
+Deno.test('D31: what finalised fights added to one fighter, by the side they fought on', () => {
+  deepStrictEqual(resultsAdded([]), { won: 0, lost: 0, draws: 0, nc: 0, kos: 0 });
+  deepStrictEqual(
+    resultsAdded([
+      { outcome: { decision_type: 'KO', winner: 'A' }, side: 'A' }, // won by KO
+      { outcome: { decision_type: 'UD', winner: 'A' }, side: 'B' }, // lost
+      { outcome: { decision_type: 'SD', winner: 'B' }, side: 'B' }, // won
+      { outcome: { decision_type: 'D', winner: 'draw' }, side: 'A' },
+      { outcome: { decision_type: 'NC', winner: 'none' }, side: 'B' },
+    ]),
+    { won: 2, lost: 1, draws: 1, nc: 1, kos: 1 },
+  );
 });

@@ -113,14 +113,54 @@ Deno.test('POST /api/fighters/:id/merge/:targetId moves the bouts and deletes th
     fighter_b_id: dup.id,
   });
 
-  const { status, json } = await api.call('POST', `/api/fighters/${dup.id}/merge/${aId}`);
+  const { status, json } = await api.call(
+    'POST',
+    `/api/fighters/${dup.id}/merge/${aId}?records=add`,
+  );
   assertEquals(status, 200);
-  assertEquals(json.id, aId);
-  assertEquals(json.won, 21); // the target keeps its own record (D28)
+  assertEquals(json.target.id, aId);
+  // The duplicate's typed-in record is dropped; the target's stands (D28).
+  deepStrictEqual(json.target.after, json.target.before);
+  assertEquals((await api.call('GET', `/api/fighters/${aId}`)).json.won, 21);
   assertEquals((await api.call('GET', `/api/fighters/${dup.id}`)).status, 404);
   assertEquals((await api.call('GET', `/api/bouts/${dupBout.id}`)).json.fighter_b_id, aId);
   const history = (await api.call('GET', `/api/fighters/${aId}/bouts`)).json;
   deepStrictEqual(history.map((b: { id: number }) => b.id), [dupBout.id, boutId]);
+});
+
+Deno.test('GET /api/fighters/:id/merge/:targetId previews the merge and changes nothing', async () => {
+  const api = testApi();
+  const { aId } = await usykFury(api);
+  const { json: dup } = await api.call('POST', '/api/fighters', {
+    ...usyk,
+    first_name: 'Aleksandr',
+  });
+  const { status, json } = await api.call('GET', `/api/fighters/${dup.id}/merge/${aId}`);
+  assertEquals(status, 200);
+  deepStrictEqual(json, {
+    duplicate: {
+      id: dup.id,
+      name: 'Aleksandr Usyk',
+      record_dropped: { won: 21, lost: 0, draws: 0, nc: 0, kos: 14 },
+    },
+    target: {
+      id: aId,
+      name: 'Oleksandr Usyk',
+      before: { won: 21, lost: 0, draws: 0, nc: 0, kos: 14 },
+      after: { won: 21, lost: 0, draws: 0, nc: 0, kos: 14 },
+    },
+    bouts: 0,
+    finalised_bouts: 0,
+    aliases: 0,
+    tbrb_rows: 0,
+  });
+  assertEquals((await api.call('GET', `/api/fighters/${dup.id}`)).status, 200);
+  assertEquals((await api.call('GET', `/api/fighters/999/merge/${aId}`)).status, 404);
+  // Even with no fight moving, the duplicate's 21-0 is dropped, so POST asks first.
+  const unapproved = await api.call('POST', `/api/fighters/${dup.id}/merge/${aId}`);
+  assertEquals(unapproved.status, 409);
+  deepStrictEqual(unapproved.json.preview, json);
+  assertEquals((await api.call('GET', `/api/fighters/${dup.id}`)).status, 200);
 });
 
 Deno.test('merge: 404 for either missing fighter, 400 into itself, 409 when they fought', async () => {

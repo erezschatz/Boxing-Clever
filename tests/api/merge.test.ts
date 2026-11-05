@@ -2,7 +2,15 @@
 // target — bouts, aliases, TBRB rows — and deletes the duplicate, or, if any
 // step fails, changes nothing at all (SPEC Testing).
 import { deepStrictEqual, strictEqual as assertEquals } from 'node:assert/strict';
-import { type Api, HEAVYWEIGHT, testApi, usyk, usykFury } from '../helpers/api.ts';
+import {
+  type Api,
+  finaliseByHand,
+  HEAVYWEIGHT,
+  recordOf,
+  testApi,
+  usyk,
+  usykFury,
+} from '../helpers/api.ts';
 import { getBout } from '../../server/db/bout.ts';
 import { getFighter } from '../../server/db/fighter.ts';
 import { insertAlias, listAliases } from '../../server/db/fighter-alias.ts';
@@ -45,7 +53,12 @@ async function withDuplicate(api: Api) {
 Deno.test('merge repoints bouts, aliases and TBRB rows, then deletes the duplicate', async () => {
   const api = testApi();
   const { aId, dupId, dupBoutId } = await withDuplicate(api);
-  assertEquals((await api.call('POST', `/api/fighters/${dupId}/merge/${aId}`)).status, 200);
+  const { status, json } = await api.call(
+    'POST',
+    `/api/fighters/${dupId}/merge/${aId}?records=add`,
+  );
+  assertEquals(status, 200);
+  deepStrictEqual([json.bouts, json.finalised_bouts, json.aliases, json.tbrb_rows], [1, 0, 1, 1]);
   assertEquals(getFighter(api.db, dupId), undefined);
   assertEquals(getBout(api.db, dupBoutId)?.fighter_a_id, aId);
   deepStrictEqual(listAliases(api.db, aId).map((a) => a.alias), [
@@ -65,8 +78,12 @@ Deno.test('merge is all or nothing: a failure at the last step leaves everything
   api.db.exec(`CREATE TRIGGER refuse_delete BEFORE DELETE ON fighter
     BEGIN SELECT RAISE(ABORT, 'refused for the test'); END`);
 
-  const { status } = await api.call('POST', `/api/fighters/${dupId}/merge/${aId}`);
+  finaliseByHand(api.db, dupBoutId, { decision_type: 'UD', winner: 'A' }); // so the record moves too
+  const targetBefore = recordOf(api.db, aId);
+
+  const { status } = await api.call('POST', `/api/fighters/${dupId}/merge/${aId}?records=add`);
   assertEquals(status, 500);
+  deepStrictEqual(recordOf(api.db, aId), targetBefore);
   assertEquals(getFighter(api.db, dupId)?.id, dupId);
   assertEquals(getBout(api.db, dupBoutId)?.fighter_a_id, dupId);
   deepStrictEqual(listAliases(api.db, dupId).map((a) => a.alias), ['Aleksandr Usyk']);
@@ -74,4 +91,42 @@ Deno.test('merge is all or nothing: a failure at the last step leaves everything
     'Aleksandr Usyk',
   ]);
   deepStrictEqual(listAliases(api.db, aId).map((a) => a.alias), ['Oleksandr Usyk']);
+});
+
+Deno.test('D31: a merge that moves finalised fights is refused with its preview until approved', async () => {
+  const api = testApi();
+  const { aId, dupId, dupBoutId } = await withDuplicate(api);
+  finaliseByHand(api.db, dupBoutId, { decision_type: 'UD', winner: 'A' }); // the duplicate won
+  const targetBefore = recordOf(api.db, aId);
+
+  for (const query of ['', '?records=yes']) {
+    const { status, json } = await api.call('POST', `/api/fighters/${dupId}/merge/${aId}${query}`);
+    assertEquals(status, 409, query);
+    assertEquals(typeof json.error, 'string');
+    assertEquals(json.preview.finalised_bouts, 1);
+    deepStrictEqual(json.preview.target.before, targetBefore);
+    deepStrictEqual(json.preview.target.after, { ...targetBefore, won: targetBefore.won + 1 });
+  }
+  // Nothing moved.
+  assertEquals(getFighter(api.db, dupId)?.id, dupId);
+  assertEquals(getBout(api.db, dupBoutId)?.fighter_a_id, dupId);
+  deepStrictEqual(recordOf(api.db, aId), targetBefore);
+});
+
+Deno.test('D31: an approved merge counts the moved results, so a later reverse undoes exactly them', async () => {
+  const api = testApi();
+  const { aId, dupId, dupBoutId } = await withDuplicate(api);
+  finaliseByHand(api.db, dupBoutId, { decision_type: 'KO', winner: 'A' }); // the duplicate won by KO
+  const targetBefore = recordOf(api.db, aId); // 21-0, 14 KOs
+
+  const merged = await api.call('POST', `/api/fighters/${dupId}/merge/${aId}?records=add`);
+  assertEquals(merged.status, 200);
+  const after = { ...targetBefore, won: targetBefore.won + 1, kos: targetBefore.kos + 1 };
+  deepStrictEqual(merged.json.target.after, after); // it says what it did
+  deepStrictEqual(recordOf(api.db, aId), after);
+
+  // Deleting that fight later with reverse brings the target back to where it was.
+  const deleted = await api.call('DELETE', `/api/bouts/${dupBoutId}?records=reverse`);
+  assertEquals(deleted.status, 200);
+  deepStrictEqual(recordOf(api.db, aId), targetBefore);
 });

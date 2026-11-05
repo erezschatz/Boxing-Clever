@@ -103,3 +103,79 @@ Verified by Erez on the Mac, 2026-11-05: `deno task dev` started with no
 errors, and `curl localhost:8890/api/weight-classes` returned the 18
 classes in seed order, with Heavyweight's lbs and kg null. That was the
 only endpoint he exercised by hand; the rest stand on the tests.
+
+## What was done
+
+2026-11-05. The merge now carries the duplicate's finalised results to the
+target, shown first and approved (D31, superseding D28 in part, from
+Erez's choice of option 2). This builds the API boxes of
+`tasks/merge-asks-before-records-move.md`. Its dialog is task 08's, so that
+file stays open.
+
+- `server/rules/records.ts`: `resultsAdded` sums what a set of finalised
+  fights added to one fighter, each by the side fought on. `isNegative`
+  is there for the below-zero check.
+- `server/api/fighters.ts`: `mergePlan` checks the merge (404, 400 into
+  itself, 409 if they fought each other) and builds the preview:
+  - the target's record before and after;
+  - the duplicate's record, which is dropped;
+  - how many bouts (finalised among them), aliases and TBRB rows move.
+
+  `GET /:id/merge/:targetId` returns the preview. Every `POST` needs
+  `?records=add`, even when no finalised fight moves, because the
+  duplicate's record is still dropped. Without it the answer is 409 with
+  the preview and nothing changes. With approval, one transaction repoints
+  everything, sets the target's record to the preview's `after` and
+  deletes the duplicate. The answer is the preview, carried out. It
+  replaces the target fighter that POST answered before; nothing in
+  `front/` calls merge yet.
+- `server/api/bouts.ts`: the finalised delete builds the same kind of
+  preview: both fighters' records before and after a reverse, and
+  `reverse_possible`. The 409s (no choice, or a reverse below zero) carry
+  it. A finalised delete now answers `200` with `deleted`, the choice
+  (`records`) and both records before and after; a draft delete stays
+  `204`. `?records=keep` now also runs in the transaction. The
+  `DecisionType`/`Winner` casts became non-null assertions on columns the
+  schema sets for every finalised bout.
+- The approval is not tied to the preview the user saw. If the duplicate
+  gains a finalised fight in between, the POST counts it too (D31: not a
+  real window for one user).
+- SPEC *API*, new D31, PLAN's out-of-order list.
+
+Tests:
+- `tests/rules/records.test.ts`: `resultsAdded` over both sides and every
+  result kind.
+- `tests/api/merge.test.ts`: refused without approval (`''` and
+  `?records=yes`) with the preview, nothing moved; an approved merge of a
+  KO win adds won and kos to the target, and deleting that fight with
+  reverse returns the target exactly to where it was.
+- `tests/api/fighters.test.ts`: the GET preview, field by field, for a
+  duplicate with no fights, and a POST without approval refused with that
+  same preview. The preview with a finalised fight is checked through the
+  409 in `merge.test.ts`.
+- `tests/api/merge.test.ts`'s all-or-nothing test now includes a finalised
+  fight, so it also checks that the target's record is rolled back.
+- `tests/api/delete.test.ts`: the 409's preview, the 200's before/after
+  for reverse and keep, and `reverse_possible: false` below zero.
+
+Run by Claude on the Mac, Deno 2.9.8: `deno task test` 108/108, and
+`deno task check`, `deno lint` and `deno fmt --check` clean.
+
+Run by Claude against the standalone server (`deno serve` on port 8897,
+`$BOXING_DB` in its scratchpad), 2026-11-05:
+- Setup over HTTP: the duplicate Aleksandr Usyk (0-0), Oleksandr Usyk
+  (21-0, 14 KOs), Dubois and a bout between the duplicate and Dubois. A
+  scratch script then finalised it as a KO win for the duplicate, through
+  `finaliseByHand`, since there is no finalise endpoint until task 05.
+- The GET preview showed the target going from 21-0 (14) to 22-0 (15),
+  with `finalised_bouts: 1`.
+- POST without approval was 409 with that preview. With `?records=add` it
+  was 200, the target was 22-0 (15) and the duplicate a 404.
+- Deleting the bout without a choice was 409 with the before/after
+  preview for both fighters. With `?records=reverse` it was 200: Usyk was
+  back at 21-0 (14), Dubois at 21-2, and the event was still there.
+
+Verified by Erez on the Mac, 2026-11-05, with `deno task dev` and curl, on
+two fighters with no fights between them. The POST without approval was
+409 with the preview: `record_dropped` 21-0, the target 21-0 before and
+after, all counts 0. With `?records=add` it was 200 with the same summary.

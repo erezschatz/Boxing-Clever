@@ -190,20 +190,23 @@ unknown field fails. A write the schema refuses → `400 {error, detail}`
 (missing reference, failed check), with the database's message instead of
 zod's issues, or `409` (duplicate); a choice the user has not made or cannot
 make → `409` (D30). Every list endpoint returns an array; every single
-endpoint the object. Creating answers `201` with the object, deleting `204`.
+endpoint the object. Creating answers `201` with the object, deleting `204`,
+except where a delete or merge moves a record: it answers `200` with what it
+did, and its `409` carries a `preview` of what each choice would do (D31).
 
 | Method | Path | Notes |
 |---|---|---|
 | GET | `/api/weight-classes` | |
 | GET/POST | `/api/fighters` | the body carries the record the fighter arrives with, 0 when left out (D28); weight and unit go together |
 | GET/PATCH | `/api/fighters/:id` | PATCH may correct the record (D28) |
-| POST | `/api/fighters/:id/merge/:targetId` | `:id` is the duplicate. Its bouts, aliases and TBRB rows move to the target and it is deleted, in one transaction; the target keeps its record; `409` if the two fought each other (D28). Answers the target |
+| GET | `/api/fighters/:id/merge/:targetId` | the merge's preview: the target's record before and after, the duplicate's record that is dropped, and how many bouts (finalised among them), aliases and TBRB rows move (D31) |
+| POST | `/api/fighters/:id/merge/:targetId` | `:id` is the duplicate. Its bouts, aliases and TBRB rows move to the target and it is deleted, in one transaction. The results of its finalised fights are added to the target's record, Every merge needs `?records=add`, else `409` with the preview (D31). The duplicate's typed-in record is dropped (D28). `409` if the two fought each other. Answers the preview, carried out |
 | GET | `/api/fighters/:id/bouts` | history as witnessed, with as-of snapshots |
 | GET/POST | `/api/events` | |
 | GET/PATCH/DELETE | `/api/events/:id` | delete refuses (`409`) if any bout is finalised; otherwise its bouts go with it |
 | GET | `/api/events/:id/bouts` | ordered by card_order |
 | POST | `/api/bouts` | `card_order` left out puts the bout last on its card; `titles` is `[{title_id, holder_side}]`. A bout is answered as its row with `titles` beside it |
-| GET/PATCH/DELETE | `/api/bouts/:id` | PATCH covers corners, titles with holder side (the list sent replaces the old one), scheduled rounds; a finalised bout's fighters cannot change (`409`, D30). DELETE of a finalised bout needs `?records=reverse` (both records lose the result, in the same transaction) or `?records=keep`, else `409`; it never deletes the event, not even its last bout (D23) |
+| GET/PATCH/DELETE | `/api/bouts/:id` | PATCH covers corners, titles with holder side (the list sent replaces the old one), scheduled rounds; a finalised bout's fighters cannot change (`409`, D30). DELETE of a finalised bout needs `?records=reverse` (both records lose the result, in the same transaction) or `?records=keep`, else `409` with a preview of both records before and after a reverse; a reverse that would go below zero is `409` too. Answers `200` with the choice made and both records before and after (D31); a draft's delete is `204`. It never deletes the event, not even its last bout (D23) |
 | PUT | `/api/bouts/:id/card` | the whole scorecard: rounds, deductions, result, judges, is_draft; validated by the rules; finalise = `is_draft:false` with a result |
 | GET/POST | `/api/titles` | |
 | GET | `/api/tbrb/current` | latest snapshot, grouped by weight class |
