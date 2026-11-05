@@ -1,7 +1,9 @@
 // fighter: who they are, and their current record. The record is stored
-// derived data (D13); it is moved on finalise (task 05), not edited here.
+// derived data (D13): typed in when the fighter is created or corrected
+// (D28), and moved by finalise and by the guarded bout delete (D23).
 import type { Database } from './connection.ts';
 import type { WeightUnit } from '../rules/weight.ts';
+import type { FightRecord } from '../rules/records.ts';
 
 export type FighterFields = {
   first_name: string;
@@ -45,6 +47,15 @@ export function updateFighter(db: Database, id: number, fields: FighterFields): 
        colors = :colors, weight = :weight, weight_unit = :weight_unit
      WHERE id = :id`,
   ).run({ ...fields, id });
+  return changes > 0;
+}
+
+// The record alone, so the identity update above never touches it by accident.
+export function setFighterRecord(db: Database, id: number, record: FightRecord): boolean {
+  const { changes } = db.prepare(
+    `UPDATE fighter SET won = :won, lost = :lost, draws = :draws, nc = :nc, kos = :kos
+     WHERE id = :id`,
+  ).run({ ...record, id });
   return changes > 0;
 }
 

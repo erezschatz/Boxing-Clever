@@ -29,3 +29,17 @@ export function listTbrbSnapshot(
     'SELECT * FROM tbrb_snapshot WHERE weight_class_id = ? AND snapshot_date = ? ORDER BY rank',
   ).all(weightClassId, date) as TbrbSnapshot[];
 }
+
+// Merge: rankings linked to the duplicate are the target's.
+export function repointTbrbRows(db: Database, fromId: number, toId: number): number {
+  return Number(
+    db.prepare('UPDATE tbrb_snapshot SET fighter_id = ? WHERE fighter_id = ?').run(toId, fromId)
+      .changes,
+  );
+}
+
+export function listTbrbRowsForFighter(db: Database, fighterId: number): TbrbSnapshot[] {
+  return db.prepare(
+    'SELECT * FROM tbrb_snapshot WHERE fighter_id = ? ORDER BY snapshot_date, weight_class_id',
+  ).all(fighterId) as TbrbSnapshot[];
+}

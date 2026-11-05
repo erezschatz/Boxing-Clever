@@ -20,3 +20,12 @@ export function findFighterIdByAlias(db: Database, alias: string): number | unde
   const row = db.prepare('SELECT fighter_id FROM fighter_alias WHERE alias = ?').get(alias);
   return row?.fighter_id as number | undefined;
 }
+
+// Merge: the duplicate's spellings now name the target. Aliases are unique
+// across fighters (D19), so moving them can never collide.
+export function repointAliases(db: Database, fromId: number, toId: number): number {
+  return Number(
+    db.prepare('UPDATE fighter_alias SET fighter_id = ? WHERE fighter_id = ?').run(toId, fromId)
+      .changes,
+  );
+}

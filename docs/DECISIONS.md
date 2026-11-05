@@ -351,3 +351,65 @@ No `bout` (or other) row records which batch wrote it.
 **Rejected:** An `import_batch_id` column on `bout`.
 **Why:** Erez, 2026-11-03: it does not matter which import wrote a bout.
 Closes the open note in task 02's record.
+
+### D28 · 2026-11-04 · A fighter's record is typed in and correctable; merge keeps the target's
+**Decision:** `POST /api/fighters` takes the record the fighter arrives
+with (won, lost, draws, nc, kos; 0 when left out) and `PATCH` can correct
+it, as in v1, where both DTOs carried it. After that, finalise moves it
+(§6) and the guarded delete can reverse it (D23). Merging a duplicate
+into a target leaves the target's record as it was and discards the
+duplicate's, as v1's `FighterService.merge` did. Two fighters who fought
+each other cannot be merged (`409`). Claude's call, from v1; Erez has not
+ruled on it.
+**Rejected:** A record that only finalise may move (a fighter first seen
+at 25–1 would show 0–0); summing the two records on merge (a duplicate made
+by an import carries the sheet's record, which overlaps the target's, so a
+sum double-counts); recomputing on merge (the recompute script does not
+exist yet, and D23's open "keep" question bears on what it would rebuild).
+**Why:** The record is the record as known, including fights not watched
+(D13), so it has to be enterable; and a typo in it has to be fixable
+without SQL. A reverse after a hand correction can find a record that no
+longer holds the result; it is then refused (`409`) and the user deletes
+with `?records=keep`. Known consequence, open for Erez: a finalised bout
+that moves to the target in a merge brings a result the target's record
+never counted, and deleting it later with `?records=reverse` takes that
+result off the target anyway. The below-zero refusal catches it only when
+the target has nothing to lose. Until Erez rules, delete such a bout with
+`?records=keep`.
+
+### D29 · 2026-11-04 · The chamber migrates its database on first use
+**Decision:** `mod.ts` opens `data/boxing.db` (or `$BOXING_DB`) on the
+first request that needs it and runs the migrator then, so a fresh clone
+or a deploy serves an up-to-date schema. Importing `mod.ts` opens nothing.
+`deno task migrate` stays, for applying migrations without serving.
+**Rejected:** Requiring `deno task migrate` before the server starts
+(SQLite would silently create an empty file and every API call would fail
+with "no such table"); opening at import time (the tests and Atrium import
+the chamber, and the test permissions do not allow writing).
+**Why:** The migrator is idempotent and applies each file in its own
+transaction (task 02), so running it on every start is safe, and one
+forgotten step on deploy no longer takes the app down.
+
+### D30 · 2026-11-04 · How the API says no
+**Decision:** Beyond D5's 404 and SPEC's 400-with-issues:
+- a path id that is not a positive integer is a `404`, like an id that
+  does not exist;
+- a write the schema refuses becomes a client error in one place
+  (`server/api/http.ts`): a missing reference (unknown fighter, class or
+  title) or a failed CHECK is `400 {error, detail}`, a duplicate (a title's
+  four fields) is `409`; a NOT NULL or primary-key refusal maps the same
+  way (`400`, `409`); any other failure is `500`;
+- the user's choice is missing or impossible: `409 {error}` (a finalised
+  bout deleted without `?records=`, an event with a finalised bout, a
+  merge of two fighters who met, a reverse that would go below zero); a
+  fighter merged into itself is `400`;
+- a finalised bout's fighters cannot be changed by `PATCH` (`409`), because
+  its result has already moved those two fighters' records.
+Bodies are strict: an unknown field is a `400`, not ignored.
+**Rejected:** Checking every referenced id in each handler before writing
+(the schema already refuses them, D18, and the checks would have to be
+kept in step); `400` for a malformed id; moving a finalised result's
+record increments to newly patched fighters.
+**Why:** The schema is the authority on shapes (D18), so the API reports
+its refusals rather than duplicating them. A strict body catches a client
+sending `record` or `id` and believing it was saved.

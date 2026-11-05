@@ -90,7 +90,57 @@ export function updateBout(db: Database, id: number, fields: BoutFields): boolea
   return changes > 0;
 }
 
+// Where a bout added without a card_order goes: after the last one on the card.
+export function nextCardOrder(db: Database, eventId: number): number {
+  const row = db.prepare('SELECT MAX(card_order) AS last FROM bout WHERE event_id = ?')
+    .get(eventId);
+  return ((row?.last as number | null) ?? 0) + 1;
+}
+
+export type BoutResult = {
+  decision_type: DecisionType | null;
+  winner: Winner | null;
+  result_round: number | null;
+  result_time: string | null;
+  is_draft: 0 | 1;
+};
+
+// The result and the draft flag. Task 05's finalise calls this inside its
+// transaction, after the rules have passed the card.
+export function setBoutResult(db: Database, id: number, result: BoutResult): boolean {
+  const { changes } = db.prepare(
+    `UPDATE bout SET decision_type = :decision_type, winner = :winner,
+       result_round = :result_round, result_time = :result_time, is_draft = :is_draft
+     WHERE id = :id`,
+  ).run({ ...result, id });
+  return changes > 0;
+}
+
+// Merge: every bout the duplicate fought becomes the target's, on the same side.
+export function repointBoutFighter(db: Database, fromId: number, toId: number): number {
+  const a = db.prepare('UPDATE bout SET fighter_a_id = ? WHERE fighter_a_id = ?').run(toId, fromId);
+  const b = db.prepare('UPDATE bout SET fighter_b_id = ? WHERE fighter_b_id = ?').run(toId, fromId);
+  return Number(a.changes) + Number(b.changes);
+}
+
+// Bouts with these two fighters on opposite sides. Merging them would put one
+// fighter on both sides, which the schema refuses.
+export function countBoutsBetween(db: Database, x: number, y: number): number {
+  const row = db.prepare(
+    `SELECT COUNT(*) AS n FROM bout
+     WHERE (fighter_a_id = :x AND fighter_b_id = :y) OR (fighter_a_id = :y AND fighter_b_id = :x)`,
+  ).get({ x, y });
+  return row?.n as number;
+}
+
 // Rounds, deductions and titles go with it (ON DELETE CASCADE).
 export function deleteBout(db: Database, id: number): boolean {
   return db.prepare('DELETE FROM bout WHERE id = ?').run(id).changes > 0;
+}
+
+// DELETE /events/:id refuses while any of its bouts is finalised (SPEC API).
+export function countFinalisedBouts(db: Database, eventId: number): number {
+  const row = db.prepare('SELECT COUNT(*) AS n FROM bout WHERE event_id = ? AND is_draft = 0')
+    .get(eventId);
+  return row?.n as number;
 }

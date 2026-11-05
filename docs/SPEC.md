@@ -99,8 +99,15 @@ browser (lit-html, fetch)  ──►  /api/*  Hono routes (server/api/)
 - `server/db/` is one module per table (`fighter.ts`, `round-score.ts`, …),
   each exporting plain functions that take a `Database` and parameters;
   `connection.ts` opens the file with foreign keys on. Updates take the
-  whole row (the API merges a PATCH first), so no SQL is assembled. Transactions are explicit
-  (`db.exec('BEGIN')`/`COMMIT`) in the one module that needs them.
+  whole row (the API merges a PATCH first), so no SQL is assembled. Transactions are explicit:
+  `transaction(db, work)` in `connection.ts` wraps BEGIN/COMMIT/ROLLBACK, and the API
+  handler that needs several tables to move together (merge, the guarded delete, a bout
+  with its titles) calls it around the db functions.
+- `server/api/` is one file per resource (`fighters.ts`, `events.ts`, `bouts.ts`,
+  `titles.ts`, `weight-classes.ts`), each with its zod schema and its routes;
+  `http.ts` holds what they share and `app.ts` mounts them. `mod.ts` opens the
+  database on first use and migrates it (D29); the tests hand `createApp` an
+  in-memory one.
 - `server/migrations/NNN-name.sql` are applied by `server/db/migrate.ts`
   (~50 lines: a `schema_version` table, apply in order, each file and its
   version row in one transaction).
@@ -115,7 +122,7 @@ none. All ids are `INTEGER PRIMARY KEY`.
 | Table | Holds | Notes |
 |---|---|---|
 | `weight_class` | the 18 classes: name, alternate name, lbs, kg | seeded by migration 002 in v1's order; Heavyweight's limit is null (D17) |
-| `fighter` | first/last name, nickname, colors, weight + unit, **current** record (won, lost, draws, nc, kos) | the record is derived data that is stored: updated transactionally on finalise, recomputable by `scripts/recompute-records.ts` |
+| `fighter` | first/last name, nickname, colors, weight + unit, **current** record (won, lost, draws, nc, kos) | the record is derived data that is stored: typed in on creation and correctable by hand (D28), updated transactionally on finalise, recomputable by `scripts/recompute-records.ts` |
 | `fighter_alias` | fighter_id, alias text | names as TBRB and the sheet spell them; merge keeps aliases; an alias names one fighter (D19) |
 | `event` | date, location | |
 | `bout` | event_id, card_order, weight_class_id, scheduled_rounds, fighter_a_id, fighter_b_id, **corner_a** (`red`/`blue`, null when not recorded), a/b **as-of snapshot** (record ×5, weight, unit, colors, tbrb_rank), result (decision_type, winner `A`/`B`/`draw`/`none`, round, time), judges ×3 ×2, is_draft. *Pending D26: a contracted weight instead of a class, and a missed-weight mark per side* | the snapshot is what v1's Mongo document was for and is kept on purpose (D4); its columns are `a_won` … `a_tbrb_rank`, `b_won` …, null until first save; result columns `decision_type`, `winner`, `result_round`, `result_time`; judges `judge1_a` … `judge3_b` |
@@ -177,21 +184,26 @@ origin; the three stoppage defects there are fixed by construction here.
 ## API
 
 JSON over `/api`. Missing resource → `404` with `{ error }` (v1 returned 200
-and an empty body; D5). Validation failure → `400` with zod's issues. Every
-list endpoint returns an array; every single endpoint the object.
+and an empty body; D5); a path id that is not a positive integer is missing
+too. Validation failure → `400` with zod's issues; bodies are strict, so an
+unknown field fails. A write the schema refuses → `400 {error, detail}`
+(missing reference, failed check), with the database's message instead of
+zod's issues, or `409` (duplicate); a choice the user has not made or cannot
+make → `409` (D30). Every list endpoint returns an array; every single
+endpoint the object. Creating answers `201` with the object, deleting `204`.
 
 | Method | Path | Notes |
 |---|---|---|
 | GET | `/api/weight-classes` | |
-| GET/POST | `/api/fighters` | |
-| GET/PATCH | `/api/fighters/:id` | |
-| POST | `/api/fighters/:id/merge/:targetId` | transactional; aliases carried |
+| GET/POST | `/api/fighters` | the body carries the record the fighter arrives with, 0 when left out (D28); weight and unit go together |
+| GET/PATCH | `/api/fighters/:id` | PATCH may correct the record (D28) |
+| POST | `/api/fighters/:id/merge/:targetId` | `:id` is the duplicate. Its bouts, aliases and TBRB rows move to the target and it is deleted, in one transaction; the target keeps its record; `409` if the two fought each other (D28). Answers the target |
 | GET | `/api/fighters/:id/bouts` | history as witnessed, with as-of snapshots |
 | GET/POST | `/api/events` | |
-| GET/PATCH/DELETE | `/api/events/:id` | delete refuses if any bout is finalised |
+| GET/PATCH/DELETE | `/api/events/:id` | delete refuses (`409`) if any bout is finalised; otherwise its bouts go with it |
 | GET | `/api/events/:id/bouts` | ordered by card_order |
-| POST | `/api/bouts` | |
-| GET/PATCH/DELETE | `/api/bouts/:id` | PATCH covers corners, titles with holder side, scheduled rounds. DELETE of a finalised bout needs `?records=reverse` (both records lose the result, in the same transaction) or `?records=keep`, else `409`; it never deletes the event, not even its last bout (D23) |
+| POST | `/api/bouts` | `card_order` left out puts the bout last on its card; `titles` is `[{title_id, holder_side}]`. A bout is answered as its row with `titles` beside it |
+| GET/PATCH/DELETE | `/api/bouts/:id` | PATCH covers corners, titles with holder side (the list sent replaces the old one), scheduled rounds; a finalised bout's fighters cannot change (`409`, D30). DELETE of a finalised bout needs `?records=reverse` (both records lose the result, in the same transaction) or `?records=keep`, else `409`; it never deletes the event, not even its last bout (D23) |
 | PUT | `/api/bouts/:id/card` | the whole scorecard: rounds, deductions, result, judges, is_draft; validated by the rules; finalise = `is_draft:false` with a result |
 | GET/POST | `/api/titles` | |
 | GET | `/api/tbrb/current` | latest snapshot, grouped by weight class |

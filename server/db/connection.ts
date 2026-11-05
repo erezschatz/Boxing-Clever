@@ -20,3 +20,19 @@ export function openDatabase(path: string): Database {
   db.exec('PRAGMA foreign_keys = ON');
   return db;
 }
+
+// Runs `work` inside BEGIN/COMMIT, rolling back if it throws. Merge, the
+// guarded bout delete and bout writes with their titles each need several
+// tables to move together or not at all (SPEC Architecture). node:sqlite is
+// synchronous, so `work` is too; nesting is not supported and not needed.
+export function transaction<T>(db: Database, work: () => T): T {
+  db.exec('BEGIN');
+  try {
+    const result = work();
+    db.exec('COMMIT');
+    return result;
+  } catch (err) {
+    db.exec('ROLLBACK');
+    throw err;
+  }
+}
