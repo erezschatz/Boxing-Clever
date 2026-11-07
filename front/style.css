@@ -158,6 +158,15 @@ table.list td.order {
   width: 2.5rem;
 }
 
+/* A bout row is the way to its scorecard. */
+table.card tbody tr.bout {
+  cursor: pointer;
+}
+
+table.card tbody tr.bout:hover td {
+  background: var(--band);
+}
+
 .record {
   font-family: var(--mono);
   font-size: 0.9rem;

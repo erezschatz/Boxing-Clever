@@ -197,7 +197,9 @@ export type FighterEntry = {
   kos: string;
 };
 export type RecordCounts = { won: number; lost: number; draws: number; nc: number; kos: number };
-export const RECORD_KEYS = ['won', 'lost', 'draws', 'nc', 'kos'] as const;
+// In the order the boxes are laid out: KOs beside the wins they are part
+// of, as v1's form had them (Erez, 2026-11-07).
+export const RECORD_KEYS = ['won', 'kos', 'lost', 'draws', 'nc'] as const;
 const RECORD_WORDS = { won: 'Won', lost: 'Lost', draws: 'Drawn', nc: 'NC', kos: 'KOs' };
 
 // The record as typed: five whole numbers, or which box is not one.

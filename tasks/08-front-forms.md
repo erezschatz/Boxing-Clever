@@ -511,3 +511,24 @@ Left as noted, not changed:
   a find; "Not them" brings it back.
 The reader confirmed every other claim in this record and in D44 against
 the diff.
+
+2026-11-07, two asks from Erez after the D44 form:
+- The record boxes read Won, KOs, Lost, Drawn, NC, with the KOs beside
+  the wins they are part of, as v1's form had them. `RECORD_KEYS` in
+  `front/entry.ts` is in that order and the form lays the boxes out from
+  it. Test: "the record boxes read Won, KOs, Lost, Drawn, NC, as v1's form
+  laid them out" in `tests/front/forms.test.ts`.
+- On the card (`/events/:id`), the whole bout row opens the scorecard,
+  not only the result link (`front/event-page.ts`, `tr.bout`, pointer and
+  a band on hover in `front/style.css`). The result link stays, for the
+  keyboard; a click on edit or delete is theirs and does not open the
+  bout. `docs/SPEC.md` Front end says so.
+
+`deno task test` 173/173; `deno task check`, `deno lint`, `deno fmt
+--check` clean, run by Claude on the Mac.
+
+Checked by Claude in the browser pane on a scratch database with one
+bout: a click on the row's class cell opened `/bouts/1`; Back, then
+"edit" on the row opened Edit bout and stayed on the card; Add bout and
+"+ Fighter" showed the boxes as Won, KOs, Lost, Drawn, NC. The row click
+is a template and has no test, as the other templates.

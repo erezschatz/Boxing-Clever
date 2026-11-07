@@ -243,7 +243,8 @@ reference lists, every fighter, class and title (D34). Pages:
 - `/` events list (newest first, folded by year with the newest open, as in v1)
 - `/events/:id` the card: bouts in order with both fighters and their
   record on the night (the snapshot, once taken), corners, class, rounds,
-  titles with who brought each, and the result; add/edit bout.
+  titles with who brought each, and the result; the whole row opens the
+  scorecard; add/edit bout.
   Deleting a bout is always confirmed. A finalised bout takes two dialogs
   (D23): "this is a finalised fight, are you sure?", then one showing what
   both fighters' records will become, with *delete and reset the records*,

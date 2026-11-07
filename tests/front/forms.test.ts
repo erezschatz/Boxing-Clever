@@ -19,6 +19,7 @@ import {
   readJudge,
   readRecord,
   readWeight,
+  RECORD_KEYS,
   renameProblem,
   resolveTyped,
   roundAsked,
@@ -232,6 +233,10 @@ const schmoe = {
   nc: 0,
   kos: 6,
 } as Fighter;
+
+Deno.test("the record boxes read Won, KOs, Lost, Drawn, NC, as v1's form laid them out", () => {
+  deepStrictEqual([...RECORD_KEYS], ['won', 'kos', 'lost', 'draws', 'nc']);
+});
 
 Deno.test('finding a fighter makes the form theirs and loses nothing typed (D44)', () => {
   const { fields, typedRecord } = fieldsOnFound(announced, false, schmoe);

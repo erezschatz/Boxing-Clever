@@ -2,12 +2,13 @@
 // the corners, the class, the rounds, the belts on the line and who brought
 // each, and the result (SPEC Front end; v1's Event page columns). The event
 // and its bouts are added, edited and deleted here in dialogs (task 08); the
-// result links to the bout's scorecard (task 07).
+// whole row opens the bout's scorecard (task 07).
 import { api, type BoutView, type Event, references } from './api.ts';
 import { BoutDelete } from './bout-delete.ts';
 import { BoutForm } from './bout-form.ts';
 import { Component, html, nothing } from './component.ts';
 import { EventForm } from './event-form.ts';
+import { navigate } from './router.ts';
 import {
   dateText,
   fighterName,
@@ -105,8 +106,14 @@ export class EventPage extends Component<State> {
           ${record ? html`<span class="record">${record}</span>` : nothing}
         </div>
       `;
+    // The whole row opens the scorecard (Erez, 2026-11-07); the result
+    // link stays for the keyboard, and edit and delete are their own.
+    const open = (e: MouseEvent) => {
+      if ((e.target as Element).closest('a, button')) return;
+      navigate(`/bouts/${bout.id}`);
+    };
     return html`
-      <tr>
+      <tr class="bout" @click=${open}>
         <td class="order">${bout.card_order}</td>
         <td>
           ${side(nameA, bout.corner_a, recordOnTheNight(bout, 'a'))}
