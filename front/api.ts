@@ -7,13 +7,52 @@ import type { Fighter } from '../server/db/fighter.ts';
 import type { WeightClass } from '../server/db/weight-class.ts';
 import type { Title } from '../server/db/title.ts';
 import type { BoutView } from '../server/api/card.ts';
+import type { DeleteDone, DeletePreview } from '../server/api/bouts.ts';
+import type { MergePreview } from '../server/api/fighters.ts';
 
-export type { BoutView, Event, Fighter, Title, WeightClass };
+export type {
+  BoutView,
+  DeleteDone,
+  DeletePreview,
+  Event,
+  Fighter,
+  MergePreview,
+  Title,
+  WeightClass,
+};
 
+// The server's no, with its whole body: a 400's issues or problems become
+// the message, and a 409 may carry a `preview` the dialog shows (D30, D31).
 export class ApiError extends Error {
-  constructor(readonly status: number, message: string) {
+  constructor(readonly status: number, message: string, readonly body: unknown = null) {
     super(message);
   }
+}
+
+type ErrorBody = {
+  error?: string;
+  issues?: { path?: (string | number)[]; message: string }[];
+  problems?: { message: string }[];
+};
+
+// "invalid body: weight_unit: weight and weight_unit go together", so a
+// form can say what to fix.
+export function errorText(body: ErrorBody | null, fallback: string): string {
+  if (!body?.error) return fallback;
+  const details = [
+    ...(body.issues ?? []).map((i) => (i.path?.length ? `${i.path.join('.')}: ` : '') + i.message),
+    ...(body.problems ?? []).map((p) => p.message),
+  ];
+  return details.length > 0 ? `${body.error}: ${details.join('; ')}` : body.error;
+}
+
+// A JSON body for a write.
+export function json(method: string, body?: unknown): RequestInit {
+  return body === undefined ? { method } : {
+    method,
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+  };
 }
 
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
@@ -23,7 +62,7 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   });
   if (!res.ok) {
     const body = await res.json().catch(() => null);
-    throw new ApiError(res.status, body?.error ?? `${res.status} ${res.statusText}`);
+    throw new ApiError(res.status, errorText(body, `${res.status} ${res.statusText}`), body);
   }
   return res.status === 204 ? (undefined as T) : res.json();
 }

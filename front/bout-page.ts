@@ -2,32 +2,32 @@
 // columns, A left and B right, each round points · deductions · total; the
 // totals run in the browser through the rules (SPEC §2, §3). Focus moves down
 // a side as rounds are typed, as in v1 (D35). A draft is saved on demand and
-// when the page is left, and a reload restores it. The deduction form and
-// "End bout" are task 08; a finalised card is read-only here (D35).
+// when the page is left, and a reload restores it. Deductions and "End
+// bout" open dialogs (task 08). A finalised card is read-only (D35): its
+// decision can be changed, or it can be reopened as a draft to fix a round.
 import { api, type BoutView, type Event, references } from './api.ts';
-import { Component, createRef, html, nothing, ref } from './component.ts';
+import { inTurn, putCard, saves } from './card-saves.ts';
+import { sideHead } from './side-head.ts';
+import { Component, html, nothing } from './component.ts';
+import { DeductionForm } from './deduction-form.ts';
+import { DecisionForm } from './decision-form.ts';
+import { Confirm } from './dialog.ts';
+import { dateText, fighterName, resultLabel, resultText } from './format.ts';
 import {
-  dateText,
-  fighterName,
-  rankText,
-  recordOnTheNight,
-  resultLabel,
-  resultText,
-  titleText,
-} from './format.ts';
-import {
-  beltsOf,
   type Deduction,
   draftToSave,
   entriesOf,
   type Entry,
+  finalCard,
   isAssumed,
-  rankOf,
+  lastTyped,
   readPoints,
+  reopenBody,
   runningTotals,
 } from './scorecard.ts';
 import { messageOf } from './router.ts';
 import type { Side } from '../server/rules/decisions.ts';
+import type { Result } from '../server/rules/scoring.ts';
 
 type References = Awaited<ReturnType<typeof references>>;
 type Spot = { round: number; side: Side };
@@ -38,37 +38,18 @@ type State = {
   entries: Entry[];
   deductions: Deduction[];
   focus: Spot | null;
-  dialog: Spot | null;
   saving: boolean;
   message: string | null; // what the last save said
 };
 
-// Saves to a card go one after another, and a page loads its card only
-// after the saves before it are done: leaving by a link and coming straight
-// back must not read the card older than the save made on the way out, and
-// a later save must not be overtaken by an earlier one (D35).
-let saves: Promise<unknown> = Promise.resolve();
-function inTurn<T>(work: () => Promise<T>): Promise<T> {
-  const turn = saves.then(work);
-  saves = turn.catch(() => {});
-  return turn;
-}
-
-function putCard(id: number, body: unknown, keepalive = false) {
-  return api<BoutView>(`/bouts/${id}/card`, {
-    method: 'PUT',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify(body),
-    keepalive,
-  });
-}
-
 export class BoutPage extends Component<State> {
-  #dialog = createRef<HTMLDialogElement>();
   // How many rounds the server holds as far as this page knows: the loaded
   // card's, then the last card sent's (D35). A save never cuts below it
   // unless the user cleared both boxes of the rounds at the end.
   #stored = 0;
+  // A finalise or a reopen under way: the bout is about to change between
+  // draft and final, so no leaving save may be sent across it (D37).
+  #changing = false;
   #onPageHide = () => this.saveOnLeave(false);
   #onBeforeUnload = (event: BeforeUnloadEvent) => {
     // Typed points that leaving would lose: let the browser ask first.
@@ -85,7 +66,6 @@ export class BoutPage extends Component<State> {
       entries: [],
       deductions: [],
       focus: null,
-      dialog: null,
       saving: false,
       message: null,
     });
@@ -144,7 +124,10 @@ export class BoutPage extends Component<State> {
   // leaving save stored.
   #send(keepalive: boolean) {
     const { body, unsaved } = this.draft();
-    if (!body) return { sent: null, unsaved };
+    // Checked when the save's turn comes, not when it was asked for: a
+    // finalise queued ahead of it may have made the bout final meanwhile,
+    // and a draft sent now would take the result off both records (D32).
+    if (!body || this.finalised || this.#changing) return { sent: null, unsaved };
     const before = this.#stored;
     this.#stored = body.rounds.length;
     const sent = putCard(this.id, body, keepalive);
@@ -161,7 +144,8 @@ export class BoutPage extends Component<State> {
     return inTurn(async () => {
       const { sent, unsaved } = this.#send(false);
       if (!sent) {
-        this.set({ saving: false, message: `Not saved: ${unsaved.join('; ')}` });
+        const message = unsaved.length > 0 ? `Not saved: ${unsaved.join('; ')}` : null;
+        this.set({ saving: false, message });
         return;
       }
       try {
@@ -182,7 +166,7 @@ export class BoutPage extends Component<State> {
   // going (reload, closing the tab) there is no later turn, so it goes now.
   // Nothing is sent when the rules refuse the draft; the stored card stays.
   saveOnLeave(queued: boolean) {
-    if (!this.dirty() || this.finalised) return;
+    if (!this.dirty() || this.finalised || this.#changing) return;
     const send = async () => {
       await this.#send(true).sent;
     };
@@ -207,11 +191,88 @@ export class BoutPage extends Component<State> {
     if (read.complete) this.focusNext(input, round, side);
   }
 
-  // The render after set() is synchronous, so the dialog holds this spot's
-  // deductions by the time it opens.
-  openDialog(spot: Spot) {
-    this.set({ dialog: spot });
-    this.#dialog.value?.showModal();
+  // The deduction dialog for one side of one round; what it answers
+  // replaces that spot's deductions, saved with the card like the points.
+  async editDeductions(round: number, side: Side, name: string) {
+    const here = (d: Deduction) => d.round_no === round && d.side === side;
+    const list = await new DeductionForm(
+      round,
+      side,
+      name,
+      this.state.deductions.filter(here),
+      this.finalised,
+    ).open();
+    if (!list) return;
+    const deductions = [...this.state.deductions.filter((d) => !here(d)), ...list]
+      .sort((x, y) => x.round_no - y.round_no || x.side.localeCompare(y.side));
+    this.set({ deductions, message: null });
+  }
+
+  // "End bout", or "Change decision" on a finalised bout: the decision
+  // dialog, which finalises through this.
+  async decide(names: { A: string; B: string }) {
+    const bout = this.state.bout!;
+    const lastScored = lastTyped(this.state.entries, this.state.deductions);
+    const saved = await new DecisionForm(
+      names,
+      bout.scheduled_rounds,
+      lastScored,
+      { result: bout.card.result, judges: bout.card.judges },
+      this.finalised,
+      (result, judges) => this.finalise(result, judges),
+    ).open();
+    if (saved) this.set({ message: 'Finalised' });
+  }
+
+  // The card the result implies (finalCard, by the rules), saved in turn
+  // with any draft save. A refusal goes back to the dialog.
+  finalise(result: Result, judges: BoutView['card']['judges']): Promise<BoutView> {
+    return this.changing(async () => {
+      const { body, problems } = finalCard(
+        this.state.bout!,
+        this.state.entries,
+        this.state.deductions,
+        result,
+        judges,
+      );
+      if (!body) throw new Error(problems.join('; '));
+      const saved = await putCard(this.id, body);
+      this.loaded(saved);
+      return saved;
+    });
+  }
+
+  // A finalise or reopen, in turn with the draft saves, with leaving saves
+  // held off until it has landed.
+  // Held from the moment it is asked for, so a leaving save made while it
+  // waits its turn is not sent either.
+  changing<T>(work: () => Promise<T>): Promise<T> {
+    this.#changing = true;
+    return inTurn(work).finally(() => (this.#changing = false));
+  }
+
+  // Back to draft (D32): the result comes off both records until the bout
+  // is finalised again, and the card can be edited.
+  async reopen() {
+    await new Confirm(
+      'Reopen as draft?',
+      "Reopening takes this result off both fighters' records until the bout is finalised again. The card can then be corrected, and End bout finalises it again.",
+      'Reopen',
+      () =>
+        this.changing(async () => {
+          const { card } = this.state.bout!;
+          const saved = await putCard(this.id, reopenBody(card));
+          this.loaded(saved);
+          return saved;
+        }),
+    ).open();
+  }
+
+  // The server's answer becomes the page: the boxes, the deductions and
+  // what it holds.
+  loaded(bout: BoutView) {
+    this.#stored = bout.card.rounds.length;
+    this.set({ bout, entries: entriesOf(bout), deductions: bout.card.deductions, message: null });
   }
 
   keydown(event: KeyboardEvent, round: number, side: Side) {
@@ -230,13 +291,19 @@ export class BoutPage extends Component<State> {
     }
   }
 
+  names(): { A: string; B: string } {
+    const { bout, refs } = this.state;
+    const name = (id: number) => {
+      const f = refs?.fighters.get(id);
+      return f ? fighterName(f) : `fighter ${id}`;
+    };
+    return { A: name(bout!.fighter_a_id), B: name(bout!.fighter_b_id) };
+  }
+
   view() {
     const { bout, event, refs } = this.state;
     if (!bout || !event || !refs) return html`<p class="muted">Loading…</p>`;
-    const a = refs.fighters.get(bout.fighter_a_id);
-    const b = refs.fighters.get(bout.fighter_b_id);
-    const nameA = a ? fighterName(a) : `fighter ${bout.fighter_a_id}`;
-    const nameB = b ? fighterName(b) : `fighter ${bout.fighter_b_id}`;
+    const { A: nameA, B: nameB } = this.names();
     const cornerB = bout.corner_a === 'red' ? 'blue' : bout.corner_a === 'blue' ? 'red' : null;
     const totals = runningTotals(this.state.entries, this.state.deductions);
     const weightClass = refs.classes.get(bout.weight_class_id)?.name ?? '';
@@ -265,9 +332,9 @@ export class BoutPage extends Component<State> {
         <thead>
           <tr class="sides">
             <th></th>
-            ${this.header(bout, refs, 'A', nameA, bout.corner_a)}
+            ${sideHead(bout, refs.titles, 'A', nameA, bout.corner_a)}
             <th></th>
-            ${this.header(bout, refs, 'B', nameB, cornerB)}
+            ${sideHead(bout, refs.titles, 'B', nameB, cornerB)}
           </tr>
           <tr class="columns">
             <th>Rd</th>
@@ -295,18 +362,27 @@ export class BoutPage extends Component<State> {
         </tfoot>
       </table>
       ${this.finalised
-        ? html`<p class="muted">
-          This bout is finalised; its card is read-only until the decision dialog (task 08).
-        </p>`
+        ? html`
+          <p class="actions">
+            <button type="button" @click=${() => this.decide({ A: nameA, B: nameB })}>
+              Change decision
+            </button>
+            <button type="button" class="quiet" @click=${() => this.reopen()}>
+              Reopen as draft
+            </button>
+          </p>
+        `
         : html`
           <p class="actions">
             <button type="button" ?disabled=${this.state.saving} @click=${() => this.save()}>
               ${this.state.saving ? 'Saving…' : 'Save draft'}
             </button>
+            <button type="button" @click=${() => this.decide({ A: nameA, B: nameB })}>
+              End bout
+            </button>
             <span class=${this.unsavable() ? 'error' : 'muted'}>${this.status()}</span>
           </p>
         `}
-      ${this.dialog(nameA, nameB)}
     `;
   }
 
@@ -320,37 +396,6 @@ export class BoutPage extends Component<State> {
     const { body, unsaved } = this.draft();
     if (!body) return `Cannot be saved: ${unsaved.join('; ')}`;
     return unsaved.length > 0 ? `Unsaved changes; ${unsaved.join('; ')}` : 'Unsaved changes';
-  }
-
-  // A side's column header (SPEC Front end): corner colour, name with
-  // nickname, (c) and the belts brought in, the record on the night and the
-  // TBRB rank once the snapshot is taken.
-  header(bout: BoutView, refs: References, side: Side, name: string, corner: string | null) {
-    const belts = beltsOf(bout, side).map((id) => {
-      const title = refs.titles.get(id);
-      return title ? titleText(title) : `title ${id}`;
-    });
-    const record = recordOnTheNight(bout, side === 'A' ? 'a' : 'b');
-    const rank = rankOf(bout, side);
-    return html`
-      <th colspan="3" class="side-head ${corner ?? ''}">
-        <div class="name">
-          ${corner
-            ? html`<span class="corner ${corner}" title="${corner} corner"></span>`
-            : nothing}
-          ${name}${belts.length > 0
-            ? html`
-              <span class="champion" title="champion">(c)</span>
-            `
-            : nothing}
-        </div>
-        ${belts.length > 0 ? html`<div class="belts">${belts.join(' · ')}</div>` : nothing}
-        <div class="meta">
-          ${record ? html`<span class="record">${record}</span>` : nothing}
-          ${rank !== null ? html`<span class="rank">${rankText(rank)}</span>` : nothing}
-        </div>
-      </th>
-    `;
   }
 
   roundRow(round: number, entry: Entry, total: { a: number | null; b: number | null }) {
@@ -397,48 +442,10 @@ export class BoutPage extends Component<State> {
           type="button"
           class="deduction ${assumed ? 'assumed' : ''}"
           title=${assumed ? 'reason assumed on import' : 'deductions'}
-          @click=${() => this.openDialog({ round, side })}
+          @click=${() => this.editDeductions(round, side, this.names()[side])}
         >${deducted > 0 ? `−${deducted}` : '·'}${assumed ? html`<sup>?</sup>` : nothing}</button>
       </td>
       <td class="total">${total ?? ''}</td>
-    `;
-  }
-
-  // The deduction dialog (SPEC Front end: native <dialog>). Here it lists
-  // what the round holds; adding and editing are task 08's form.
-  // The <dialog> is always in the page, so it can be opened from the click
-  // that asks for it (showModal needs it in the document).
-  dialog(nameA: string, nameB: string) {
-    const spot = this.state.dialog;
-    const list = spot
-      ? this.state.deductions.filter((d) => d.round_no === spot.round && d.side === spot.side)
-      : [];
-    return html`
-      <dialog class="deductions" ${ref(this.#dialog)} @close=${() => this.set({ dialog: null })}>
-        <h2>${spot ? `Round ${spot.round} · ${spot.side === 'A' ? nameA : nameB}` : ''}</h2>
-        ${list.length === 0 ? html`<p class="muted">No deductions.</p>` : html`
-          <ul>
-            ${list.map((d) =>
-              html`<li>
-                −${d.points} ${d.reason}${
-                d.note
-                  ? html`
-                    <span class="muted">(${d.note})</span>
-                  `
-                  : nothing
-              }
-                ${
-                isAssumed(d)
-                  ? html`<sup class="assumed" title="reason assumed on import">?</sup>`
-                  : nothing
-              }
-              </li>`
-            )}
-          </ul>
-        `}
-        <p class="muted">Adding and changing deductions comes with task 08.</p>
-        <form method="dialog"><button>Close</button></form>
-      </dialog>
     `;
   }
 }

@@ -1,0 +1,241 @@
+// The forms of task 08: what they make of what is typed (front/entry.ts),
+// and what "End bout" sends, through the API as the page sends it. The
+// dialogs' templates are not tested (SPEC Testing); they are checked in the
+// browser.
+import { deepStrictEqual, ok, strictEqual as assertEquals } from 'node:assert/strict';
+import {
+  changedFields,
+  findFighters,
+  readJudge,
+  readWeight,
+  roundAsked,
+  titlesOffClass,
+  weightText,
+  winnerAfter,
+  winnersFor,
+} from '../../front/entry.ts';
+import { entriesOf, type Entry, finalCard, lastTyped, reopenBody } from '../../front/scorecard.ts';
+import type { BoutView, Fighter, Title } from '../../front/api.ts';
+import { type Api, recordOf, testApi, usykFury } from '../helpers/api.ts';
+
+Deno.test('a weight is typed in its unit and kept in pounds, as v1 kept it (D36)', () => {
+  deepStrictEqual(readWeight('225.5', 'lbs'), { pounds: 225.5 });
+  deepStrictEqual(readWeight('100', 'kg'), { pounds: 220.46 });
+  deepStrictEqual(readWeight('9 5 3', 'st'), { pounds: 131.1875 }); // stones, pounds, ounces
+  deepStrictEqual(readWeight('16', 'st'), { pounds: 224 });
+  deepStrictEqual(readWeight('  ', 'lbs'), { pounds: null });
+  // Kept to the hundredth it is shown back in, so saving an edit unchanged
+  // changes nothing.
+  deepStrictEqual(readWeight('225.555', 'lbs'), { pounds: 225.56 });
+  deepStrictEqual(readWeight(weightText(225.56, 'lbs'), 'lbs'), { pounds: 225.56 });
+  for (
+    const [text, unit] of [['heavy', 'lbs'], ['-3', 'kg'], ['0', 'lbs'], ['9 x', 'st']] as const
+  ) {
+    ok('error' in readWeight(text, unit), `${text} ${unit}`);
+  }
+  assertEquals(weightText(131.1875, 'st'), '9 5 3');
+  assertEquals(weightText(220.46, 'kg'), '100');
+  assertEquals(weightText(225.5, 'lbs'), '225.5');
+  assertEquals(weightText(null, null), '');
+});
+
+const fighter = (id: number, first: string, last: string, nickname: string | null = null) =>
+  ({ id, first_name: first, last_name: last, nickname }) as Fighter;
+
+Deno.test('a fighter is found by every word typed, in any order, accents ignored', () => {
+  const all = [
+    fighter(1, 'Saúl', 'Álvarez', 'Canelo'),
+    fighter(2, 'Oleksandr', 'Usyk'),
+    fighter(3, 'Tyson', 'Fury', 'The Gypsy King'),
+    fighter(4, 'Mike', 'Tyson'),
+  ];
+  deepStrictEqual(findFighters(all, 'alv can').map((f) => f.id), [1]);
+  deepStrictEqual(findFighters(all, 'USYK').map((f) => f.id), [2]);
+  deepStrictEqual(findFighters(all, 'tyson').map((f) => f.id), [4, 3]); // shortest name first
+  deepStrictEqual(findFighters(all, ''), []);
+  deepStrictEqual(findFighters(all, 'tyson', 1).map((f) => f.id), [4]);
+});
+
+Deno.test('the decision dialog offers the winners and asks for the round each code allows (§5)', () => {
+  deepStrictEqual(winnersFor('UD'), ['A', 'B']);
+  deepStrictEqual(winnersFor('KO'), ['A', 'B']);
+  deepStrictEqual(winnersFor('MT'), ['draw']);
+  deepStrictEqual(winnersFor('NC'), ['none']);
+  assertEquals(roundAsked('KO'), 'needed');
+  assertEquals(roundAsked('TD'), 'needed');
+  assertEquals(roundAsked('UD'), 'last');
+  assertEquals(roundAsked('NC'), 'optional');
+  // A winner the new code still allows stays chosen; one it does not, goes.
+  assertEquals(winnerAfter('TKO', 'A'), 'A');
+  assertEquals(winnerAfter('UD', 'B'), 'B');
+  assertEquals(winnerAfter('D', 'A'), 'draw');
+  assertEquals(winnerAfter('UD', 'draw'), null);
+  assertEquals(winnerAfter('KO', null), null);
+  assertEquals(readJudge(''), null);
+  assertEquals(readJudge('115'), 115);
+  assertEquals(readJudge('11.5'), undefined);
+});
+
+const e = (a: number | null, b: number | null): Entry => ({ a, b });
+const get = async (api: Api, id: number) =>
+  (await api.call('GET', `/api/bouts/${id}`)).json as BoutView;
+const noJudges = [{ a: null, b: null }, { a: null, b: null }, { a: null, b: null }] as BoutView[
+  'card'
+]['judges'];
+
+Deno.test('End bout on a KO: the rules shape the card, the API takes it, and the records move once', async () => {
+  const api = testApi();
+  const { boutId, aId, bId } = await usykFury(api);
+  const bout = await get(api, boutId);
+  const entries = entriesOf(bout);
+  entries[0] = e(10, 9);
+  entries[1] = e(10, 9);
+  entries[2] = e(10, null); // round 3 half typed when the stoppage came
+  const knockdown = { round_no: 3, side: 'B' as const, points: 1, reason: 'knockdown' as const };
+  assertEquals(lastTyped(entries), 3);
+
+  const ko = { decision_type: 'KO' as const, winner: 'A' as const, round: 3, time: '2:01' };
+  const { body, problems } = finalCard(bout, entries, [knockdown], ko, noJudges);
+  deepStrictEqual(problems, []);
+  deepStrictEqual(body?.rounds, [
+    { round_no: 1, a: 10, b: 9 },
+    { round_no: 2, a: 10, b: 9 },
+    { round_no: 3, a: 0, b: 0 },
+  ]);
+  const res = await api.call('PUT', `/api/bouts/${boutId}/card`, body);
+  assertEquals(res.status, 200);
+  assertEquals(res.json.card.totals.b, 17); // 9 + 9 + (0 − 1)
+  deepStrictEqual(recordOf(api.db, aId), { won: 22, lost: 0, draws: 0, nc: 0, kos: 15 });
+  deepStrictEqual(recordOf(api.db, bId), { won: 34, lost: 1, draws: 1, nc: 0, kos: 24 });
+});
+
+Deno.test('End bout says why it cannot finalise: a points decision on a half-scored card', async () => {
+  const api = testApi();
+  const { boutId } = await usykFury(api);
+  const bout = await get(api, boutId);
+  const entries = entriesOf(bout);
+  entries[0] = e(10, 9);
+  const ud = { decision_type: 'UD' as const, winner: 'A' as const, round: 12, time: null };
+  const { body, problems } = finalCard(bout, entries, [], ud, noJudges);
+  assertEquals(body, null);
+  ok(problems.join(' ').includes('distance'), problems.join(' '));
+});
+
+Deno.test('a reopened bout keeps its card and result but not its count; End bout finalises it again (D32, D37)', async () => {
+  const api = testApi();
+  const { boutId, aId, bId } = await usykFury(api);
+  const before = { a: recordOf(api.db, aId), b: recordOf(api.db, bId) };
+  const ud = { decision_type: 'UD' as const, winner: 'A' as const, round: 12, time: '3:00' };
+  const all = entriesOf(await get(api, boutId)).map(() => e(10, 9));
+  const first = finalCard(await get(api, boutId), all, [], ud, noJudges);
+  await api.call('PUT', `/api/bouts/${boutId}/card`, first.body);
+  assertEquals(recordOf(api.db, aId).won, before.a.won + 1);
+
+  const reopened = await api.call(
+    'PUT',
+    `/api/bouts/${boutId}/card`,
+    reopenBody((await get(api, boutId)).card),
+  );
+  assertEquals(reopened.status, 200);
+  assertEquals(reopened.json.is_draft, 1);
+  deepStrictEqual(reopened.json.card.result, ud); // the card's shape depends on it
+  deepStrictEqual(recordOf(api.db, aId), before.a);
+  deepStrictEqual(recordOf(api.db, bId), before.b);
+
+  // A round corrected while reopened still saves as a draft, and End bout
+  // finalises the corrected card.
+  const fixed = entriesOf(reopened.json);
+  fixed[4] = e(9, 10);
+  const again = finalCard(reopened.json, fixed, [], ud, noJudges);
+  await api.call('PUT', `/api/bouts/${boutId}/card`, again.body);
+  assertEquals(recordOf(api.db, aId).won, before.a.won + 1);
+});
+
+Deno.test('End bout on a round-1 KO after a knockdown, with nothing typed, records round 1 at 0–0', async () => {
+  const api = testApi();
+  const { boutId } = await usykFury(api);
+  const bout = await get(api, boutId);
+  const kd = { round_no: 1, side: 'B' as const, points: 1, reason: 'knockdown' as const };
+  assertEquals(lastTyped(entriesOf(bout), [kd]), 1); // the dialog offers round 1
+  const ko = { decision_type: 'KO' as const, winner: 'A' as const, round: 1, time: '2:59' };
+  const { body } = finalCard(bout, entriesOf(bout), [kd], ko, noJudges);
+  deepStrictEqual(body?.rounds, [{ round_no: 1, a: 0, b: 0 }]);
+  const res = await api.call('PUT', `/api/bouts/${boutId}/card`, body);
+  assertEquals(res.status, 200);
+  assertEquals(res.json.card.totals.b, -1);
+  // Reopening a KO card keeps it valid: round 1 is 0–0 only because of the KO.
+  const reopened = await api.call('PUT', `/api/bouts/${boutId}/card`, reopenBody(res.json.card));
+  assertEquals(reopened.status, 200);
+});
+
+Deno.test('End bout never drops what was typed: it says what to clear or correct', async () => {
+  const api = testApi();
+  const { boutId } = await usykFury(api);
+  const bout = await get(api, boutId);
+  const ko3 = { decision_type: 'KO' as const, winner: 'A' as const, round: 3, time: null };
+  const refused = (
+    entries: Entry[],
+    deductions: Parameters<typeof finalCard>[2],
+    words: string,
+  ) => {
+    const { body, problems } = finalCard(bout, entries, deductions, ko3, noJudges);
+    assertEquals(body, null, words);
+    ok(problems.join(' ').includes(words), `${words}: ${problems}`);
+  };
+  const typed = (rows: [number | null, number | null][]) => {
+    const entries = entriesOf(bout);
+    rows.forEach(([a, b], i) => (entries[i] = e(a, b)));
+    return entries;
+  };
+  // One column typed and the other not: not an unscored card.
+  refused(typed([[10, null], [10, null], [10, null]]), [], 'round 1 has one side empty');
+  // Round 4 typed, but the KO was in 3 (the round the dialog offered was wrong).
+  refused(typed([[10, 9], [10, 9], [10, 9], [10, 9]]), [], 'round 4 has points');
+  // A knockdown in round 4 with the KO put in round 3.
+  refused(typed([[10, 9], [10, 9], [10, 9]]), [{
+    round_no: 4,
+    side: 'B',
+    points: 1,
+    reason: 'knockdown',
+  }], 'a deduction in round 4');
+  // The stoppage round itself may be half typed: it becomes 0–0.
+  const ok3 = finalCard(bout, typed([[10, 9], [10, 9], [10, null]]), [], ko3, noJudges);
+  deepStrictEqual(ok3.body?.rounds.at(-1), { round_no: 3, a: 0, b: 0 });
+});
+
+Deno.test('saving the same finalised card again does not move the records twice (§6)', async () => {
+  const api = testApi();
+  const { boutId, aId } = await usykFury(api);
+  const bout = await get(api, boutId);
+  const entries = entriesOf(bout);
+  entries[0] = e(10, 9);
+  const ko = { decision_type: 'KO' as const, winner: 'A' as const, round: 2, time: '0:30' };
+  const { body } = finalCard(bout, entries, [], ko, noJudges);
+  await api.call('PUT', `/api/bouts/${boutId}/card`, body);
+  const once = recordOf(api.db, aId);
+  await api.call('PUT', `/api/bouts/${boutId}/card`, body);
+  deepStrictEqual(recordOf(api.db, aId), once);
+});
+
+Deno.test('the bout form refuses a title of another class; the fighter form sends only what changed', () => {
+  const title = (id: number, weight_class_id: number) =>
+    ({ id, sanctioning_body: 'WBC', area: 'World', weight_class_id, status: 'Active' }) as Title;
+  const titles = [title(1, 18), title(2, 9)];
+  deepStrictEqual(titlesOffClass([{ title_id: 1 }, { title_id: 2 }], titles, 18), [title(2, 9)]);
+  deepStrictEqual(titlesOffClass([{ title_id: 1 }], titles, 18), []);
+
+  const stored = { first_name: 'Tyson', weight: 281, weight_unit: 'st', won: 35, lost: 0 };
+  // The form was opened on a list from before Fury's 35th win, and only the
+  // weight was changed: the record is not sent back.
+  deepStrictEqual(
+    changedFields({ ...stored, won: 34 }, {
+      first_name: 'Tyson',
+      weight: 280,
+      weight_unit: 'st',
+      won: 34,
+      lost: 0,
+    }),
+    { weight: 280 },
+  );
+  deepStrictEqual(changedFields(stored, { ...stored }), {});
+});

@@ -1,9 +1,13 @@
 // `/events/:id`: the card. Every bout in card order with who fights whom,
 // the corners, the class, the rounds, the belts on the line and who brought
-// each, and the result (SPEC Front end; v1's Event page columns). Editing
-// is task 08. The result links to the bout's scorecard (task 07).
+// each, and the result (SPEC Front end; v1's Event page columns). The event
+// and its bouts are added, edited and deleted here in dialogs (task 08); the
+// result links to the bout's scorecard (task 07).
 import { api, type BoutView, type Event, references } from './api.ts';
+import { BoutDelete } from './bout-delete.ts';
+import { BoutForm } from './bout-form.ts';
 import { Component, html, nothing } from './component.ts';
+import { EventForm } from './event-form.ts';
 import {
   dateText,
   fighterName,
@@ -30,11 +34,41 @@ export class EventPage extends Component<State> {
     this.set({ event, bouts, refs });
   }
 
+  async editEvent(event: Event) {
+    const saved = await new EventForm(event).open();
+    if (saved) this.set({ event: saved });
+  }
+
+  // The bout form gets the reference lists as arrays it may add to (a new
+  // fighter, a new title); the page reads everything again afterwards,
+  // whatever the answer.
+  async editBout(bout: BoutView | null) {
+    const refs = this.state.refs!;
+    const lists = {
+      fighters: [...refs.fighters.values()],
+      classes: [...refs.classes.values()],
+      titles: [...refs.titles.values()],
+    };
+    await new BoutForm(this.id, lists, bout).open();
+    await this.load(); // a fighter or title made in the form stays, even on Cancel
+  }
+
+  // Read again whatever the answer: a delete closed with Escape after it
+  // was done still happened.
+  async deleteBout(bout: BoutView, names: string) {
+    await new BoutDelete(bout, names).open();
+    await this.load();
+  }
+
   view() {
     const { event, bouts, refs } = this.state;
     if (!event || !refs) return html`<p class="muted">Loading…</p>`;
     return html`
-      <h1>${event.location}</h1>
+      <div class="page-head">
+        <h1>${event.location}</h1>
+        <button type="button" class="quiet" @click=${() => this.editEvent(event)}>edit</button>
+        <button type="button" @click=${() => this.editBout(null)}>Add bout</button>
+      </div>
       <p class="subtitle">${dateText(event.date)}</p>
       ${bouts.length === 0 ? html`<p class="muted">No bouts on this card yet.</p>` : html`
         <table class="list card">
@@ -46,6 +80,7 @@ export class EventPage extends Component<State> {
               <th>Rounds</th>
               <th>Titles</th>
               <th>Result</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>${bouts.map((bout) => this.row(bout, refs))}</tbody>
@@ -90,6 +125,11 @@ export class EventPage extends Component<State> {
         </td>
         <td title=${resultLabel(bout)}>
           <a href="/bouts/${bout.id}">${resultText(bout, nameA, nameB) || 'score'}</a>
+        </td>
+        <td class="row-actions">
+          <button type="button" class="quiet" @click=${() => this.editBout(bout)}>edit</button>
+          <button type="button" class="quiet" @click=${() =>
+            this.deleteBout(bout, `${nameA} v ${nameB}`)}>delete</button>
         </td>
       </tr>
     `;

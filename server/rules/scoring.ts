@@ -211,3 +211,35 @@ function isRoundTime(time: string): boolean {
 function isWholeIn(n: number, min: number, max: number): boolean {
   return Number.isInteger(n) && n >= min && n <= max;
 }
+
+// §4, as the decision makes it: the card a result implies, from the rounds
+// as scored. A bout stopped in round n keeps rounds 1 to n−1 as scored and
+// has round n at 0–0 with only its own deductions; one sent to the cards in
+// round n keeps rounds 1 to n as scored. Either way nothing after round n
+// is recorded, its deductions included. A bout that went the distance, or
+// a card with nothing on it at all, no round and no deduction (watched,
+// not scored: D20), is left as it is. A knockdown and a stop in round 1 is
+// scored: round 1 at 0–0 with the knockdown. Whether the result
+// fits the card is still validateCard's to say: a missing round stays
+// missing, so the user is told.
+export function shapeForResult(card: Card): Pick<Card, 'rounds' | 'deductions'> {
+  const { rounds, deductions, result } = card;
+  const scored = rounds.length > 0 || deductions.length > 0;
+  const end = result && scored ? cardEnd(card, result) : null;
+  if (!end) return { rounds, deductions };
+  const kept = rounds.filter((r) => r.round_no < end.round);
+  const last = rounds.find((r) => r.round_no === end.round);
+  if (end.zero) kept.push({ round_no: end.round, a: 0, b: 0 });
+  else if (last) kept.push(last);
+  return {
+    rounds: kept.sort((x, y) => x.round_no - y.round_no),
+    deductions: deductions.filter((d) => d.round_no <= end.round),
+  };
+}
+
+// Where a result says the card ends, for a card with something on it: the
+// round and whether it is a 0–0 stoppage round (§4, D20, D22); null when it
+// went the distance. The decision dialog's card is built against it.
+export function resultEnd(card: Card): { round: number; zero: boolean } | null {
+  return card.result ? cardEnd(card, card.result) : null;
+}

@@ -8,6 +8,7 @@ import {
   type CardRound,
   type Result,
   roundTotal,
+  shapeForResult,
   validateCard,
 } from '../../server/rules/scoring.ts';
 
@@ -347,4 +348,101 @@ Deno.test('scheduled rounds are 1–15', () => {
   deepStrictEqual(broken(card({ scheduled_rounds: 0 })), ['scheduled-rounds']);
   deepStrictEqual(broken(card({ scheduled_rounds: 16 })), ['scheduled-rounds']);
   deepStrictEqual(broken(card({ scheduled_rounds: 15 })), []);
+});
+
+// §4 as the decision makes it (task 08): the rules, not the form, give the
+// card a result implies.
+Deno.test('§4: a stoppage makes its round 0–0 with its own deductions, and drops what came after', () => {
+  const typed: Card = {
+    scheduled_rounds: 12,
+    rounds: [r(1, 10, 9), r(2, 9, 10), r(3, 10, 9), r(4, 10, 9)],
+    deductions: [kd(2, 'A'), kd(3, 'B'), kd(4, 'B')],
+    result: result('KO', 'A', 3, '1:12'),
+    is_draft: false,
+  };
+  const shaped = shapeForResult(typed);
+  deepStrictEqual(shaped.rounds, [r(1, 10, 9), r(2, 9, 10), r(3, 0, 0)]);
+  deepStrictEqual(shaped.deductions, [kd(2, 'A'), kd(3, 'B')]);
+  deepStrictEqual(validateCard({ ...typed, ...shaped }), []);
+  // The worked example: knockdown then stop in round 2 reads 0 / −1.
+  assertEquals(roundTotal({ ...typed, ...shaped }, 3, 'B'), -1);
+});
+
+Deno.test('§4: the stoppage round is added at 0–0 when nothing was typed in it', () => {
+  const typed: Card = {
+    scheduled_rounds: 10,
+    rounds: [r(1, 10, 9), r(2, 10, 9)],
+    deductions: [],
+    result: result('TKO', 'B', 3),
+    is_draft: false,
+  };
+  deepStrictEqual(shapeForResult(typed).rounds, [r(1, 10, 9), r(2, 10, 9), r(3, 0, 0)]);
+});
+
+Deno.test('a technical decision keeps its last round as scored and drops what came after (D22)', () => {
+  const typed: Card = {
+    scheduled_rounds: 12,
+    rounds: [r(1, 10, 9), r(2, 10, 9), r(3, 9, 10), r(4, 10, 9), r(5, 10, 9)],
+    deductions: [],
+    result: result('TD', 'A', 4),
+    is_draft: false,
+  };
+  deepStrictEqual(shapeForResult(typed).rounds, [
+    r(1, 10, 9),
+    r(2, 10, 9),
+    r(3, 9, 10),
+    r(4, 10, 9),
+  ]);
+});
+
+Deno.test('a points decision, a no-contest over the distance and an unscored card are left as typed', () => {
+  const twelve = Array.from({ length: 12 }, (_, i) => r(i + 1, 10, 9));
+  const card = (rounds: CardRound[], res: Result): Card => ({
+    scheduled_rounds: 12,
+    rounds,
+    deductions: [],
+    result: res,
+    is_draft: false,
+  });
+  for (
+    const c of [
+      card(twelve, result('UD', 'A', 12)),
+      card(twelve.slice(0, 7), result('SD', 'B', 12)), // a gap validateCard reports
+      card(twelve, result('NC', 'none', 12)),
+      card([], result('KO', 'A', 5)),
+    ]
+  ) {
+    deepStrictEqual(shapeForResult(c), { rounds: c.rounds, deductions: c.deductions });
+  }
+  // A no-contest before the last round was stopped (D20).
+  deepStrictEqual(
+    shapeForResult(card(twelve.slice(0, 5), result('NC', 'none', 4))).rounds,
+    [...twelve.slice(0, 3), r(4, 0, 0)],
+  );
+});
+
+Deno.test('a missing round before the stoppage stays missing, so the card is refused', () => {
+  const typed: Card = {
+    scheduled_rounds: 12,
+    rounds: [r(1, 10, 9), r(3, 10, 9)],
+    deductions: [],
+    result: result('KO', 'A', 4),
+    is_draft: false,
+  };
+  const shaped = shapeForResult(typed);
+  deepStrictEqual(shaped.rounds, [r(1, 10, 9), r(3, 10, 9), r(4, 0, 0)]);
+  assertEquals(validateCard({ ...typed, ...shaped })[0].rule, 'no-gaps');
+});
+
+Deno.test('§4: a knockdown and a stop in round 1 is round 1 at 0–0 with the knockdown', () => {
+  const typed: Card = {
+    scheduled_rounds: 12,
+    rounds: [],
+    deductions: [kd(1, 'B')],
+    result: result('KO', 'A', 1, '2:59'),
+    is_draft: false,
+  };
+  const shaped = shapeForResult(typed);
+  deepStrictEqual(shaped, { rounds: [r(1, 0, 0)], deductions: [kd(1, 'B')] });
+  deepStrictEqual(validateCard({ ...typed, ...shaped }), []);
 });

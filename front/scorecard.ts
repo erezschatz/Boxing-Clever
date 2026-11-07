@@ -8,7 +8,10 @@ import {
   type Card,
   type CardDeduction,
   type CardRound,
+  type Result,
+  resultEnd,
   roundTotal,
+  shapeForResult,
   validateCard,
 } from '../server/rules/scoring.ts';
 import type { BoutView } from './api.ts';
@@ -132,6 +135,101 @@ export function draftToSave(
   });
   if (problems.length > 0) return { body: null, unsaved: problems.map((p) => p.message) };
   return { body, unsaved };
+}
+
+// The highest round with anything in it, points or a deduction: where a
+// stopped bout most likely ended, so the decision dialog offers it.
+export function lastTyped(entries: Entry[], deductions: Deduction[] = []): number {
+  const typed = entries.reduce((last, e, i) => (e.a !== null || e.b !== null ? i + 1 : last), 0);
+  return Math.max(typed, ...deductions.map((d) => d.round_no));
+}
+
+export type FinalBody = Omit<DraftBody, 'is_draft' | 'result'> & {
+  result: Result;
+  is_draft: false;
+};
+
+// What "End bout" sends: the card shaped by the result as the rules say
+// (§4, shapeForResult: the stoppage round 0–0 with its own deductions) and
+// checked by them. Nothing typed is dropped quietly: a round with one side
+// empty, points typed after the round the bout ended in, or a deduction
+// after it are reported for the user to clear or correct (D37). The
+// stoppage round itself may be half typed or empty; it becomes 0–0.
+export function finalCard(
+  bout: BoutView,
+  entries: Entry[],
+  deductions: Deduction[],
+  result: Result,
+  judges: BoutView['card']['judges'],
+): { body: FinalBody; problems: [] } | { body: null; problems: string[] } {
+  const rounds: CardRound[] = entries.flatMap((e, i) =>
+    e.a !== null && e.b !== null ? [{ round_no: i + 1, a: e.a, b: e.b }] : []
+  );
+  const card: Card = {
+    scheduled_rounds: bout.scheduled_rounds,
+    rounds,
+    deductions,
+    result,
+    is_draft: false,
+  };
+  const anything = lastTyped(entries, deductions) > 0;
+  // An empty card is watched, not scored (D20); otherwise find the end with
+  // the stoppage round present, typed or not.
+  const end = anything
+    ? resultEnd({ ...card, rounds: rounds.length > 0 ? rounds : [{ round_no: 1, a: 0, b: 0 }] })
+    : null;
+  const problems: string[] = [];
+  for (const [i, e] of entries.entries()) {
+    const n = i + 1;
+    const typed = e.a !== null || e.b !== null;
+    if (!typed) continue;
+    if (end && n > end.round) {
+      problems.push(`round ${n} has points, but the bout ended in round ${end.round}`);
+    } else if ((e.a === null || e.b === null) && !(end?.zero && n === end.round)) {
+      problems.push(`round ${n} has one side empty`);
+    }
+  }
+  for (const d of deductions) {
+    if (end && d.round_no > end.round) {
+      problems.push(
+        `a deduction in round ${d.round_no}, after the bout ended in round ${end.round}`,
+      );
+    }
+  }
+  if (problems.length > 0) return { body: null, problems };
+
+  if (end?.zero && !rounds.some((r) => r.round_no === end.round)) {
+    rounds.push({ round_no: end.round, a: 0, b: 0 }); // shapeForResult makes it 0–0 either way
+    rounds.sort((x, y) => x.round_no - y.round_no);
+  }
+  const shaped = { ...card, ...shapeForResult(card) };
+  const refused = validateCard(shaped).map((p) => p.message);
+  if (refused.length > 0) return { body: null, problems: refused };
+  return {
+    body: {
+      rounds: shaped.rounds,
+      deductions: shaped.deductions,
+      result,
+      judges,
+      is_draft: false,
+    },
+    problems: [],
+  };
+}
+
+// What "Reopen as draft" sends (D32, D37): the card as it stands, result
+// and all, as a draft. The result stays because the card's shape depends
+// on it (a KO's last round is 0–0, which only a stoppage allows), so the
+// rounds before it can be corrected and the draft still saves; changing
+// where the bout ended is "End bout" again.
+export function reopenBody(card: BoutView['card']): DraftBody {
+  return {
+    rounds: card.rounds,
+    deductions: card.deductions,
+    result: card.result,
+    judges: card.judges,
+    is_draft: true,
+  };
 }
 
 function asCard(

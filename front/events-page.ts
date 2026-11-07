@@ -1,7 +1,9 @@
 // `/`: every event, newest first, folded by year with the newest year open
-// (SPEC Front end; v1's EventList). Adding an event is task 08.
+// (SPEC Front end; v1's EventList). A new event opens its card.
 import { api, type Event } from './api.ts';
 import { Component, html } from './component.ts';
+import { EventForm } from './event-form.ts';
+import { navigate } from './router.ts';
 import { dateText, yearOf } from './format.ts';
 
 type State = { events: Event[] | null; open: Set<string> };
@@ -17,6 +19,11 @@ export class EventsPage extends Component<State> {
     this.set({ events, open: new Set(newest ? [newest] : []) });
   }
 
+  async add() {
+    const event = await new EventForm().open();
+    if (event) navigate(`/events/${event.id}`);
+  }
+
   toggle(year: string) {
     const open = new Set(this.state.open);
     if (!open.delete(year)) open.add(year);
@@ -26,14 +33,20 @@ export class EventsPage extends Component<State> {
   view() {
     const { events, open } = this.state;
     if (!events) return html`<p class="muted">Loading…</p>`;
-    if (events.length === 0) return html`<p class="muted">No events yet.</p>`;
+    const head = html`
+      <div class="page-head">
+        <h1>Events</h1>
+        <button type="button" @click=${() => this.add()}>New event</button>
+      </div>
+    `;
+    if (events.length === 0) return html`${head}<p class="muted">No events yet.</p>`;
     const years = new Map<string, Event[]>();
     for (const event of events) {
       const year = yearOf(event.date);
       years.set(year, [...(years.get(year) ?? []), event]);
     }
     return html`
-      <h1>Events</h1>
+      ${head}
       ${[...years].map(([year, ofYear]) =>
         html`
           <section class="group">

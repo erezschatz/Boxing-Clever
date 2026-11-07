@@ -100,7 +100,8 @@ type MergePlan =
   | { ok: false; response: Response }
   | { ok: true; preview: MergePreview; dupId: number; targetId: number };
 
-type MergePreview = {
+// The wire shape of a merge's preview and answer (front/merge-form.ts).
+export type MergePreview = {
   duplicate: { id: number; name: string; record_dropped: FightRecord };
   target: { id: number; name: string; before: FightRecord; after: FightRecord };
   bouts: number;

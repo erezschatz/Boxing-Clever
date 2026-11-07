@@ -571,3 +571,78 @@ press but for the first digit of 10, which no rule can tell from a 1
 without waiting. What a reload restores is what the server holds, so the
 page sends only whole cards the rules accept, never one that quietly
 drops what is stored, and says live what it cannot save.
+
+### D36 · 2026-11-07 · A fighter's weight is stored in pounds; the unit is how it is typed and shown
+**Decision:** `fighter.weight` (and the snapshot's) holds pounds whatever
+the unit; `weight_unit` says which unit the user types and reads it in.
+The fighter form reads lbs and kg as decimals and stone as v1's "S L O"
+(`server/rules/weight.ts`), converts to pounds to save, and converts back
+to show (`front/entry.ts`). Pounds are kept to the hundredth they are
+shown in, so saving an edit unchanged changes nothing. Changing the unit in
+the form converts what is typed, to the nearest ounce in stone and the
+hundredth otherwise, so switching back and forth can move it by that much.
+**Rejected:** Storing the number as typed, in its unit (decimal stone for
+stone), which reads more literally but makes every comparison and every
+class limit convert first, and differs from what v1 stored.
+**Why:** v1 kept pounds (its BoxerForm converts before saving), so the v1
+import (task 10) carries weights over unchanged, and the classes' limits
+(D17) are in pounds already. SPEC's "weight + unit" did not say which; this
+says it.
+
+### D37 · 2026-11-07 · The forms: dialogs that answer a promise; the rules shape a finished card; a finalised card is reopened to be edited
+**Decision:** Three choices in task 08.
+*Dialogs.* Every form is a `DialogForm` (`front/dialog.ts`): a native
+`<dialog>` made when it opens and removed when it closes, over whatever
+page is showing, which answers a promise with what it made, or null when
+cancelled. A form can open another over itself (a new fighter, or the
+fighter form from the bout form's search). A request runs inside the
+dialog, and a refusal is shown there with the server's reasons, so the
+user fixes it without starting again. The scorecard's task-07 deduction
+placeholder is replaced by one.
+*End bout.* The decision dialog sends the code, winner, round, time and
+judges. It never shapes the card. `finalCard` (`front/scorecard.ts`)
+passes the rounds scored on both sides through `shapeForResult`, a new
+rule in `server/rules/scoring.ts` (§4), and then through `validateCard`.
+`shapeForResult` puts a stoppage round at 0–0 with only its own
+deductions, keeps a technical decision's last round as scored, and drops
+everything after the end. A card with only a deduction on it counts as
+scored, so a knockdown and a KO in round 1 is round 1 at 0–0. `finalCard`
+drops nothing typed without a word. A round with one side empty, points
+typed after the round the bout ended in, or a deduction after it are
+reported for the user to correct. Only the stoppage round may be half
+typed or empty, since it becomes 0–0. The dialog offers the last round with
+points or a deduction in it. A card the rules still refuse is not sent, and
+the dialog says why. On a finalised bout the same dialog is titled "Change
+decision" and says that both records change at once. While a finalise or
+a reopen is under way, no draft save is sent, however the page is left, so
+nothing can undo it (D32).
+*Finalised cards.* A finalised bout's card stays read-only. Its decision
+can be changed in the same dialog. Fixing a round means "Reopen as draft",
+which asks first and then saves the card as a draft with its result (D32:
+the result comes off both records). The result stays because the card's
+shape depends on it: a KO's 0–0 round is only valid with a stoppage. Rounds
+before the end can then be corrected and saved, and "End bout" finalises
+again, or moves where the bout ended.
+*Dialog lifecycle.* Escape does nothing while a request is out. The back
+button closes an open dialog along with its page. A page reads its lists
+again however a form closes, so a fighter or title made inside a cancelled
+bout form is not lost and made twice. A fighter edit sends only the fields
+it changed, so an edit made from a stale list cannot write an old record
+back. The bout form refuses a title of another class, which the server
+does not check.
+**Rejected:** Dialogs written into each page's template (task 07's first
+deduction dialog hit `showModal` before lit-html had put it in the
+document, and nesting one form over another needs a second copy in every
+page); the decision form typing or zeroing the stoppage round itself (the
+rule would then live in a template, untested, and the server's §4 check
+would be a second opinion rather than the same one); editing a finalised
+card in place (every save would re-run §6 on a half-edited card);
+reopening without the result (tried: the server refuses the 0–0 round of a
+KO without its KO); a server guard against a finalised bout's return to
+draft (D32 chose to allow it); letting the rules drop what was typed after
+the end (the dialog's round could be wrong, and a real round would be lost
+in silence).
+**Why:** The rules are the subject of the app and are tested with nothing
+running (CLAUDE.md), so the card a result implies is computed by them in
+the browser, as the totals already are. Reopening says out loud that the
+records move, which an edit in place would hide.

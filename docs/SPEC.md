@@ -116,7 +116,8 @@ browser (lit-html, fetch)  ──►  /api/*  Hono routes (server/api/)
   table), `component.ts` (the base class and its store), `router.ts`,
   `api.ts` (fetch, and the wire shapes imported as types from the server),
   `format.ts` (names, records, dates, results as the pages say them),
-  `scorecard.ts` (the scorecard's entry, totals and draft, pure), and
+  `scorecard.ts` (the scorecard's entry, totals, draft and finished card,
+  pure), and
   one `*-page.ts` per page. The browser loads one script, `/app.js`:
   `app.ts` bundled with the pages and `server/rules/` by Deno's own bundler,
   on every request in dev (`BOXING_DEV`, set by `deno task dev`) and once by
@@ -131,7 +132,7 @@ none. All ids are `INTEGER PRIMARY KEY`.
 | Table | Holds | Notes |
 |---|---|---|
 | `weight_class` | the 18 classes: name, alternate name, lbs, kg | seeded by migration 002 in v1's order; Heavyweight's limit is null (D17) |
-| `fighter` | first/last name, nickname, colors, weight + unit, **current** record (won, lost, draws, nc, kos) | the record is derived data that is stored: typed in on creation and correctable by hand (D28), updated transactionally on finalise, recomputable by `scripts/recompute-records.ts` |
+| `fighter` | first/last name, nickname, colors, weight (pounds) + the unit it is typed and shown in (D36), **current** record (won, lost, draws, nc, kos) | the record is derived data that is stored: typed in on creation and correctable by hand (D28), updated transactionally on finalise, recomputable by `scripts/recompute-records.ts` |
 | `fighter_alias` | fighter_id, alias text | names as TBRB and the sheet spell them; merge keeps aliases; an alias names one fighter (D19) |
 | `event` | date, location | |
 | `bout` | event_id, card_order, weight_class_id, scheduled_rounds, fighter_a_id, fighter_b_id, **corner_a** (`red`/`blue`, null when not recorded), a/b **as-of snapshot** (record ×5, weight, unit, colors, tbrb_rank), result (decision_type, winner `A`/`B`/`draw`/`none`, round, time), judges ×3 ×2, is_draft. *Pending D26: a contracted weight instead of a class, and a missed-weight mark per side* | the snapshot is what v1's Mongo document was for and is kept on purpose (D4); its columns are `a_won` … `a_tbrb_rank`, `b_won` …, null until first save; result columns `decision_type`, `winner`, `result_round`, `result_time`; judges `judge1_a` … `judge3_b` |
@@ -252,14 +253,22 @@ reference lists, every fighter, class and title (D34). Pages:
   snapshot). Focus moves on once an entry cannot grow; a draft saves the
   whole typed card when the rules accept it, never dropping a stored round
   by mistake, on demand and on leaving the page; a finalised card is
-  read-only until the decision dialog (D35).
+  read-only: its decision can be changed, or it is reopened as a draft to
+  fix a round (D35, D37). The card a result implies comes from the rules
+  (`shapeForResult`, §4), never from the form.
 - `/fighters` grouped by last-name initial, record as W-L-D (N KOs); merge
 - `/fighters/:id` the **fighter card** (redesigned): name, nickname,
   colors, current record, current TBRB rank per class, titles held, the
   list of their fights as witnessed with the as-of record beside each.
 
 No CSS framework. One stylesheet, custom properties, light theme only.
-Native `<dialog>` for modals (v1 already did this).
+Native `<dialog>` for modals (v1 already did this): each form is a
+`DialogForm` (`dialog.ts`) that opens over the page and answers what it
+made (D37). The forms are `event-form.ts`, `fighter-form.ts`,
+`bout-form.ts` (fighters by search, with a new one added on the spot;
+titles with holder side, with a new title added on the spot),
+`deduction-form.ts`, `decision-form.ts`, `bout-delete.ts` (D23, D31) and
+`merge-form.ts` (D31); what they make of typed text is in `entry.ts`.
 
 ## Stack — rote libraries only
 

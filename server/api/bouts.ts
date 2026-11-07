@@ -90,6 +90,22 @@ function bodyFields(b: BoutFields): BoutFields {
   };
 }
 
+// The wire shapes of a finalised bout's delete (front/bout-delete.ts): what
+// each choice does to both records, shown first, and what was done (D23, D31).
+type SideRecords = { id: number; name: string; before: FightRecord; after_reverse: FightRecord };
+export type DeletePreview = {
+  bout_id: number;
+  a: SideRecords;
+  b: SideRecords;
+  reverse_possible: boolean;
+};
+export type DeleteDone = {
+  deleted: number;
+  records: 'reverse' | 'keep';
+  a: { id: number; name: string; before: FightRecord; after: FightRecord };
+  b: { id: number; name: string; before: FightRecord; after: FightRecord };
+};
+
 export function boutRoutes(db: GetDb): Hono {
   const routes = new Hono();
 
@@ -189,7 +205,7 @@ export function boutRoutes(db: GetDb): Hono {
     // A record corrected by hand since finalise (D28) may no longer hold this
     // result; reversing would take it below zero, so only keep is offered.
     const reversePossible = !isNegative(a.after_reverse) && !isNegative(b.after_reverse);
-    const preview = { bout_id: boutId, a, b, reverse_possible: reversePossible };
+    const preview: DeletePreview = { bout_id: boutId, a, b, reverse_possible: reversePossible };
 
     const choice = c.req.query('records');
     if (choice !== 'reverse' && choice !== 'keep') {
@@ -218,7 +234,8 @@ export function boutRoutes(db: GetDb): Hono {
       before: s.before,
       after: choice === 'reverse' ? s.after_reverse : s.before,
     });
-    return c.json({ deleted: boutId, records: choice, a: now(a), b: now(b) });
+    const done: DeleteDone = { deleted: boutId, records: choice, a: now(a), b: now(b) };
+    return c.json(done);
   });
 
   return routes;
