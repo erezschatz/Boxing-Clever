@@ -11,7 +11,7 @@ page I am on.
 - [x] Dialogs over native `<dialog>`: fighter (create/edit, weight in any unit), event, bout (fighters by search, corners, class, rounds, titles + holder side), deduction (points, reason), decision (type, winner, round, time, three judges)
 - [x] Decision dialog sends codes; the stoppage round is handled by the rules, not the form
 - [x] Fighter merge from the fighters page
-- [ ] Verified by Erez: a full event entered and scored from an empty database, standalone
+- [x] Verified by Erez: a full event entered and scored from an empty database, standalone
 
 ## What was done
 
@@ -276,3 +276,26 @@ A total, four cards. All are added, along with a test of `fillFromCards`.
 Rechecked in the pane: the cards filled "SD for Oleksandr Usyk, from the
 cards (2–1)". Picking Fury cleared the line and kept Fury, and changing
 judge 3's total afterwards left SD for Fury as picked.
+
+2026-11-07, verified by Erez, standalone. He entered and scored an event
+through the forms:
+- the event (3 Arena, Dublin, 2026-03-15);
+- two new fighters with their records (Jono Carroll 25-7-1, Colm Murphy
+  16-0-0);
+- a new title (IBO World, vacant);
+- the bout: super featherweight, 12 rounds, Carroll red;
+- every round, then End bout with the three judges' cards, finalised as
+  SD for Carroll.
+
+Checked by Claude in `data/boxing.db` afterwards: 24 round scores, the
+result, the cards, both records moved once, and the snapshot taken before
+the fight. The database was not strictly empty. It held one fighter,
+Usyk, from earlier, whom this event did not use. Everything the event used
+was entered for it, which is what the box asks. Not exercised in his run:
+deductions (none in the fight), the guarded delete and the merge (their
+own boxes stay open).
+
+Seen in the data: the title's kind was entered as "Vacant", so it reads
+"IBO Vacant World". The new-title field "Kind (Active, Interim…)" was read
+as the vacancy, which the holder choice already records. Left as entered;
+Erez may correct it, and the label may need to say what it means.

@@ -14,7 +14,7 @@ whether they are champion, and which belts they brought.
 - [x] Draft save on demand and on leaving the page; reload restores
 - [x] Header per side: name, nickname, corner colour, `(c)` and belt list from `bout_title`, TBRB rank as of the event date when a snapshot exists
 - [x] Imported rounds whose deduction is unknown carry a marker
-- [ ] Verified by Erez on a real fight, standalone
+- [x] Verified by Erez on a real fight, standalone
 
 ## What was done
 
@@ -208,3 +208,15 @@ surname ("Usyk", "Fury") instead of "Pts", in the ink colour, with the
 full name as its tooltip (`front/bout-page.ts`). This is a template change
 with no rule behind it, so there is no test; it was checked in the browser
 pane: the column row read "Rd Usyk Ded Total Fury Ded Total".
+
+2026-11-07, verified by Erez. He scored a real fight on it, standalone:
+Jono Carroll v Colm Murphy, 3 Arena, Dublin, 12 rounds. In his words:
+"finished the fight, scored, added a winner". The database
+(`data/boxing.db`, read by Claude afterwards) holds all 24 round scores
+and SD for Carroll from judges 112–116, 116–112 and 117–111. The records
+moved once: Carroll 25-7-1 to 26-7-1, Murphy 16-0-0 to 16-1-0. The
+snapshot keeps them as they were before the fight. His notes from the run
+became D39 (focus across, then down; no "draft" on the pages) and the
+surnames over the columns. The last box is ticked on that run. There were
+no deductions in the fight; the deduction dialog was checked by Claude in
+the pane (task 08).
