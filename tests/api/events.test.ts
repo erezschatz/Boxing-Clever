@@ -58,19 +58,30 @@ Deno.test('DELETE /api/events/:id deletes an event of drafts, with its bouts; 40
   assertEquals((await api.call('DELETE', `/api/events/${eventId}`)).status, 404);
 });
 
-Deno.test('GET /api/events/:id/bouts lists the card in order; 404 when missing', async () => {
+Deno.test('GET /api/events/:id/bouts lists the card in order, each bout as GET /bouts/:id answers it; 404 when missing', async () => {
   const api = testApi();
   const { eventId, aId, bId, boutId } = await usykFury(api);
+  const { json: title } = await api.call('POST', '/api/titles', {
+    sanctioning_body: 'WBC',
+    area: 'World',
+    weight_class_id: 18,
+    status: 'Active',
+  });
   const second = await api.call('POST', '/api/bouts', {
     event_id: eventId,
     weight_class_id: 18,
     scheduled_rounds: 10,
     fighter_a_id: bId,
     fighter_b_id: aId,
+    titles: [{ title_id: title.id, holder_side: 'A' }],
   });
   assertEquals(second.json.card_order, 2); // left out, so it goes last
   const { status, json } = await api.call('GET', `/api/events/${eventId}/bouts`);
   assertEquals(status, 200);
   deepStrictEqual(json.map((b: { id: number }) => b.id), [boutId, second.json.id]);
+  // The card page reads the titles and the result off the list (D34).
+  deepStrictEqual(json[1], (await api.call('GET', `/api/bouts/${second.json.id}`)).json);
+  deepStrictEqual(json[1].titles, [{ title_id: title.id, holder_side: 'A' }]);
+  assertEquals(json[1].card.is_draft, true);
   assertEquals((await api.call('GET', '/api/events/999/bouts')).status, 404);
 });

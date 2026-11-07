@@ -28,10 +28,10 @@ import map there is the one resolution that matters.
 ## Tasks (`deno.json`)
 
 ```
-deno task dev      # deno serve --watch on http://localhost:8890, data/boxing.db
+deno task dev      # deno serve --watch on http://localhost:8890, data/boxing.db; BOXING_DEV=1 bundles /app.js per request
 deno task test     # all tiers, in-memory SQLite
-deno task check    # type-check mod.ts and tests/
-deno task build    # emit front/dist/ for deployment (D7)
+deno task check    # type-check mod.ts, front/app.ts, scripts/build.ts and tests/
+deno task build    # emit front/dist/app.js, the browser bundle served when BOXING_DEV is unset (D7, D33)
 deno task migrate  # apply pending migrations to data/boxing.db (the server also does, on first use: D29)
 deno lint / deno fmt --check   # built-ins, not tasks; fmt covers code only (Markdown and the runbook's scripts excluded)
 deno task hooks     # once per clone: git config core.hooksPath .githooks
@@ -41,7 +41,16 @@ deno task check-unit-test          # the gate's own tests (node --test)
 
 Environment: `BOXING_DB` (path; default `data/boxing.db` in this repo,
 resolved from the module, not the working directory, so it holds under
-Atrium; `:memory:` in tests). The standalone port is the `--port` in the `dev` task.
+Atrium; `:memory:` in tests). `BOXING_DEV` (any value): `/app.js` is
+bundled from `front/app.ts` on every request, so a reload shows the edit
+(`deno serve --watch` restarts only on server changes); unset, `/app.js` is
+`front/dist/app.js` or a 500 that says to run `deno task build`. The
+standalone port is the `--port` in the `dev` task.
+
+The bundler is `Deno.bundle`, behind `"unstable": ["bundle"]` in
+`deno.json`, so it is the one part of the toolchain Deno may still change.
+If an upgrade breaks it, pin esbuild instead (D7's fallback) and record it
+here and in DECISIONS.
 
 ## Mounting in Atrium
 
@@ -60,6 +69,7 @@ for Atrium. Logs to the journal.
 
 ## Deployment
 
-Pull on the server, `deno task migrate`, `deno task build`, restart Atrium.
+Pull on the server, `deno task migrate`, `deno task build` (writes
+`front/dist/app.js`; Atrium's process serves it without `BOXING_DEV`), restart Atrium.
 A `scripts/deploy.sh` doing exactly those four lines is task 14's
 deliverable.

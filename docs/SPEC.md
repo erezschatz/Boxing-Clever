@@ -111,8 +111,16 @@ browser (lit-html, fetch)  ──►  /api/*  Hono routes (server/api/)
 - `server/migrations/NNN-name.sql` are applied by `server/db/migrate.ts`
   (~50 lines: a `schema_version` table, apply in order, each file and its
   version row in one transaction).
-- `front/` is static ESM: `index.html` with an import map, `app.ts`
-  compiled on the fly by Deno in dev and emitted once at deploy (D7).
+- `front/` is static ESM, flat: `index.html` (the import map that pins
+  lit-html, the header, the `<main>`), `style.css`, `app.ts` (the route
+  table), `component.ts` (the base class and its store), `router.ts`,
+  `api.ts` (fetch, and the wire shapes imported as types from the server),
+  `format.ts` (names, records, dates, results as the pages say them), and
+  one `*-page.ts` per page. The browser loads one script, `/app.js`:
+  `app.ts` bundled with the pages and `server/rules/` by Deno's own bundler,
+  on every request in dev (`BOXING_DEV`, set by `deno task dev`) and once by
+  `deno task build` into `front/dist/app.js` for deployment; lit-html stays
+  a bare import for the page's import map (D7, D33).
 
 ## Data model
 
@@ -205,10 +213,10 @@ did, and its `409` carries a `preview` of what each choice would do (D31).
 | GET/PATCH | `/api/fighters/:id` | PATCH may correct the record (D28) |
 | GET | `/api/fighters/:id/merge/:targetId` | the merge's preview: the target's record before and after, the duplicate's record that is dropped, and how many bouts (finalised among them), aliases and TBRB rows move (D31) |
 | POST | `/api/fighters/:id/merge/:targetId` | `:id` is the duplicate. Its bouts, aliases and TBRB rows move to the target and it is deleted, in one transaction. The results of its finalised fights are added to the target's record, Every merge needs `?records=add`, else `409` with the preview (D31). The duplicate's typed-in record is dropped (D28). `409` if the two fought each other. Answers the preview, carried out |
-| GET | `/api/fighters/:id/bouts` | history as witnessed, with as-of snapshots |
+| GET | `/api/fighters/:id/bouts` | history as witnessed, oldest first, each bout as `GET /api/bouts/:id` answers it (snapshot, `titles`, `card`; D34) |
 | GET/POST | `/api/events` | |
 | GET/PATCH/DELETE | `/api/events/:id` | delete refuses (`409`) if any bout is finalised; otherwise its bouts go with it |
-| GET | `/api/events/:id/bouts` | ordered by card_order |
+| GET | `/api/events/:id/bouts` | ordered by card_order, each bout as `GET /api/bouts/:id` answers it (D34) |
 | POST | `/api/bouts` | `card_order` left out puts the bout last on its card; `titles` is `[{title_id, holder_side}]`. A bout is answered as its row with `titles` beside it |
 | GET/PATCH/DELETE | `/api/bouts/:id` | GET (and every write that answers a bout) gives the row with its snapshot and result, `titles`, and `card` in PUT's shape plus read-only `totals` (`{rounds: [{round_no, a, b}], a, b}`, from the rules). PATCH covers corners, titles with holder side (the list sent replaces the old one), scheduled rounds (re-checked against the saved card, `400` if it no longer fits); a finalised bout's fighters cannot change (`409`, D30). DELETE of a finalised bout needs `?records=reverse` (both records lose the result, in the same transaction) or `?records=keep`, else `409` with a preview of both records before and after a reverse; a reverse that would go below zero is `409` too. Answers `200` with the choice made and both records before and after (D31); a draft's delete is `204`. It never deletes the event, not even its last bout (D23) |
 | PUT | `/api/bouts/:id/card` | the whole scorecard, `{rounds: [{round_no, a, b}], deductions: [{round_no, side, points, reason, note}], result: {decision_type, winner, round, time} \| null, judges: [{a, b}] ×3, is_draft}`; `deductions` (none), `judges` (all null) and a deduction's `note` (null) may be left out. Validated by the rules (`400 {error, problems}`), then written in one transaction with the snapshot (§7) and the record change (§6); finalise = `is_draft:false` with a result. A change that would take a record below zero is `409` (D32). Answers the bout, as GET does |
@@ -221,10 +229,15 @@ did, and its `409` carries a `preview` of what each choice would do (D31).
 ## Front end
 
 lit-html templates, a hand-written `Component` base of ~40 lines (observe a
-store, re-render on change, `ref()` for focus), and a URL router. Pages:
+store, re-render on change, `ref()` for focus), and a URL router (history
+API; a plain click on a link into the app navigates without a reload, the
+back button and deep links work). A page joins ids to names itself from the
+reference lists, every fighter, class and title (D34). Pages:
 
-- `/` events list (newest first, collapsible by year as in v1)
-- `/events/:id` the card: bouts in order, add/edit bout, corners, titles.
+- `/` events list (newest first, folded by year with the newest open, as in v1)
+- `/events/:id` the card: bouts in order with both fighters and their
+  record on the night (the snapshot, once taken), corners, class, rounds,
+  titles with who brought each, and the result; add/edit bout.
   Deleting a bout is always confirmed. A finalised bout takes two dialogs
   (D23): "this is a finalised fight, are you sure?", then one showing what
   both fighters' records will become, with *delete and reset the records*,
@@ -255,7 +268,8 @@ import map.
 | HTTP routing | Hono | NestJS | Atrium's chamber convention; a `fetch` handler, nothing else |
 | Validation | zod | class-validator + class-transformer | one schema per resource is also its TS type |
 | Database | `node:sqlite` (Deno built-in) | TypeORM + MySQL + Mongoose + MongoDB | one file, in-memory for tests, zero infrastructure (D3, D4) |
-| Templates | lit-html (pinned, from esm.sh) | React + Jotai + Bootstrap | templates only; no component framework (D6) |
+| Templates | lit-html 3.3.3, pinned twice: esm.sh in the browser import map, `npm:` in `deno.json` for the type-check (a test keeps the two equal) | React + Jotai + Bootstrap | templates only; no component framework (D6) |
+| Bundling | `Deno.bundle` (built in, behind the `bundle` unstable flag in `deno.json`) | Vite | the dev server and `deno task build` make the one browser script (D7, D33); not a package, so nothing for Atrium's import map |
 | Tests | `Deno.test` + `node:assert/strict` | — | both built into Deno; no package |
 | Numbers sheet | none — Numbers exports CSV, the importer reads CSV | numbers-parser | no dependency for a one-time step (D8) |
 

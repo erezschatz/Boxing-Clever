@@ -3,6 +3,7 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { deleteEvent, getEvent, insertEvent, listEvents, updateEvent } from '../db/event.ts';
 import { countFinalisedBouts, listBoutsForEvent } from '../db/bout.ts';
+import { boutView } from './card.ts';
 import { conflict, type GetDb, notFound, pathId, readBody } from './http.ts';
 
 export const eventSchema = z.strictObject({
@@ -53,10 +54,11 @@ export function eventRoutes(db: GetDb): Hono {
     return c.body(null, 204);
   });
 
+  // The card, in card order, each bout as GET /bouts/:id answers it (D34).
   routes.get('/:id/bouts', (c) => {
     const id = pathId(c);
     if (!id || !getEvent(db(), id)) return notFound(c, 'event');
-    return c.json(listBoutsForEvent(db(), id));
+    return c.json(listBoutsForEvent(db(), id).map((b) => boutView(db(), b.id)));
   });
 
   return routes;

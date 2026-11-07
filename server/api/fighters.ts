@@ -17,6 +17,7 @@ import { countBoutsBetween, listBoutsForFighter, repointBoutFighter } from '../d
 import { listTbrbRowsForFighter, repointTbrbRows } from '../db/tbrb-snapshot.ts';
 import type { Side } from '../rules/decisions.ts';
 import { applyDelta, type FightRecord, resultsAdded } from '../rules/records.ts';
+import { boutView } from './card.ts';
 import { conflict, type GetDb, notFound, pathId, readBody } from './http.ts';
 
 const count = z.int().nonnegative();
@@ -182,11 +183,12 @@ export function fighterRoutes(db: GetDb): Hono {
     return c.json(getFighter(db(), id));
   });
 
-  // Oldest first, each bout carrying both fighters' as-of snapshot (SPEC §7).
+  // Oldest first, each bout as GET /bouts/:id answers it, with both
+  // fighters' as-of snapshot (SPEC §7, D34).
   routes.get('/:id/bouts', (c) => {
     const id = pathId(c);
     if (!id || !getFighter(db(), id)) return notFound(c, 'fighter');
-    return c.json(listBoutsForFighter(db(), id));
+    return c.json(listBoutsForFighter(db(), id).map((b) => boutView(db(), b.id)));
   });
 
   // :id is the duplicate, :targetId the fighter it duplicates. GET says what

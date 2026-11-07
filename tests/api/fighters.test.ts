@@ -85,6 +85,8 @@ Deno.test('GET /api/fighters/:id/bouts lists their bouts on either side; 404 whe
     deepStrictEqual(json.map((b: { id: number }) => b.id), [boutId]);
     // The as-of snapshot columns are there, empty until the first save (task 05).
     assertEquals(json[0].a_won, null);
+    // Each bout as GET /bouts/:id answers it: titles and card included (D34).
+    deepStrictEqual(json[0], (await api.call('GET', `/api/bouts/${boutId}`)).json);
   }
   assertEquals((await api.call('GET', '/api/fighters/999/bouts')).status, 404);
 });

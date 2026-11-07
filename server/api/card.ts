@@ -135,6 +135,9 @@ export function boutView(db: Database, boutId: number) {
   return { ...bout, titles, card: readCard(db, bout) };
 }
 
+// The wire shape of a bout, which the browser imports as a type (front/api.ts).
+export type BoutView = ReturnType<typeof boutView>;
+
 const recordOf = (f: Fighter): FightRecord => ({
   won: f.won,
   lost: f.lost,

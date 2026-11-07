@@ -482,3 +482,48 @@ wants the result counted once. The snapshot has to come before the count,
 and only once. A snapshot of a replaced fighter is not "as of" anyone in
 the fight. The bout's class is the one list a bout always has today, so
 it is the least surprising interim until Erez answers.
+
+### D33 · 2026-11-07 · One browser script, bundled by Deno itself; lit-html through the import map
+**Decision:** The browser loads one module, `/app.js`: `front/app.ts` with
+the pages and `server/rules/` bundled by `Deno.bundle` (Deno's built-in,
+esbuild-based bundler, behind the `bundle` unstable flag in `deno.json`).
+lit-html is left as a bare import for the pinned import map in
+`index.html`, so the one browser dependency stays where D7 put it. In
+development the dev server bundles on every request of `/app.js`
+(`BOXING_DEV`, set by `deno task dev`), so a reload shows an edit without a
+watcher; for deployment `deno task build` writes the same bundle, minified,
+to `front/dist/app.js`, and the server serves that file whenever
+`BOXING_DEV` is unset, with a 500 that says to run the build when it is
+missing. Dev and deploy share one function (`bundleFront` in
+`server/static.ts`). The server never serves `front/*.ts` raw.
+**Rejected:** Transpiling each `.ts` file on request (`@deno/emit` from
+jsr, a dependency that Atrium's import map would carry for a dev-only
+job, and jsr is unreachable from the cloud workspace); spawning `deno
+bundle` per request (an `--allow-run`, for the same esbuild); bundling
+lit-html in (no esm.sh at runtime, but it contradicts D7 and the task's
+"import map, lit-html pinned"); serving `front/dist/` whenever it exists
+(a local `deno task build` would then shadow every later edit in dev
+without a word).
+**Why:** D7 wanted no bundler as a dependency, and this adds none: the
+bundler is the runtime's. One bundle also means `server/rules/` reaches
+the browser without the server exposing it as files, which keeps the
+static handler to `front/`. The unstable flag is the cost, and SETUP.md
+names esbuild as the fallback if Deno changes it.
+
+### D34 · 2026-11-07 · Bout lists answer whole bouts; the pages join names themselves
+**Decision:** `GET /api/events/:id/bouts` and `GET /api/fighters/:id/bouts`
+answer each bout as `GET /api/bouts/:id` does: the row with its snapshot,
+`titles` and `card`. The pages read the reference lists, every fighter,
+weight class and title, once per page load and join ids to names in the
+browser (`references()` in `front/api.ts`).
+**Rejected:** Embedding fighter and class names in the bout view (two
+shapes for a fighter, one of them partial, and the view no longer the
+row); one request per bout for its titles (a card of ten bouts is eleven
+round trips); a list endpoint that answers bare rows while the single
+answers the view (the event page could not show the belts or the result
+without the second choice).
+**Why:** One user's database is a few thousand rows; three list requests
+on a page load cost less than a second API shape to keep in step. The
+view is the one way a bout is answered, so the browser's `BoutView` type,
+imported from the server, holds for the list too.
+
