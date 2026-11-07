@@ -65,3 +65,19 @@ export function resultText(bout: BoutView, nameA: string, nameB: string): string
 export function resultLabel(bout: BoutView): string {
   return bout.card.result ? decisionLabel(bout.card.result.decision_type) : '';
 }
+
+// A TBRB rank as the scorecard says it (TBRB.md: 0 is the champion).
+export function rankText(rank: number): string {
+  return rank === 0 ? 'TBRB champion' : `TBRB #${rank}`;
+}
+
+// The side's record from the as-of snapshot (SPEC §7), or null before the
+// first save has taken it. The five columns are written together, so the
+// first one says whether they are there.
+export function recordOnTheNight(bout: BoutView, side: 'a' | 'b'): string | null {
+  const s = side === 'a'
+    ? { won: bout.a_won, lost: bout.a_lost, draws: bout.a_draws, nc: bout.a_nc, kos: bout.a_kos }
+    : { won: bout.b_won, lost: bout.b_lost, draws: bout.b_draws, nc: bout.b_nc, kos: bout.b_kos };
+  if (s.won === null) return null;
+  return recordText({ won: s.won, lost: s.lost!, draws: s.draws!, nc: s.nc!, kos: s.kos! });
+}

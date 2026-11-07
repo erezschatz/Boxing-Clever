@@ -115,7 +115,8 @@ browser (lit-html, fetch)  ──►  /api/*  Hono routes (server/api/)
   lit-html, the header, the `<main>`), `style.css`, `app.ts` (the route
   table), `component.ts` (the base class and its store), `router.ts`,
   `api.ts` (fetch, and the wire shapes imported as types from the server),
-  `format.ts` (names, records, dates, results as the pages say them), and
+  `format.ts` (names, records, dates, results as the pages say them),
+  `scorecard.ts` (the scorecard's entry, totals and draft, pure), and
   one `*-page.ts` per page. The browser loads one script, `/app.js`:
   `app.ts` bundled with the pages and `server/rules/` by Deno's own bundler,
   on every request in dev (`BOXING_DEV`, set by `deno task dev`) and once by
@@ -247,7 +248,11 @@ reference lists, every fighter, class and title (D34). Pages:
   focus moves down the card as rounds are entered; deductions open a small
   dialog; "End bout" opens the decision dialog (type, winner, round, time,
   three judges). Champion marker and belt list under each name; corner
-  colour on the column header; TBRB rank as of the event date.
+  colour on the column header; TBRB rank as of the event date (from the
+  snapshot). Focus moves on once an entry cannot grow; a draft saves the
+  whole typed card when the rules accept it, never dropping a stored round
+  by mistake, on demand and on leaving the page; a finalised card is
+  read-only until the decision dialog (D35).
 - `/fighters` grouped by last-name initial, record as W-L-D (N KOs); merge
 - `/fighters/:id` the **fighter card** (redesigned): name, nickname,
   colors, current record, current TBRB rank per class, titles held, the

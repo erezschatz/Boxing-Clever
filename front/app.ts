@@ -1,6 +1,7 @@
 // The browser entry: the route table (SPEC Front end) over the pages. Bundled
 // into /app.js by server/static.ts in dev and by `deno task build` for
 // deployment (D7, D33).
+import { BoutPage } from './bout-page.ts';
 import { Component, html } from './component.ts';
 import { EventPage } from './event-page.ts';
 import { EventsPage } from './events-page.ts';
@@ -17,20 +18,20 @@ class NotFoundPage extends Component<{ path: string }> {
   }
 }
 
-// `/bouts/:id` (task 07) and `/fighters/:id` (task 09) join this table when
-// they are built.
+// `/fighters/:id` (task 09) joins this table when it is built.
 const routes: Route[] = [
   { path: '/', page: () => new EventsPage() },
   { path: '/events/:id', page: ({ id }) => new EventPage(Number(id)) },
+  { path: '/bouts/:id', page: ({ id }) => new BoutPage(Number(id)) },
   { path: '/fighters', page: () => new FightersPage() },
 ];
 
 // The header's link for the section we are in is marked, so the page says
-// where it is without each page repeating the navigation. `/` and
-// `/events/...` are the Events section; `/fighters/...` is Fighters.
+// where it is without each page repeating the navigation. `/`,
+// `/events/...` and `/bouts/...` are the Events section; `/fighters/...` is Fighters.
 function markNavigation(path: string) {
   const first = path.split('/').filter(Boolean)[0] ?? '';
-  const section = first === '' || first === 'events' ? '/' : '/' + first;
+  const section = ['', 'events', 'bouts'].includes(first) ? '/' : '/' + first;
   for (const link of document.querySelectorAll<HTMLAnchorElement>('header nav a')) {
     link.toggleAttribute('aria-current', link.pathname === section);
   }

@@ -1,10 +1,17 @@
 // `/events/:id`: the card. Every bout in card order with who fights whom,
 // the corners, the class, the rounds, the belts on the line and who brought
 // each, and the result (SPEC Front end; v1's Event page columns). Editing
-// is task 08; the scorecard behind each bout is task 07.
+// is task 08. The result links to the bout's scorecard (task 07).
 import { api, type BoutView, type Event, references } from './api.ts';
 import { Component, html, nothing } from './component.ts';
-import { dateText, fighterName, recordText, resultLabel, resultText, titleText } from './format.ts';
+import {
+  dateText,
+  fighterName,
+  recordOnTheNight,
+  resultLabel,
+  resultText,
+  titleText,
+} from './format.ts';
 
 type References = Awaited<ReturnType<typeof references>>;
 type State = { event: Event | null; bouts: BoutView[]; refs: References | null };
@@ -81,19 +88,10 @@ export class EventPage extends Component<State> {
             } <span class="muted">(${holder})</span></div>`;
           })}
         </td>
-        <td title=${resultLabel(bout)}>${resultText(bout, nameA, nameB)}</td>
+        <td title=${resultLabel(bout)}>
+          <a href="/bouts/${bout.id}">${resultText(bout, nameA, nameB) || 'score'}</a>
+        </td>
       </tr>
     `;
   }
-}
-
-// The side's record from the as-of snapshot (SPEC §7), or null before the
-// first save has taken it. The five columns are written together, so the
-// first one says whether they are there.
-function recordOnTheNight(bout: BoutView, side: 'a' | 'b'): string | null {
-  const s = side === 'a'
-    ? { won: bout.a_won, lost: bout.a_lost, draws: bout.a_draws, nc: bout.a_nc, kos: bout.a_kos }
-    : { won: bout.b_won, lost: bout.b_lost, draws: bout.b_draws, nc: bout.b_nc, kos: bout.b_kos };
-  if (s.won === null) return null;
-  return recordText({ won: s.won, lost: s.lost!, draws: s.draws!, nc: s.nc!, kos: s.kos! });
 }

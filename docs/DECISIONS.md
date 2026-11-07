@@ -527,3 +527,47 @@ on a page load cost less than a second API shape to keep in step. The
 view is the one way a bout is answered, so the browser's `BoutView` type,
 imported from the server, holds for the list too.
 
+
+### D35 · 2026-11-07 · The scorecard: when focus moves, what a draft keeps, a finalised card is read-only
+**Decision:** Three choices on the scorecard page (task 07).
+*Focus.* A points box takes whole numbers 0–10 as typed and refuses
+anything else on the keystroke. Focus moves to the same side's next round
+as soon as the entry cannot grow: any single digit but 1, or 10. A lone
+1 waits for a 0, or for Enter (Tab works as ever). The row being scored
+and the one after it are marked, as v1 did.
+*Draft.* A draft save (the button, and leaving the page by link, reload
+or closing the tab) replaces the stored card, so it is all or nothing: it
+sends every typed round, from round 1 with no gaps, with the deductions,
+judges and any result as loaded, and only when the rules accept that card.
+The one round held back is the last typed one while one side is still
+empty, and only if the server does not hold it yet; the page counts what
+the server holds from the last card it sent, not the one it loaded. Anything else (a 9–9,
+a box cleared mid-card, a gap, a result the typed rounds no longer fit)
+sends nothing, and the line beside the button says why as it is typed, in
+the error colour. A save never removes a stored round, except trailing
+rounds whose boxes were both cleared. Saves go one at a time, and a page
+loads its card only after the saves before it are done, so leaving by a
+link and coming straight back reads the saved card. Leaving by link waits
+its turn; on reload or closing the tab a `keepalive` fetch goes at once,
+and the browser's "leave site?" prompt asks first whenever typed points
+would be lost. The page is dirty only when its boxes differ from the
+stored card. Merely opening a bout saves nothing, so a look does not take the
+snapshot (§7).
+*Finalised.* A finalised bout's card is shown read-only, with its result;
+nothing is saved from the page. Changing it comes with the decision
+dialog (task 08).
+**Rejected:** v1's move-on-every-keyup (a 10 cannot be typed without
+landing a 1 in the next round, or the field must guess); a fixed delay
+before moving (slow, and wrong for a fast typist); saving the longest
+prefix the rules accept (tried first: a save replaces the card, so a typo
+in round 2 deleted every stored round after it); keeping the unsaved
+remainder in `localStorage` (a second copy of the card that can disagree
+with the database); relaxing the rules for
+drafts on the server (§1–4 hold for every saved card, D18); saving from a
+finalised card as a draft (it would reverse both records, §6, on a
+keystroke).
+**Why:** 10 and 9 are almost every entry, and both move on with one key
+press but for the first digit of 10, which no rule can tell from a 1
+without waiting. What a reload restores is what the server holds, so the
+page sends only whole cards the rules accept, never one that quietly
+drops what is stored, and says live what it cannot save.
