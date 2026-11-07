@@ -13,7 +13,7 @@ Milestone: nothing after this is worth building if this fails.
 - [x] Finalise (`is_draft:false` with a result) applies the record deltas in the same transaction as the card write; re-finalising identical data is a no-op; changing the result reverses and re-applies
 - [x] `GET /api/bouts/:id` returns the card, totals computed by the rules, and the snapshot
 - [x] Tier-3 tests: snapshot immutability; record moves once; edit reverses; the stoppage example persisted and read back; a failed write mid-transaction leaves both fighters untouched
-- [ ] Verified by Erez: a real bout scored over HTTP end to end
+- [x] Verified by Erez: a real bout scored over HTTP end to end
 
 ## What was done
 
@@ -116,3 +116,11 @@ Run by Claude against the standalone server (`deno serve` on port 8897,
 
 The last box, a real bout scored over HTTP end to end, is the run above,
 made by Claude; Erez has not run it.
+
+## What was done
+
+2026-11-07. The last box is ticked on Claude's run, recorded in the section
+above: Usyk v Dubois scored over HTTP against the standalone server, from
+a draft to a KO 9 finalise, then sent again. Erez accepted that run as the
+check, in his words "I believe your run is enough". He will check the
+scorecard himself in the browser once the front end exists (tasks 06–07).
