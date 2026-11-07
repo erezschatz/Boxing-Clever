@@ -6,13 +6,18 @@ import { deepStrictEqual, ok, strictEqual as assertEquals } from 'node:assert/st
 import {
   changedFields,
   exactFighter,
+  fighterFor,
   fillFromCards,
   findFighters,
+  namedFighters,
+  newFighterLabel,
+  readDetails,
   readJudge,
   readWeight,
   resolveTyped,
   roundAsked,
   titlesOffClass,
+  updatesForExisting,
   weightText,
   winnerAfter,
   winnersFor,
@@ -84,6 +89,112 @@ Deno.test('a name typed in full names its fighter without a click, unless two sh
   assertEquals(exactFighter(all, 'Fury'), null); // part of one fighter's name is a search
   assertEquals(exactFighter(all, 'Mike Tyson'), null); // two of them: the user must pick
   assertEquals(exactFighter(all, ''), null);
+});
+
+Deno.test('a new fighter can be added before the name is known, or with what was typed', () => {
+  assertEquals(newFighterLabel(''), '+ Fighter (new, or from your list)');
+  assertEquals(newFighterLabel('   '), '+ Fighter (new, or from your list)');
+  assertEquals(newFighterLabel(' Joe Nobody '), '+ Fighter "Joe Nobody"'); // found or added
+});
+
+Deno.test('the fighter form finds the fighter a typed name is, so none is added twice (D43)', () => {
+  const all = [
+    fighter(1, 'Oleksandr', 'Usyk'),
+    fighter(5, 'Mike', 'Tyson'),
+    fighter(6, 'Mike', 'Tyson'),
+  ];
+  deepStrictEqual(namedFighters(all, ' oleksandr', 'USYK ').map((f) => f.id), [1]);
+  deepStrictEqual(namedFighters(all, 'Mike', 'Tyson').map((f) => f.id), [5, 6]); // the user picks
+  deepStrictEqual(namedFighters(all, 'Joe', 'Nobody'), []); // new
+});
+
+Deno.test("saving the fighter form: someone's name takes them, never the other side, never a rename into them (D43)", () => {
+  const all = [
+    fighter(1, 'Oleksandr', 'Usyk'),
+    fighter(5, 'Mike', 'Tyson'),
+    fighter(6, 'Mike', 'Tyson'),
+  ];
+  deepStrictEqual(fighterFor(all, 'Oleksandr', 'Usyk', null, null), { use: all[0] });
+  deepStrictEqual(fighterFor(all, 'Joe', 'Nobody', null, null), { add: true });
+  // Side B, with Usyk already side A: his details must not be overwritten.
+  deepStrictEqual(fighterFor(all, 'oleksandr', 'usyk', null, 1), {
+    error: 'oleksandr usyk is already the other fighter',
+  });
+  deepStrictEqual(fighterFor(all, 'Mike', 'Tyson', null, null), {
+    error: '2 fighters are called Mike Tyson; use one from the list above',
+  });
+  // Editing: keeping one's own name is fine; taking another's is refused.
+  deepStrictEqual(fighterFor(all, 'Oleksandr', 'Usyk', 1, null), { add: true });
+  deepStrictEqual(fighterFor(all, 'Oleksandr', 'Usyk', 5, null), {
+    error: 'Oleksandr Usyk is already in your list; merge them on the fighters page instead',
+  });
+});
+
+Deno.test("a weight typed before the name is read in the found fighter's unit, unless the unit was chosen (D43)", () => {
+  const typed = (weight: string, unit: 'lbs' | 'kg' | 'st' = 'lbs') => ({
+    nickname: '',
+    colors: '',
+    weight,
+    unit,
+  });
+  // The form opened on lbs and was not touched; the fighter is kept in kg.
+  deepStrictEqual(readDetails(typed('100'), false, 'kg'), {
+    nickname: null,
+    colors: null,
+    weight: 220.46,
+    weight_unit: 'kg',
+  });
+  // Kept in stone: "9 5 3" reads as stone.
+  deepStrictEqual(readDetails(typed('9 5 3'), false, 'st'), {
+    nickname: null,
+    colors: null,
+    weight: 131.1875,
+    weight_unit: 'st',
+  });
+  // A unit chosen in the form wins.
+  deepStrictEqual(readDetails(typed('100', 'lbs'), true, 'kg'), {
+    nickname: null,
+    colors: null,
+    weight: 100,
+    weight_unit: 'lbs',
+  });
+  // No weight: no unit either.
+  deepStrictEqual(readDetails(typed('', 'kg'), true, 'lbs'), {
+    nickname: null,
+    colors: null,
+    weight: null,
+    weight_unit: null,
+  });
+});
+
+Deno.test("a fighter found in the list keeps the record and takes tonight's details (D43)", async () => {
+  const api = testApi();
+  const { aId } = await usykFury(api); // Usyk: 225.5 lbs, Blue/Yellow, no nickname, 21-0-0
+  const stored = (await api.call('GET', `/api/fighters/${aId}`)).json as Fighter;
+  const before = recordOf(api.db, aId);
+  const tonight = {
+    nickname: 'The Cat',
+    colors: 'White',
+    weight: 226,
+    weight_unit: 'lbs' as const,
+  };
+  const patch = updatesForExisting(stored, tonight);
+  deepStrictEqual(patch, tonight); // all of it differs; never a record field
+  const after = (await api.call('PATCH', `/api/fighters/${aId}`, patch)).json;
+  assertEquals(after.weight, 226);
+  assertEquals(after.colors, 'White');
+  deepStrictEqual(recordOf(api.db, aId), before);
+  // What was left empty keeps what is stored; the same values send nothing.
+  deepStrictEqual(
+    updatesForExisting(after, { nickname: null, colors: null, weight: null, weight_unit: null }),
+    {},
+  );
+  deepStrictEqual(updatesForExisting(after, { ...tonight }), {});
+  // A unit change alone is a change.
+  deepStrictEqual(updatesForExisting(after, { ...tonight, weight_unit: 'kg' }), {
+    weight: 226,
+    weight_unit: 'kg',
+  });
 });
 
 Deno.test('a name typed in full is the top match, so Enter and Save take the same fighter', () => {

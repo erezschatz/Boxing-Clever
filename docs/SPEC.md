@@ -270,10 +270,12 @@ reference lists, every fighter, class and title (D34). Pages:
 No CSS framework. One stylesheet, custom properties, light theme only.
 Native `<dialog>` for modals (v1 already did this): each form is a
 `DialogForm` (`dialog.ts`) that opens over the page and answers what it
-made (D37). The forms are `event-form.ts`, `fighter-form.ts`,
-`bout-form.ts` (fighters by search: Enter takes the highlighted match, a
-name typed in full is taken on Save, and a new one is added on the spot
-(D38);
+made (D37). The forms are `event-form.ts`, `fighter-form.ts` (edit, or
+find-or-add: a name that is someone's takes them, with their stored record
+and tonight's weight, colours and nickname, never the other side's
+fighter, D43), `bout-form.ts` (fighters by search: Enter takes the highlighted match, a
+name typed in full is taken on Save, and a fighter is found or added on
+the spot, before the name is known if need be (D38, D43);
 titles with holder side, with a new title added on the spot),
 `deduction-form.ts`, `decision-form.ts`, `bout-delete.ts` (D23, D31) and
 `merge-form.ts` (D31); what they make of typed text is in `entry.ts`.

@@ -299,3 +299,90 @@ Seen in the data: the title's kind was entered as "Vacant", so it reads
 "IBO Vacant World". The new-title field "Kind (Active, Interim…)" was read
 as the vacancy, which the holder choice already records. Left as entered;
 Erez may correct it, and the label may need to say what it means.
+
+2026-11-07, from Erez (D43): at ringside a fighter's name often comes last,
+and so does knowing whether they are already in the list. In v1 he opened
+the fighter's form, filled in the rest, and typed the name last; v1 then
+loaded the stored fighter over what he had typed, which brought back stale
+weights and colours.
+
+Now:
+- `front/bout-form.ts` offers "+ Fighter (new, or from your list)" under
+  each side from the start (`newFighterLabel`). It opens the fighter form
+  blank, with the bout's list of fighters to find in.
+- `front/fighter-form.ts` is find-or-add. As the name is typed it lists
+  matches ("Already in your list? Keeps their record, takes what you
+  typed here: Use …").
+- Using one, or saving a name that is exactly one fighter's
+  (`namedFighters` in `front/entry.ts`), takes that fighter. Their record
+  stays; weight, unit, colours and nickname typed now replace the stored
+  ones, and empty fields keep them (`updatesForExisting`). A name two
+  fighters share asks which.
+- Saving with no name says "type the fighter's first and last name to
+  save". A new fighter is made only when nobody has the name.
+- `/fighters`' "New fighter" uses the same form, with the whole list.
+- The bout form puts a fighter found (and perhaps updated) back in its
+  list rather than adding them twice.
+
+From the reader of the first step (a read-only subagent):
+- The "(Enter)" hint now shows only where Enter does open the form
+  (`resolveTyped` says absent), not for a name that is the other fighter.
+- A typed search with no match has its border back.
+- Saving with no name gave a raw server error; it now gives the sentence
+  above.
+- Its test checked only a label. The tests below state the behaviour.
+
+Tests in `tests/front/forms.test.ts`:
+- "the fighter form finds the fighter a typed name is" (case and spacing
+  ignored; a shared name gives both; an unknown name gives none);
+- "a fighter found in the list keeps the record and takes tonight's
+  details" (through the API: weight and colours change, the record does
+  not; empty fields and equal values send nothing; a unit change alone
+  is a change);
+- the label for the offer, with and without a name typed.
+
+`deno task test` 167/167; check, lint and fmt clean.
+
+Checked by Claude in the browser pane on the task 08 scratch database
+(Usyk stored at 22-0-0, 226 lbs, no colours):
+- Add bout, then "+ Fighter (new, or from your list)", opened a blank form.
+- Save with nothing typed said "type the fighter's first and last name to
+  save".
+- Weight 230, colours Gold and won 99 were typed, then the first name
+  "Oleksandr". The form already offered "Use Oleksandr Usyk 22-0-0 (14 KOs)".
+- With "Usyk" as last name, Save (without clicking the offer) closed the
+  form with Usyk chosen as A.
+- The server still held three fighters: Usyk at 22 wins (not 99), 230
+  lbs, Gold.
+
+The independent reader of the find-or-add form (a read-only subagent) found
+a real bug, now fixed. On side B, with Usyk already side A, the form
+offered Usyk, and typing his name took him. Usyk's stored weight and
+colours were overwritten with the opponent's, and he was put on both
+sides. Now `fighterFor` (`front/entry.ts`) leaves the other side out of
+the offers and refuses the name: "Oleksandr Usyk is already the other
+fighter". Also from the reader, all fixed:
+- A weight typed before the name was read as lbs whatever the found
+  fighter's unit. Now `readDetails` reads it in that fighter's unit,
+  unless the unit was chosen in the form.
+- Renaming a fighter on /fighters to someone else's name quietly made two
+  of one name. It is now refused, with a pointer to merge.
+- The offer said "New fighter" for a name that is someone's. It now reads
+  `+ Fighter "X"`.
+- D43 said a unit could change alone, and that tonight's details always
+  reach the card. They reach a card not yet scored (SPEC §7). Both are
+  corrected.
+- SPEC listed the fighter form twice.
+
+Tests in `tests/front/forms.test.ts`:
+- `fighterFor`: takes a fighter, adds, refuses the other side, asks which
+  for a shared name, and refuses a rename into someone else's name.
+- `readDetails`: the found fighter's kg and stone, a chosen unit winning,
+  and no unit without a weight.
+
+`deno task test` 169/169; check, lint and fmt clean.
+
+Rechecked in the pane: Usyk chosen as A by Enter. On B, "+ Fighter (new,
+or from your list)" with 250 lbs, Red and "Oleksandr Usyk" offered no
+match and, on Save, said "Oleksandr Usyk is already the other fighter".
+Usyk's stored weight and colours stayed 230 / Gold.

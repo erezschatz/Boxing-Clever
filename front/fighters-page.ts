@@ -21,7 +21,7 @@ export class FightersPage extends Component<State> {
   // After a dialog, the list is read again: a merge removes one fighter and
   // changes another's record.
   async edit(fighter: Fighter | null) {
-    await new FighterForm(fighter).open();
+    await new FighterForm(fighter, '', this.state.fighters ?? []).open();
     await this.load();
   }
 

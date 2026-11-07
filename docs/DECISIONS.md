@@ -797,3 +797,42 @@ and leaving the old column in place (two answers to one question).
 **Why:** A belt has one history; whether anyone held it going into a fight
 is a fact about that fight. The form said "Kind (Active, Interim…)" and
 explained nothing, so the user did what v1 taught.
+
+### D43 · 2026-11-07 · The fighter form finds or adds; a fighter found keeps the record, takes tonight's details
+**Decision:** Erez, scoring at ringside, often knows a fighter's name only
+once the fight is under way, so he cannot know yet whether they are in his
+list. The fighter form opened from the bout form, and "New fighter" on
+`/fighters`, is therefore find-or-add. The bout form offers "+ Fighter
+(new, or from your list)" under each side before anything is typed, and
+it opens the form blank. Details go in in any order, the name last if
+need be.
+- As the name is typed, the form lists the fighters it could be ("Use …").
+- Using one, or saving a name that is exactly one fighter's (`namedFighters`),
+  takes that fighter. The same name shared by two fighters asks which.
+- A fighter taken from the list keeps their **stored record**. The weight,
+  unit, colours and nickname typed tonight replace the stored ones, and
+  anything left empty keeps what is stored (`updatesForExisting`). A unit
+  counts only with a weight. A weight typed with the unit never touched
+  is read in that fighter's own unit (`readDetails`), so "100" for a
+  fighter kept in kg is 100 kg. In Erez's words: "just because he was
+  129lbs wearing white a year ago, doesn't mean they are now the same
+  weight". The card's snapshot is taken at the first save of the card
+  (SPEC §7), so tonight's details reach a card not yet scored; one already
+  scored keeps the snapshot it has.
+- The bout's other side is never offered or taken. A name that is the
+  other fighter's is refused, so their details cannot be written over
+  (`fighterFor`).
+- Editing a fighter into a name that is someone else's is refused, with a
+  pointer to merge, since it would make two fighters of one name.
+- A new fighter is made only when nobody has the name. The name is
+  required, and the form says so in plain words. A fighter without a name
+  is not a thing, by Erez's word.
+**Rejected:** v1's way, which loaded the stored fighter over what had been
+typed (the issue Erez named: a year-old weight and colours came back).
+Taking the record typed off the broadcast (the app keeps the record fight
+by fight; a correction is a deliberate edit, D28). Asking each time
+whether to keep or take (Erez chose: keep the record, take the rest).
+Saving a fighter with no name, to name later.
+**Why:** At ringside the details come before the name. The list must not
+grow a second copy of a fighter because the form was opened before the
+scorer knew who it was.

@@ -5,7 +5,7 @@
 import { api, type BoutView, type Fighter, json, type Title, type WeightClass } from './api.ts';
 import { html, nothing } from './component.ts';
 import { DialogForm, type DialogState, FRESH } from './dialog.ts';
-import { findFighters, resolveTyped, titlesOffClass } from './entry.ts';
+import { findFighters, newFighterLabel, resolveTyped, titlesOffClass } from './entry.ts';
 import { FighterForm } from './fighter-form.ts';
 import { fighterName, recordText, titleText } from './format.ts';
 import { MAX_ROUNDS } from '../server/rules/scoring.ts';
@@ -96,7 +96,9 @@ export class BoutForm extends DialogForm<State, BoutView> {
   }
 
   // One side: the chosen fighter, or a search box with what it finds and a
-  // way to add the fighter when they are not there yet. Typing searches; a
+  // way to add the fighter, there from the start: at ringside the name often
+  // comes last, so the fighter form can be opened blank and the name typed
+  // in it whenever it is known (Erez, 2026-11-07). Typing searches; a
   // click, or Enter on the highlighted match (arrows move it), chooses. Enter
   // with no match opens the new fighter form with the name typed.
   fighterField(side: 'A' | 'B', chosen: Fighter | null, query: string) {
@@ -118,6 +120,9 @@ export class BoutForm extends DialogForm<State, BoutView> {
     }
     const found = this.found(side, query);
     const pick = Math.min(this.pickOf(side), Math.max(0, found.length - 1));
+    // "(Enter)" only where Enter does add: nobody has the name typed (D38).
+    const typed = found.length === 0 && query.trim() ? this.resolve(side, query) : null;
+    const enterAdds = typed !== null && 'absent' in typed && typed.absent;
     return html`
       <div class="field">
         <label>Fighter ${side}
@@ -143,19 +148,15 @@ export class BoutForm extends DialogForm<State, BoutView> {
               </li>
             `
           )}
-          ${query.trim()
-            ? html`
-              <li>
-                <button type="button" class="quiet" @click=${() => this.addFighter(side, query)}>
-                  + New fighter "${query.trim()}"${found.length === 0
-                    ? html`
-                      <span class="muted">(Enter)</span>
-                    `
-                    : nothing}
-                </button>
-              </li>
-            `
-            : nothing}
+          <li>
+            <button type="button" class="quiet" @click=${() => this.addFighter(side, query)}>
+              ${newFighterLabel(query)}${enterAdds
+                ? html`
+                  <span class="muted">(Enter)</span>
+                `
+                : nothing}
+            </button>
+          </li>
         </ul>
       </div>
     `;
@@ -206,9 +207,14 @@ export class BoutForm extends DialogForm<State, BoutView> {
   }
 
   async addFighter(side: 'A' | 'B', typed: string) {
-    const fighter = await new FighterForm(null, typed).open();
+    const other = side === 'A' ? this.state.b : this.state.a;
+    const fighter = await new FighterForm(null, typed, this.lists.fighters, other?.id ?? null)
+      .open();
     if (!fighter) return;
-    this.lists.fighters.push(fighter);
+    // Found in the list (and perhaps updated), or new.
+    const at = this.lists.fighters.findIndex((f) => f.id === fighter.id);
+    if (at >= 0) this.lists.fighters[at] = fighter;
+    else this.lists.fighters.push(fighter);
     this.choose(side, fighter);
   }
 

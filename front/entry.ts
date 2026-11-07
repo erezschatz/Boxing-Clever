@@ -80,6 +80,99 @@ export function exactFighter(fighters: Fighter[], typed: string): Fighter | null
   return named.length === 1 ? named[0] : null;
 }
 
+// Every fighter a typed first and last name names in full (isNamed), so
+// the fighter form can use them rather than add a duplicate (D43).
+export function namedFighters(fighters: Fighter[], first: string, last: string): Fighter[] {
+  const typed = `${first} ${last}`;
+  return fighters.filter((f) => isNamed(f, typed));
+}
+
+// What saving the fighter form does with the name typed (D43). Finding:
+// the one fighter with that name is taken, unless it is the other side's
+// (the same fighter cannot fight themself, and the other side's details
+// must not be written over); two with the name ask which; nobody, add.
+// Editing (`selfId`): a name that is someone else's is refused, since
+// renaming into it makes two fighters of one name; merging is the way.
+export function fighterFor(
+  list: Fighter[],
+  first: string,
+  last: string,
+  selfId: number | null,
+  otherId: number | null,
+): { use: Fighter } | { error: string } | { add: true } {
+  const name = `${first.trim()} ${last.trim()}`;
+  const named = namedFighters(list.filter((f) => f.id !== selfId), first, last);
+  if (named.length === 0) return { add: true };
+  if (selfId !== null) {
+    return { error: `${name} is already in your list; merge them on the fighters page instead` };
+  }
+  if (named.length > 1) {
+    return { error: `${named.length} fighters are called ${name}; use one from the list above` };
+  }
+  if (named[0].id === otherId) return { error: `${name} is already the other fighter` };
+  return { use: named[0] };
+}
+
+export type TypedDetails = {
+  nickname: string | null;
+  colors: string | null;
+  weight: number | null; // pounds (D36)
+  weight_unit: WeightUnit | null;
+};
+
+// The details typed in the fighter form, read for the API. The weight is
+// read in the unit chosen in the form; when a fighter is found in the list
+// and the unit was never touched, in that fighter's own unit, so "100"
+// typed before the name means 100 kg for a fighter kept in kg, and "9 5 3"
+// reads as stone for one kept in stone (D43). A unit counts only with a
+// weight: no weight, nothing about it is sent.
+export function readDetails(
+  typed: { nickname: string; colors: string; weight: string; unit: WeightUnit },
+  unitTouched: boolean,
+  storedUnit: WeightUnit | null,
+): TypedDetails | { error: string } {
+  const unit = !unitTouched && storedUnit ? storedUnit : typed.unit;
+  const weight = readWeight(typed.weight, unit);
+  if ('error' in weight) return weight;
+  return {
+    nickname: typed.nickname.trim() || null,
+    colors: typed.colors.trim() || null,
+    weight: weight.pounds,
+    weight_unit: weight.pounds === null ? null : unit,
+  };
+}
+
+// What a fighter already in the list takes from the fighter form when the
+// name typed turns out to be theirs (D43, Erez): the weight, unit, colours
+// and nickname typed tonight, since a year-old weight or trunk colour is
+// not tonight's, but never the record, which the app has kept fight by
+// fight. Empty fields keep what is stored. Only what differs is sent.
+export function updatesForExisting(stored: Fighter, typed: TypedDetails): Partial<TypedDetails> {
+  const patch: Partial<TypedDetails> = {};
+  if (typed.nickname !== null && typed.nickname !== stored.nickname) {
+    patch.nickname = typed.nickname;
+  }
+  if (typed.colors !== null && typed.colors !== stored.colors) patch.colors = typed.colors;
+  if (
+    typed.weight !== null &&
+    (typed.weight !== stored.weight || typed.weight_unit !== stored.weight_unit)
+  ) {
+    patch.weight = typed.weight;
+    patch.weight_unit = typed.weight_unit;
+  }
+  return patch;
+}
+
+// The bout form's way to add a fighter, offered whether or not a name has
+// been typed. At ringside the name often comes last, and whether the
+// fighter is new is not known yet, so the fighter form opens blank and
+// finds them in the list as the name goes in (D43); with a name typed, it
+// opens with it split into first and last.
+export function newFighterLabel(typed: string): string {
+  const name = typed.trim();
+  return name ? `+ Fighter "${name}"` : '+ Fighter (new, or from your list)';
+}
+
 // What the text in one side's search box comes to when the bout form is
 // saved, or Enter finds no match (D38): the fighter it names in full, or
 // what the user must do. Judged against every fighter, so the list's limit
