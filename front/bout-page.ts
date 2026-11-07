@@ -12,7 +12,7 @@ import { Component, html, nothing } from './component.ts';
 import { DeductionForm } from './deduction-form.ts';
 import { DecisionForm } from './decision-form.ts';
 import { Confirm } from './dialog.ts';
-import { dateText, fighterName, resultLabel, resultText } from './format.ts';
+import { boutWeightText, dateText, fighterName, resultLabel, resultText } from './format.ts';
 import {
   afterDecision,
   type Deduction,
@@ -321,7 +321,8 @@ export class BoutPage extends Component<State> {
     const pointsB = surname(bout.fighter_b_id) || 'B';
     const cornerB = bout.corner_a === 'red' ? 'blue' : bout.corner_a === 'blue' ? 'red' : null;
     const totals = runningTotals(this.state.entries, this.state.deductions);
-    const weightClass = refs.classes.get(bout.weight_class_id)?.name ?? '';
+    // The class, or the contracted weight (D26, D45).
+    const weightClass = boutWeightText(bout, refs.classes);
     return html`
       <p class="crumb">
         <a href="/events/${event.id}">${event.location}</a>

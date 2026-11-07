@@ -15,6 +15,7 @@ import {
   namedFighters,
   newFighterLabel,
   patchForFound,
+  readBoutWeight,
   readDetails,
   readJudge,
   readRecord,
@@ -549,6 +550,8 @@ Deno.test('the bout form refuses a title of another class; the fighter form send
   const titles = [title(1, 18), title(2, 9)];
   deepStrictEqual(titlesOffClass([{ title_id: 1 }, { title_id: 2 }], titles, 18), [title(2, 9)]);
   deepStrictEqual(titlesOffClass([{ title_id: 1 }], titles, 18), []);
+  // A contracted weight has no class: every belt is off it (D45).
+  deepStrictEqual(titlesOffClass([{ title_id: 1 }], titles, null), [title(1, 18)]);
 
   const stored = { first_name: 'Tyson', weight: 281, weight_unit: 'st', won: 35, lost: 0 };
   // The form was opened on a list from before Fury's 35th win, and only the
@@ -564,4 +567,28 @@ Deno.test('the bout form refuses a title of another class; the fighter form send
     { weight: 280 },
   );
   deepStrictEqual(changedFields(stored, { ...stored }), {});
+});
+
+Deno.test('the bout form sends the class chosen or the contracted weight typed, the other null (D26, D45)', () => {
+  deepStrictEqual(readBoutWeight('class', 10, ''), {
+    weight_class_id: 10,
+    contracted_weight: null,
+  });
+  // What was typed in the box is ignored while a class is chosen.
+  deepStrictEqual(readBoutWeight('class', 10, '150'), {
+    weight_class_id: 10,
+    contracted_weight: null,
+  });
+  deepStrictEqual(readBoutWeight('contracted', 10, ' 150.5 '), {
+    weight_class_id: null,
+    contracted_weight: 150.5,
+  });
+  // Pounds to the hundredth, as a fighter's weight is kept (D36).
+  deepStrictEqual(readBoutWeight('contracted', 10, '147.255'), {
+    weight_class_id: null,
+    contracted_weight: 147.26,
+  });
+  for (const typed of ['', '  ', '0', '0.001', '-150', 'ten', '10st']) {
+    ok('error' in readBoutWeight('contracted', 10, typed), JSON.stringify(typed));
+  }
 });

@@ -10,11 +10,17 @@ export type Corner = 'red' | 'blue';
 export type BoutFields = {
   event_id: number;
   card_order: number;
-  weight_class_id: number;
+  // A class, or a contracted weight in pounds that is no class's limit:
+  // exactly one of the two (D26, D45; the schema refuses neither and both).
+  weight_class_id: number | null;
+  contracted_weight: number | null;
   scheduled_rounds: number;
   fighter_a_id: number;
   fighter_b_id: number;
   corner_a: Corner | null; // fighter B has the other corner; null when not recorded (imports)
+  // Marked by the user, never computed from the weigh-in (D26).
+  missed_weight_a: 0 | 1;
+  missed_weight_b: 0 | 1;
 };
 
 // The a_*/b_* columns are each fighter's record, weight, colors and TBRB rank
@@ -54,10 +60,11 @@ export type Bout = BoutFields & {
 
 export function insertBout(db: Database, fields: BoutFields): number {
   const { lastInsertRowid } = db.prepare(
-    `INSERT INTO bout (event_id, card_order, weight_class_id, scheduled_rounds,
-       fighter_a_id, fighter_b_id, corner_a)
-     VALUES (:event_id, :card_order, :weight_class_id, :scheduled_rounds,
-       :fighter_a_id, :fighter_b_id, :corner_a)`,
+    `INSERT INTO bout (event_id, card_order, weight_class_id, contracted_weight,
+       scheduled_rounds, fighter_a_id, fighter_b_id, corner_a, missed_weight_a, missed_weight_b)
+     VALUES (:event_id, :card_order, :weight_class_id, :contracted_weight,
+       :scheduled_rounds, :fighter_a_id, :fighter_b_id, :corner_a, :missed_weight_a,
+       :missed_weight_b)`,
   ).run(fields);
   return Number(lastInsertRowid);
 }
@@ -83,8 +90,10 @@ export function listBoutsForFighter(db: Database, fighterId: number): Bout[] {
 export function updateBout(db: Database, id: number, fields: BoutFields): boolean {
   const { changes } = db.prepare(
     `UPDATE bout SET event_id = :event_id, card_order = :card_order,
-       weight_class_id = :weight_class_id, scheduled_rounds = :scheduled_rounds,
-       fighter_a_id = :fighter_a_id, fighter_b_id = :fighter_b_id, corner_a = :corner_a
+       weight_class_id = :weight_class_id, contracted_weight = :contracted_weight,
+       scheduled_rounds = :scheduled_rounds, fighter_a_id = :fighter_a_id,
+       fighter_b_id = :fighter_b_id, corner_a = :corner_a, missed_weight_a = :missed_weight_a,
+       missed_weight_b = :missed_weight_b
      WHERE id = :id`,
   ).run({ ...fields, id });
   return changes > 0;

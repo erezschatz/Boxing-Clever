@@ -10,8 +10,10 @@ import { Component, html, nothing } from './component.ts';
 import { EventForm } from './event-form.ts';
 import { navigate } from './router.ts';
 import {
+  boutWeightText,
   dateText,
   fighterName,
+  missedWeight,
   recordOnTheNight,
   resultLabel,
   resultText,
@@ -96,7 +98,7 @@ export class EventPage extends Component<State> {
     const nameA = a ? fighterName(a) : `fighter ${bout.fighter_a_id}`;
     const nameB = b ? fighterName(b) : `fighter ${bout.fighter_b_id}`;
     const cornerB = bout.corner_a === 'red' ? 'blue' : bout.corner_a === 'blue' ? 'red' : null;
-    const side = (name: string, corner: string | null, record: string | null) =>
+    const side = (name: string, corner: string | null, record: string | null, missed: boolean) =>
       html`
         <div class="side">
           ${corner
@@ -104,6 +106,7 @@ export class EventPage extends Component<State> {
             : nothing}
           <span class="name">${name}</span>
           ${record ? html`<span class="record">${record}</span>` : nothing}
+          ${missed ? html`<span class="missed">missed weight</span>` : nothing}
         </div>
       `;
     // The whole row opens the scorecard (Erez, 2026-11-07); the result
@@ -116,10 +119,10 @@ export class EventPage extends Component<State> {
       <tr class="bout" @click=${open}>
         <td class="order">${bout.card_order}</td>
         <td>
-          ${side(nameA, bout.corner_a, recordOnTheNight(bout, 'a'))}
-          ${side(nameB, cornerB, recordOnTheNight(bout, 'b'))}
+          ${side(nameA, bout.corner_a, recordOnTheNight(bout, 'a'), missedWeight(bout, 'A'))}
+          ${side(nameB, cornerB, recordOnTheNight(bout, 'b'), missedWeight(bout, 'B'))}
         </td>
-        <td>${refs.classes.get(bout.weight_class_id)?.name ?? ''}</td>
+        <td>${boutWeightText(bout, refs.classes)}</td>
         <td>${bout.scheduled_rounds}</td>
         <td>
           ${bout.titles.map(({ title_id, holder_side }) => {

@@ -5,14 +5,17 @@ import { deepStrictEqual, match, ok, strictEqual as assertEquals } from 'node:as
 import chamber from '../../mod.ts';
 import { matchRoute } from '../../front/router.ts';
 import {
+  boutWeightText,
+  classText,
   dateText,
   fighterName,
   initialOf,
+  missedWeight,
   recordText,
   resultText,
   titleText,
 } from '../../front/format.ts';
-import type { BoutView } from '../../front/api.ts';
+import type { BoutView, WeightClass } from '../../front/api.ts';
 
 const ROOT = new URL('../../', import.meta.url);
 const read = (path: string) => Deno.readTextFileSync(new URL(path, ROOT));
@@ -102,4 +105,30 @@ Deno.test('the result on the card says who, how, and when it was stopped, never 
   assertEquals(resultText(bout(draw), 'Fury', 'Wilder'), 'D');
   const nc = { decision_type: 'NC', winner: 'none', round: 3, time: null } as const;
   assertEquals(resultText(bout(nc), 'A', 'B'), 'NC 3');
+});
+
+Deno.test('a bout says its class or its contracted weight; the class dropdown shows each limit as v1 did', () => {
+  const fly: WeightClass = { id: 4, name: 'Flyweight', alternate_name: null, lbs: 112, kg: 50.802 };
+  const heavy: WeightClass = {
+    id: 18,
+    name: 'Heavyweight',
+    alternate_name: null,
+    lbs: null,
+    kg: null,
+  };
+  assertEquals(classText(fly), 'Flyweight (112 lbs / 50.802 kg)');
+  assertEquals(classText(heavy), 'Heavyweight (no limit)'); // D17
+  const classes = new Map([[4, fly], [18, heavy]]);
+  assertEquals(
+    boutWeightText({ weight_class_id: 4, contracted_weight: null }, classes),
+    'Flyweight',
+  );
+  // D26: there is no catchweight class, only the weight agreed.
+  assertEquals(
+    boutWeightText({ weight_class_id: null, contracted_weight: 150.5 }, classes),
+    'Contracted at 150.5 lbs',
+  );
+  const marks = { missed_weight_a: 0, missed_weight_b: 1 } as const;
+  assertEquals(missedWeight(marks, 'A'), false);
+  assertEquals(missedWeight(marks, 'B'), true);
 });

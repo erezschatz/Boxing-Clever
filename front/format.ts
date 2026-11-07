@@ -3,7 +3,7 @@
 // saying it (BOXING-CLEVER-V1.md), that way is kept.
 import { decisionLabel } from '../server/rules/decisions.ts';
 import type { FightRecord } from '../server/rules/records.ts';
-import type { BoutView, Title } from './api.ts';
+import type { BoutView, Title, WeightClass } from './api.ts';
 
 type Named = { first_name: string; last_name: string; nickname: string | null };
 
@@ -81,4 +81,29 @@ export function recordOnTheNight(bout: BoutView, side: 'a' | 'b'): string | null
     : { won: bout.b_won, lost: bout.b_lost, draws: bout.b_draws, nc: bout.b_nc, kos: bout.b_kos };
   if (s.won === null) return null;
   return recordText({ won: s.won, lost: s.lost!, draws: s.draws!, nc: s.nc!, kos: s.kos! });
+}
+
+// A class as the bout form's dropdown offers it, with its limit as v1 showed
+// it: "Flyweight (112 lbs / 50.802 kg)". Heavyweight has no limit (D17).
+export function classText(c: WeightClass): string {
+  return c.lbs === null ? `${c.name} (no limit)` : `${c.name} (${c.lbs} lbs / ${c.kg} kg)`;
+}
+
+// What a bout was fought at: its class, or the contracted weight in pounds
+// when it was fought at one instead (D26, D45). There is no catchweight class.
+export function boutWeightText(
+  bout: { weight_class_id: number | null; contracted_weight: number | null },
+  classes: Map<number, WeightClass>,
+): string {
+  if (bout.contracted_weight !== null) return `Contracted at ${bout.contracted_weight} lbs`;
+  return bout.weight_class_id === null ? '' : classes.get(bout.weight_class_id)?.name ?? '';
+}
+
+// The sides marked as having missed weight, which every page that shows the
+// fight highlights (D26). Marked by the user, never computed.
+export function missedWeight(
+  bout: { missed_weight_a: 0 | 1; missed_weight_b: 0 | 1 },
+  side: 'A' | 'B',
+): boolean {
+  return (side === 'A' ? bout.missed_weight_a : bout.missed_weight_b) === 1;
 }

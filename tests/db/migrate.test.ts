@@ -124,7 +124,7 @@ function beforeTitleKinds() {
 
 Deno.test('migration 003: v1 kinds become regular or interim, Silver joins the area, one belt is one title (D42)', () => {
   const db = beforeTitleKinds();
-  deepStrictEqual(migrate(db), [3]);
+  deepStrictEqual(migrate(db, readMigrations().filter((m) => m.version <= 3)), [3]);
   const titles = db.prepare('SELECT id, sanctioning_body, area, interim FROM title ORDER BY id')
     .all()
     .map((t) => ({ ...t }));
@@ -197,7 +197,7 @@ Deno.test('migration 003 reads kinds as typed: any case, "Interim Silver", a bla
     -- The vacant row was entered first, the one with a holder second.
     INSERT INTO bout_title (bout_id, title_id, holder_side) VALUES (1, 4, 'vacant'), (1, 5, 'A');
   `);
-  migrate(db);
+  migrate(db, readMigrations().filter((m) => m.version <= 3));
   const titles = db.prepare('SELECT id, sanctioning_body, area, interim FROM title ORDER BY id')
     .all()
     .map((t) => ({ ...t }));
@@ -213,4 +213,57 @@ Deno.test('migration 003 reads kinds as typed: any case, "Interim Silver", a bla
     })),
     [{ bout_id: 1, title_id: 4, holder_side: 'A' }],
   );
+});
+
+// A database as the title kinds left it (001–003): a finalised bout with its
+// snapshot, a scored round with a knockdown and a belt, and a draft beside it.
+function beforeContractedWeight() {
+  const db = openDatabase(':memory:');
+  migrate(db, readMigrations().filter((m) => m.version <= 3));
+  db.exec(`
+    INSERT INTO event (id, date, location) VALUES (1, '2026-03-15', 'Dublin');
+    INSERT INTO fighter (id, first_name, last_name) VALUES (1, 'Jono', 'Carroll'), (2, 'Colm', 'Murphy');
+    INSERT INTO bout (id, event_id, card_order, weight_class_id, scheduled_rounds, fighter_a_id,
+      fighter_b_id, corner_a, a_won, a_lost, a_draws, a_nc, a_kos, a_weight, a_weight_unit,
+      a_colors, b_won, b_lost, b_draws, b_nc, b_kos, decision_type, winner, result_round,
+      result_time, judge1_a, judge1_b, is_draft)
+      VALUES (1, 1, 1, 9, 12, 1, 2, 'red', 20, 1, 1, 0, 6, 130, 'lbs', 'Green', 18, 2, 0, 0, 9,
+        'KO', 'A', 1, '2:10', 10, 8, 0);
+    INSERT INTO bout (id, event_id, card_order, weight_class_id, scheduled_rounds, fighter_a_id,
+      fighter_b_id) VALUES (2, 1, 2, 10, 10, 2, 1);
+    INSERT INTO round_score (bout_id, round_no, side, points) VALUES (1, 1, 'A', 0), (1, 1, 'B', 0);
+    INSERT INTO deduction (bout_id, round_no, side, points, reason) VALUES (1, 1, 'B', 1, 'knockdown');
+    INSERT INTO title (id, sanctioning_body, area, weight_class_id, interim) VALUES (1, 'IBO', 'World', 9, 0);
+    INSERT INTO bout_title (bout_id, title_id, holder_side) VALUES (1, 1, 'vacant');
+  `);
+  return db;
+}
+
+Deno.test('migration 004: every bout keeps its class, card and belts; none has a contracted weight or a missed weight (D26, D45)', () => {
+  const db = beforeContractedWeight();
+  const before = db.prepare('SELECT * FROM bout ORDER BY id').all().map((b) => ({ ...b }));
+  deepStrictEqual(migrate(db), [4]);
+  const after = db.prepare('SELECT * FROM bout ORDER BY id').all().map((b) => ({ ...b }));
+  deepStrictEqual(
+    after,
+    before.map((b) => ({ ...b, contracted_weight: null, missed_weight_a: 0, missed_weight_b: 0 })),
+  );
+  const count = (table: string) =>
+    db.prepare(`SELECT count(*) AS n FROM ${table} WHERE bout_id = 1`).get()?.n;
+  deepStrictEqual([count('round_score'), count('deduction'), count('bout_title')], [2, 1, 1]);
+  deepStrictEqual(db.prepare('PRAGMA foreign_key_check').all(), []);
+  assertEquals(db.prepare('PRAGMA foreign_keys').get()?.foreign_keys, 1);
+  // The indexes come back with the table.
+  deepStrictEqual(
+    db.prepare(
+      "SELECT name FROM sqlite_master WHERE type = 'index' AND tbl_name = 'bout' ORDER BY name",
+    )
+      .all().map((i) => i.name),
+    ['bout_event', 'bout_fighter_a', 'bout_fighter_b'],
+  );
+  // The new table still cascades: deleting the bout takes its card and belts.
+  db.prepare('DELETE FROM bout WHERE id = 1').run();
+  deepStrictEqual([count('round_score'), count('deduction'), count('bout_title')], [0, 0, 0]);
+  // And a bout is refused with neither a class nor a contracted weight.
+  throws(() => db.prepare('UPDATE bout SET weight_class_id = NULL WHERE id = 2').run(), /CHECK/);
 });

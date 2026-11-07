@@ -135,7 +135,7 @@ none. All ids are `INTEGER PRIMARY KEY`.
 | `fighter` | first/last name, nickname, colors, weight (pounds) + the unit it is typed and shown in (D36), **current** record (won, lost, draws, nc, kos) | the record is derived data that is stored: typed in on creation and correctable by hand (D28), updated transactionally on finalise, recomputable by `scripts/recompute-records.ts` |
 | `fighter_alias` | fighter_id, alias text | names as TBRB and the sheet spell them; merge keeps aliases; an alias names one fighter (D19) |
 | `event` | date, location | |
-| `bout` | event_id, card_order, weight_class_id, scheduled_rounds, fighter_a_id, fighter_b_id, **corner_a** (`red`/`blue`, null when not recorded), a/b **as-of snapshot** (record ×5, weight, unit, colors, tbrb_rank), result (decision_type, winner `A`/`B`/`draw`/`none`, round, time), judges ×3 ×2, is_draft. *Pending D26: a contracted weight instead of a class, and a missed-weight mark per side* | the snapshot is what v1's Mongo document was for and is kept on purpose (D4); its columns are `a_won` … `a_tbrb_rank`, `b_won` …, null until first save; result columns `decision_type`, `winner`, `result_round`, `result_time`; judges `judge1_a` … `judge3_b` |
+| `bout` | event_id, card_order, weight_class_id **or** contracted_weight (pounds; exactly one of the two, D26, D45), scheduled_rounds, fighter_a_id, fighter_b_id, **corner_a** (`red`/`blue`, null when not recorded), **missed_weight_a/b** (0/1, marked by the user, never computed; D26), a/b **as-of snapshot** (record ×5, weight, unit, colors, tbrb_rank), result (decision_type, winner `A`/`B`/`draw`/`none`, round, time), judges ×3 ×2, is_draft | there is no catchweight class: a bout fought at a weight that is no class's limit records that weight (migration 004); the snapshot is what v1's Mongo document was for and is kept on purpose (D4); its columns are `a_won` … `a_tbrb_rank`, `b_won` …, null until first save; result columns `decision_type`, `winner`, `result_round`, `result_time`; judges `judge1_a` … `judge3_b` |
 | `round_score` | bout_id, round_no, side, points | one row per fighter per round actually scored; the stoppage round has points `0` (see Scoring) |
 | `deduction` | bout_id, round_no, side, points, reason | reasons: knockdown, low blow, holding, headbutt, other — a free text alongside |
 | `title` | sanctioning_body, area (`World`, `World Silver`, `European`…), weight_class_id, interim (0/1) | unique on the four; a belt is regular or interim, nothing else; vacancy is the fight's, by `bout_title.holder_side` (D42) |
@@ -197,7 +197,9 @@ origin; the three stoppage defects there are fixed by construction here.
    fighter is replaced, whose side is cleared and taken again at the next
    save (D32). A bout already finalised and counted without a snapshot (an
    import) is snapshotted with its own result taken off. The rank is read
-   from the bout's own class for now (D32).
+   from the bout's own class for now (D32); a bout at a contracted weight
+   has no class, so its rank is null until that question is answered
+   (D45).
 
 ## API
 
@@ -223,8 +225,8 @@ did, and its `409` carries a `preview` of what each choice would do (D31).
 | GET/POST | `/api/events` | |
 | GET/PATCH/DELETE | `/api/events/:id` | delete refuses (`409`) if any bout is finalised; otherwise its bouts go with it |
 | GET | `/api/events/:id/bouts` | ordered by card_order, each bout as `GET /api/bouts/:id` answers it (D34) |
-| POST | `/api/bouts` | `card_order` left out puts the bout last on its card; `titles` is `[{title_id, holder_side}]`. A bout is answered as its row with `titles` beside it |
-| GET/PATCH/DELETE | `/api/bouts/:id` | GET (and every write that answers a bout) gives the row with its snapshot and result, `titles`, and `card` in PUT's shape plus read-only `totals` (`{rounds: [{round_no, a, b}], a, b}`, from the rules). PATCH covers corners, titles with holder side (the list sent replaces the old one), scheduled rounds (re-checked against the saved card, `400` if it no longer fits); a finalised bout's fighters cannot change (`409`, D30). DELETE of a finalised bout needs `?records=reverse` (both records lose the result, in the same transaction) or `?records=keep`, else `409` with a preview of both records before and after a reverse; a reverse that would go below zero is `409` too. Answers `200` with the choice made and both records before and after (D31); a draft's delete is `204`. It never deletes the event, not even its last bout (D23) |
+| POST | `/api/bouts` | `card_order` left out puts the bout last on its card; `titles` is `[{title_id, holder_side}]`. `weight_class_id` or `contracted_weight` (pounds, positive), one of the two and the other null or left out, else `400`; `missed_weight_a` and `missed_weight_b` are `true`/`false`, false when left out, and answered as the stored 0/1 (D26, D45). A bout is answered as its row with `titles` beside it |
+| GET/PATCH/DELETE | `/api/bouts/:id` | GET (and every write that answers a bout) gives the row with its snapshot and result, `titles`, and `card` in PUT's shape plus read-only `totals` (`{rounds: [{round_no, a, b}], a, b}`, from the rules). PATCH covers corners, the class or contracted weight (moving between them sends both, one null; the bout as it would stand must have exactly one, else `400`), the missed-weight marks, titles with holder side (the list sent replaces the old one), scheduled rounds (re-checked against the saved card, `400` if it no longer fits); a finalised bout's fighters cannot change (`409`, D30). DELETE of a finalised bout needs `?records=reverse` (both records lose the result, in the same transaction) or `?records=keep`, else `409` with a preview of both records before and after a reverse; a reverse that would go below zero is `409` too. Answers `200` with the choice made and both records before and after (D31); a draft's delete is `204`. It never deletes the event, not even its last bout (D23) |
 | PUT | `/api/bouts/:id/card` | the whole scorecard, `{rounds: [{round_no, a, b}], deductions: [{round_no, side, points, reason, note}], result: {decision_type, winner, round, time} \| null, judges: [{a, b}] ×3, is_draft}`; `deductions` (none), `judges` (all null) and a deduction's `note` (null) may be left out. Validated by the rules (`400 {error, problems}`), then written in one transaction with the snapshot (§7) and the record change (§6); finalise = `is_draft:false` with a result. A change that would take a record below zero is `409` (D32). Answers the bout, as GET does |
 | GET/POST | `/api/titles` | |
 | GET | `/api/tbrb/current` | latest snapshot, grouped by weight class |
@@ -242,7 +244,9 @@ reference lists, every fighter, class and title (D34). Pages:
 
 - `/` events list (newest first, folded by year with the newest open, as in v1)
 - `/events/:id` the card: bouts in order with both fighters and their
-  record on the night (the snapshot, once taken), corners, class, rounds,
+  record on the night (the snapshot, once taken), a missed weight marked
+  beside the fighter who missed it, corners, class or "Contracted at
+  N lbs" (D26), rounds,
   titles with who brought each, and the result; the whole row opens the
   scorecard; add/edit bout.
   Deleting a bout is always confirmed. A finalised bout takes two dialogs
@@ -255,7 +259,9 @@ reference lists, every fighter, class and title (D34). Pages:
   that box is scored (D39); deductions open a small
   dialog; "End bout" opens the decision dialog (type, winner, round, time,
   three judges) and, once it has saved, goes back to the card; "Change
-  decision" stays. Champion marker and belt list under each name; corner
+  decision" stays. The class or the contracted weight under the title;
+  champion marker and belt list under each name; a missed weight marked
+  under the name of the side that missed it, to stand out (D26); corner
   colour on the column header; TBRB rank as of the event date (from the
   snapshot). Focus moves on once an entry cannot grow; a save (the API's
   draft) keeps the whole typed card when the rules accept it, never
@@ -267,7 +273,10 @@ reference lists, every fighter, class and title (D34). Pages:
 - `/fighters` grouped by last-name initial, record as W-L-D (N KOs); merge
 - `/fighters/:id` the **fighter card** (redesigned): name, nickname,
   colors, current record, current TBRB rank per class, titles held, the
-  list of their fights as witnessed with the as-of record beside each.
+  list of their fights as witnessed with the as-of record beside each,
+  the contracted weight where there was one and a missed weight marked as
+  the scorecard marks it (D26; `boutWeightText` and `missedWeight` in
+  `format.ts`).
 
 No CSS framework. One stylesheet, custom properties, light theme only.
 Native `<dialog>` for modals (v1 already did this): each form is a
@@ -284,7 +293,10 @@ leave; only Save writes, never the other side's fighter, D43, D44),
 `bout-form.ts` (fighters by search: Enter takes the highlighted match, a
 name typed in full is taken on Save, and a fighter is found or added on
 the spot, before the name is known if need be (D38, D43);
-titles with holder side, with a new title added on the spot),
+the class, each shown with its limit as v1 did, "Flyweight (112 lbs /
+50.802 kg)", or "Contracted weight (no class)" and the pounds typed;
+"Missed weight" ticked per side (D26, D45, D46); titles with holder side,
+with a new title added on the spot, in `bout-titles.ts`),
 `deduction-form.ts`, `decision-form.ts`, `bout-delete.ts` (D23, D31) and
 `merge-form.ts` (D31); what they make of typed text is in `entry.ts`.
 

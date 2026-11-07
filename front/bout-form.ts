@@ -1,18 +1,25 @@
 // The bout dialog (task 08): who fights whom, found by name or added on the
-// spot, the corners, the class, the scheduled rounds and the belts on the
-// line with who brought each (SPEC API, POST/PATCH /bouts). Answers the
-// saved bout.
+// spot, the corners, the class or the contracted weight and who missed it
+// (D26, D45), the scheduled rounds and the belts on the line with who
+// brought each (SPEC API, POST/PATCH /bouts). Answers the saved bout.
 import { api, type BoutView, type Fighter, json, type Title, type WeightClass } from './api.ts';
 import { html, nothing } from './component.ts';
 import { DialogForm, type DialogState, FRESH } from './dialog.ts';
-import { findFighters, newFighterLabel, resolveTyped, titlesOffClass } from './entry.ts';
+import {
+  findFighters,
+  newFighterLabel,
+  readBoutWeight,
+  resolveTyped,
+  titlesOffClass,
+} from './entry.ts';
+import { titlesField } from './bout-titles.ts';
 import { FighterForm } from './fighter-form.ts';
-import { fighterName, recordText, titleText } from './format.ts';
+import { classText, fighterName, recordText, titleText } from './format.ts';
 import { MAX_ROUNDS } from '../server/rules/scoring.ts';
 
-type Holder = 'A' | 'B' | 'vacant';
-type Line = { title_id: number; holder_side: Holder };
-type NewTitle = { sanctioning_body: string; area: string; interim: boolean };
+export type Holder = 'A' | 'B' | 'vacant';
+export type Line = { title_id: number; holder_side: Holder };
+export type NewTitle = { sanctioning_body: string; area: string; interim: boolean };
 type State = DialogState & {
   a: Fighter | null;
   b: Fighter | null;
@@ -21,7 +28,11 @@ type State = DialogState & {
   pickA: number; // the highlighted match, which Enter takes
   pickB: number;
   corner_a: 'red' | 'blue' | '';
-  weight_class_id: number;
+  weightBy: 'class' | 'contracted';
+  weight_class_id: number; // kept while a contracted weight is chosen, for going back
+  contracted: string; // lbs, as typed
+  missedA: boolean;
+  missedB: boolean;
   scheduled_rounds: string;
   titles: Line[];
   newTitle: NewTitle | null; // the small form for a belt not in the list yet
@@ -47,7 +58,11 @@ export class BoutForm extends DialogForm<State, BoutView> {
       pickA: 0,
       pickB: 0,
       corner_a: b?.corner_a ?? 'red',
+      weightBy: b?.contracted_weight != null ? 'contracted' : 'class',
       weight_class_id: b?.weight_class_id ?? lists.classes.at(-1)?.id ?? 0,
+      contracted: b?.contracted_weight != null ? String(b.contracted_weight) : '',
+      missedA: b?.missed_weight_a === 1,
+      missedB: b?.missed_weight_b === 1,
       scheduled_rounds: String(b?.scheduled_rounds ?? 12),
       titles: b?.titles.map((t) => ({ ...t })) ?? [],
       newTitle: null,
@@ -64,7 +79,11 @@ export class BoutForm extends DialogForm<State, BoutView> {
       s.queryA,
       s.queryB,
       s.corner_a,
+      s.weightBy,
       s.weight_class_id,
+      s.contracted,
+      s.missedA,
+      s.missedB,
       s.scheduled_rounds,
       s.titles,
       s.newTitle,
@@ -98,14 +117,7 @@ export class BoutForm extends DialogForm<State, BoutView> {
             <option value="" ?selected=${s.corner_a === ''}>Not recorded</option>
           </select>
         </label>
-        <label>Weight class
-          <select @change=${(e: InputEvent) =>
-            this.set({ weight_class_id: Number((e.target as HTMLSelectElement).value) })}>
-            ${this.lists.classes.map((c) =>
-              html`<option value=${c.id} ?selected=${c.id === s.weight_class_id}>${c.name}</option>`
-            )}
-          </select>
-        </label>
+        ${this.weightField()}
         <label>Scheduled rounds
           <input
             inputmode="numeric"
@@ -115,7 +127,75 @@ export class BoutForm extends DialogForm<State, BoutView> {
           >
         </label>
       </div>
-      ${this.titlesField()}
+      ${this.missedField()} ${titlesField(this)}
+    `;
+  }
+
+  // A class, its limit beside it as v1 showed it (Erez, 2026-11-07), or a
+  // contracted weight in lbs that is no class's limit; there is no
+  // catchweight class (D26, D45).
+  weightField() {
+    const s = this.state;
+    const contracted = s.weightBy === 'contracted';
+    return html`
+      <label>Weight
+        <select @change=${(e: InputEvent) => {
+          const value = (e.target as HTMLSelectElement).value;
+          // A contracted weight has no titles, so a new title begun for
+          // the class is dropped rather than added under a class no longer
+          // chosen (D45).
+          if (value === 'contracted') this.set({ weightBy: 'contracted', newTitle: null });
+          else this.set({ weightBy: 'class', weight_class_id: Number(value) });
+        }}>
+          ${this.lists.classes.map((c) =>
+            html`
+              <option value=${c.id} ?selected=${!contracted && c.id === s.weight_class_id}>
+                ${classText(c)}
+              </option>
+            `
+          )}
+          <option value="contracted" ?selected=${contracted}>Contracted weight (no class)</option>
+        </select>
+      </label>
+      ${contracted
+        ? html`
+          <label>Contracted weight (lbs)
+            <input
+              inputmode="decimal"
+              placeholder="e.g. 150"
+              .value=${s.contracted}
+              @input=${(e: InputEvent) =>
+                this.set({ contracted: (e.target as HTMLInputElement).value })}
+            >
+          </label>
+        `
+        : nothing}
+    `;
+  }
+
+  // Who missed weight: neither, either or both, ticked by the user, never
+  // worked out from the weigh-in (D26).
+  missedField() {
+    const s = this.state;
+    const name = (f: Fighter | null, side: 'A' | 'B') => (f ? fighterName(f) : `Fighter ${side}`);
+    return html`
+      <fieldset class="missed-weight">
+        <legend>Missed weight</legend>
+        <label class="inline">
+          <input
+            type="checkbox"
+            .checked=${s.missedA}
+            @change=${(e: Event) => this.set({ missedA: (e.target as HTMLInputElement).checked })}
+          > ${name(s.a, 'A')}
+        </label>
+        <label class="inline">
+          <input
+            type="checkbox"
+            .checked=${s.missedB}
+            @change=${(e: Event) => this.set({ missedB: (e.target as HTMLInputElement).checked })}
+          > ${name(s.b, 'B')}
+        </label>
+      </fieldset>
     `;
   }
 
@@ -242,117 +322,6 @@ export class BoutForm extends DialogForm<State, BoutView> {
     this.choose(side, fighter);
   }
 
-  // The belts on the line: each a title of this class and who brought it.
-  titlesField() {
-    const s = this.state;
-    const ofClass = this.lists.titles.filter((t) => t.weight_class_id === s.weight_class_id);
-    const unused = ofClass.filter((t) => !s.titles.some((l) => l.title_id === t.id));
-    const name = (side: 'A' | 'B') => {
-      const f = side === 'A' ? s.a : s.b;
-      return f ? fighterName(f) : `fighter ${side}`;
-    };
-    const setLine = (i: number, line: Line) =>
-      this.set({ titles: s.titles.map((l, j) => (j === i ? line : l)) });
-    return html`
-      <fieldset class="titles">
-        <legend>Titles on the line</legend>
-        ${s.titles.map((line, i) => {
-          const title = this.lists.titles.find((t) => t.id === line.title_id);
-          return html`
-            <div class="line">
-              <span>${title ? titleText(title) : `title ${line.title_id}`}</span>
-              <select @change=${(e: InputEvent) =>
-                setLine(i, {
-                  ...line,
-                  holder_side: (e.target as HTMLSelectElement).value as Holder,
-                })}>
-                <option value="A" ?selected=${line.holder_side === 'A'}>held by ${name(
-                  'A',
-                )}</option>
-                <option value="B" ?selected=${line.holder_side === 'B'}>held by ${name(
-                  'B',
-                )}</option>
-                <option value="vacant" ?selected=${line.holder_side === 'vacant'}>
-                  vacant (neither is champion)
-                </option>
-              </select>
-              <button type="button" class="quiet" @click=${() =>
-                this.set({ titles: s.titles.filter((_, j) => j !== i) })}>remove</button>
-            </div>
-          `;
-        })}
-        <div class="line">
-          ${unused.length > 0
-            ? html`
-              <select @change=${(e: InputEvent) => {
-                const select = e.target as HTMLSelectElement;
-                const id = Number(select.value);
-                select.value = '';
-                if (id) {
-                  this.set({ titles: [...s.titles, { title_id: id, holder_side: 'vacant' }] });
-                }
-              }}>
-                <option value="">Add a title of this class…</option>
-                ${unused.map((t) => html`<option value=${t.id}>${titleText(t)}</option>`)}
-              </select>
-            `
-            : nothing}
-          ${s.newTitle ? nothing : html`
-            <button type="button" class="quiet" @click=${() =>
-              this.set({ newTitle: { sanctioning_body: '', area: 'World', interim: false } })}>
-              + New title
-            </button>
-          `}
-        </div>
-        ${s.newTitle ? this.newTitleForm(s.newTitle) : nothing}
-      </fieldset>
-    `;
-  }
-
-  newTitleForm(t: NewTitle) {
-    const field = (key: 'sanctioning_body' | 'area', label: string, placeholder: string) =>
-      html`
-        <label>${label}
-          <input .value=${t[key]} placeholder=${placeholder} @input=${(e: InputEvent) =>
-            this.set({ newTitle: { ...t, [key]: (e.target as HTMLInputElement).value } })}>
-        </label>
-      `;
-    return html`
-      <div class="new-title">
-        ${field('sanctioning_body', 'Body', 'WBC, IBF, IBO…')}
-        ${field('area', 'Area', 'World, World Silver, European…')}
-        <label class="inline">
-          <input
-            type="checkbox"
-            .checked=${t.interim}
-            @change=${(e: Event) =>
-              this.set({ newTitle: { ...t, interim: (e.target as HTMLInputElement).checked } })}
-          > Interim
-        </label>
-        <p class="muted hint">
-          Whether it is vacant is said per fight, by who holds it coming in, not here.
-        </p>
-        <button type="button" @click=${() => this.addTitle(t)}>Add title</button>
-        <button type="button" class="quiet" @click=${() => this.set({ newTitle: null })}>
-          Never mind
-        </button>
-      </div>
-    `;
-  }
-
-  // A new belt is saved at once, for this class, and put on the line vacant.
-  async addTitle(t: NewTitle) {
-    const title = await this.attempt(() =>
-      api<Title>('/titles', json('POST', { ...t, weight_class_id: this.state.weight_class_id }))
-    );
-    if (!title) return;
-    this.lists.titles.push(title);
-    this.set({
-      newTitle: null,
-      titles: [...this.state.titles, { title_id: title.id, holder_side: 'vacant' }],
-    });
-  }
-
   override actions() {
     return html`
       <button type="button" ?disabled=${this.state.busy} @click=${() => this.save()}>Save</button>
@@ -375,15 +344,21 @@ export class BoutForm extends DialogForm<State, BoutView> {
     if (!Number.isInteger(rounds) || rounds < 1 || rounds > MAX_ROUNDS) {
       return this.set({ error: `scheduled rounds are 1–${MAX_ROUNDS}` });
     }
-    const off = titlesOffClass(s.titles, this.lists.titles, s.weight_class_id);
+    const weight = readBoutWeight(s.weightBy, s.weight_class_id, s.contracted);
+    if ('error' in weight) return this.set({ error: weight.error });
+    const off = titlesOffClass(s.titles, this.lists.titles, weight.weight_class_id);
     if (off.length > 0) {
       const names = off.map(titleText).join(', ');
       return this.set({
-        error: `not a title of this class: ${names}; remove it or change the class`,
+        error: weight.weight_class_id === null
+          ? `a title is fought for at its class's limit: remove ${names} or choose the class`
+          : `not a title of this class: ${names}; remove it or change the class`,
       });
     }
     const body = {
-      weight_class_id: s.weight_class_id,
+      ...weight,
+      missed_weight_a: s.missedA,
+      missed_weight_b: s.missedB,
       scheduled_rounds: rounds,
       fighter_a_id: s.a.id,
       fighter_b_id: s.b.id,

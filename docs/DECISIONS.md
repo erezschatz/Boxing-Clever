@@ -882,3 +882,51 @@ the action row, and a second modal over a modal is one too many).
 announcement runs; it must stand still and lose nothing until the user
 says so. Erez: "fix two things and break five others" is what the D43
 form did to v1's flow.
+
+### D45 · 2026-11-07 · How a contracted weight and a missed weight are stored (follows D26)
+**Decision:** The shape of D26, built in
+`tasks/contracted-weight-and-missed-weight.md`:
+- A bout has `weight_class_id` or `contracted_weight`, exactly one, and the
+  schema refuses neither and both (migration 004 rebuilds `bout`, since
+  SQLite cannot drop the class's NOT NULL in place). "Instead of a class"
+  is the task's own word.
+- The contracted weight is pounds, a positive decimal, typed in pounds in
+  the bout form and shown as "Contracted at 150 lbs". It has no unit
+  column: contracts are quoted in pounds, and pounds is what everything
+  converts through (D36).
+- The missed-weight marks are `missed_weight_a` and `missed_weight_b`, 0 or
+  1, true/false on the wire as `interim` is. They are not part of the
+  as-of snapshot (the `a_*`/`b_*` columns), so taking or clearing a
+  snapshot never touches them; they are what the user ticked, and change
+  only when the user changes them.
+- A PATCH that moves a bout between a class and a contracted weight sends
+  both, one null. The bout as it would stand must have exactly one, else
+  `400`, as a POST is.
+- A title is fought for at its class's limit, so the bout form offers no
+  title at a contracted weight and refuses one left on the line. The server
+  does not check a title's class, as before.
+- The TBRB rank in the snapshot is read from the bout's class (D32). A bout
+  at a contracted weight has none, so the rank is null until
+  `tasks/tbrb-rank-across-classes.md` decides which list counts.
+**Rejected:** Allowing both a class and a contracted weight (the class
+would say what the weight does not, and the two could disagree). A unit
+for the contracted weight like the fighter's (no contract is quoted in
+stone or kg on the cards Erez watches; one column is enough until one is).
+A PATCH that clears the class on its own when only a weight is sent (a
+field changing that was not sent). Clearing a side's missed-weight mark
+when a draft's fighter is replaced, as its snapshot is (the form sends the
+fighter and the tick together, so the clear would undo the tick).
+**Why:** D26 settled what; this settles where, so the imports (tasks
+10–11) can map onto it.
+
+### D46 · 2026-11-07 · The class dropdown shows each limit, as v1 did
+**Decision:** Erez, 2026-11-07, while D45 was being built: "it would be
+nice to have weights themselves in the dropdowns like I had before". The
+bout form's class list reads "Flyweight (112 lbs / 50.802 kg)", v1's
+format, with the limits as migration 002 seeded them (`classText`,
+`front/format.ts`). Heavyweight reads "Heavyweight (no limit)".
+**Rejected:** v1's Heavyweight line, "200 lbs / 90.718 kg", which is
+Cruiserweight's limit and which D17 removed. Rounding the kilograms to one
+decimal (v1 showed them as stored).
+**Why:** The limit is what the user checks the class against at
+ringside; the name alone left the limit to memory.

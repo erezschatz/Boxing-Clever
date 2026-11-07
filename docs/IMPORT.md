@@ -55,6 +55,17 @@ decision. When the inference is ambiguous → reject.
   it 0–0. Not imported until `tasks/questions-2026-11-03.md` answers it.
 - The exact weight class when only a title line is present and the class
   name inside it does not match a known class or alternate name → reject.
+- A contracted weight (D26, D45). A `Category/Title` cell that is a weight
+  rather than a class or a title line ("150lbs", "Catchweight 150 lbs", "10st
+  10lbs") becomes the bout's `contracted_weight` in pounds, with no class.
+  It is read by the same parser task 11 writes for the `Weight` column's
+  forms (`rules/weight.ts` reads only a bare number and "S L O" stone, so
+  that parser turns the sheet's spellings into one of those first). Since there is no catchweight
+  class, "Catchweight" with no weight that can be read → reject. A title line
+  is always a class, since a title is fought for at its class's limit.
+- Missed weight. The sheet has no mark for it, and the `Weight` column is
+  the fighter's figure, which D26 says not to judge by, so every imported
+  bout has both sides unmarked. Erez marks the ones he remembers by hand.
 - Fighters are matched by exact full name after trimming `(c)`; a new name
   creates a fighter and an alias. Duplicates created this way are what the
   merge feature is for.
@@ -73,7 +84,11 @@ document's `fighters.*.record` and `weight`/`colors` become the bout's
 as-of snapshot; `rounds[]` become `round_score` rows and `deductions[]`
 strings are parsed as `"<points> <reason>"` or rejected; `result.decision`
 is mapped by code (v1 already stored codes). Bouts with no Mongo document
-are imported as unscored bouts. Fighters are matched to sheet-imported
+are imported as unscored bouts. v1 had the 18 classes and no contracted
+weight, so every v1 bout arrives with its class (matched by name) and no
+`contracted_weight`; a fight Erez knows was at a contracted weight is
+changed by hand afterwards in the bout form. v1 had no missed-weight mark,
+so both sides arrive unmarked (D26, D45). Fighters are matched to sheet-imported
 fighters by exact name; both may exist and are merged by the user.
 
 v1's title kinds (its form offered Active, Vacant, Interim, Silver,

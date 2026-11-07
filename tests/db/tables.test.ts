@@ -54,10 +54,13 @@ function setUpBout(db: Database, overrides: Partial<BoutFields> = {}) {
     event_id: eventId,
     card_order: 1,
     weight_class_id: HEAVYWEIGHT,
+    contracted_weight: null,
     scheduled_rounds: 12,
     fighter_a_id: a,
     fighter_b_id: b,
     corner_a: 'blue',
+    missed_weight_a: 0,
+    missed_weight_b: 0,
     ...overrides,
   });
   return { eventId, a, b, boutId };
@@ -212,14 +215,45 @@ Deno.test('checked values outside their sets are refused', () => {
         event_id: eventId,
         card_order: 2,
         weight_class_id: HEAVYWEIGHT,
+        contracted_weight: null,
         scheduled_rounds: 12,
         fighter_a_id: a,
         fighter_b_id: a,
         corner_a: null,
+        missed_weight_a: 0,
+        missed_weight_b: 0,
       }),
     /CHECK/,
     'a fighter cannot fight themself',
   );
+});
+
+Deno.test('a bout has a class or a contracted weight, one of the two; missed weight is 0 or 1 (D26, D45)', () => {
+  const db = testDatabase();
+  const { boutId } = setUpBout(db, {
+    weight_class_id: null,
+    contracted_weight: 150,
+    missed_weight_b: 1,
+  });
+  const bout = getBout(db, boutId)!;
+  assertEquals(bout.weight_class_id, null);
+  assertEquals(bout.contracted_weight, 150);
+  deepStrictEqual([bout.missed_weight_a, bout.missed_weight_b], [0, 1]);
+
+  const set = (sql: string, ...params: (number | null)[]) => db.prepare(sql).run(...params, boutId);
+  throws(
+    () => set('UPDATE bout SET contracted_weight = ? WHERE id = ?', null),
+    /CHECK/,
+    'neither a class nor a contracted weight',
+  );
+  throws(
+    () => set('UPDATE bout SET weight_class_id = ? WHERE id = ?', HEAVYWEIGHT),
+    /CHECK/,
+    'both a class and a contracted weight',
+  );
+  throws(() => set('UPDATE bout SET contracted_weight = ? WHERE id = ?', 0), /CHECK/);
+  throws(() => set('UPDATE bout SET missed_weight_a = ? WHERE id = ?', 2), /CHECK/);
+  throws(() => set('UPDATE bout SET missed_weight_b = ? WHERE id = ?', null), /NOT NULL/);
 });
 
 Deno.test('units, rounds, ranks and reasons outside their ranges are refused', () => {
@@ -281,10 +315,13 @@ Deno.test('deleting bouts removes their cards and leaves their event in place', 
     event_id: eventId,
     card_order: 2,
     weight_class_id: HEAVYWEIGHT,
+    contracted_weight: null,
     scheduled_rounds: 10,
     fighter_a_id: a,
     fighter_b_id: b,
     corner_a: null,
+    missed_weight_a: 0,
+    missed_weight_b: 0,
   });
   insertRoundScore(db, { bout_id: boutId, round_no: 1, side: 'A', points: 10 });
   insertDeduction(db, {

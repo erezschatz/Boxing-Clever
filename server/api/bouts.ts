@@ -40,11 +40,18 @@ const titlesSchema = z.array(z.strictObject({
 const fields = {
   event_id: rowId,
   card_order: z.int().positive(),
-  weight_class_id: rowId,
+  // A class, or a contracted weight in pounds (D36) that is no class's
+  // limit: exactly one of the two, the other null (D26, D45).
+  weight_class_id: rowId.nullable(),
+  contracted_weight: z.number().positive().nullable(),
   scheduled_rounds: z.int().min(1).max(MAX_ROUNDS),
   fighter_a_id: rowId,
   fighter_b_id: rowId,
   corner_a: z.enum(['red', 'blue']).nullable(), // B has the other corner
+  // Whether each side missed weight; true/false on the wire, 0/1 stored and
+  // answered, as `interim` and `is_draft` are (D26).
+  missed_weight_a: z.boolean(),
+  missed_weight_b: z.boolean(),
   titles: titlesSchema,
 };
 
@@ -52,15 +59,28 @@ const twoFighters = (b: { fighter_a_id: number; fighter_b_id: number }) =>
   b.fighter_a_id !== b.fighter_b_id;
 const twoFightersIssue = { message: 'a fighter cannot fight themself', path: ['fighter_b_id'] };
 
-// card_order may be left out: the bout goes to the end of the card.
+type Weighed = { weight_class_id: number | null; contracted_weight: number | null };
+const oneWeight = (b: Weighed) => (b.weight_class_id === null) !== (b.contracted_weight === null);
+const ONE_WEIGHT = 'a bout has a weight class or a contracted weight, one of the two';
+const oneWeightIssue = { message: ONE_WEIGHT, path: ['contracted_weight'] };
+
+// card_order may be left out: the bout goes to the end of the card. The
+// class or the contracted weight is sent and the other is null or left out;
+// nobody misses weight unless said.
 export const boutSchema = z.strictObject({
   ...fields,
   card_order: fields.card_order.optional(),
+  weight_class_id: fields.weight_class_id.default(null),
+  contracted_weight: fields.contracted_weight.default(null),
   corner_a: fields.corner_a.default(null),
+  missed_weight_a: fields.missed_weight_a.default(false),
+  missed_weight_b: fields.missed_weight_b.default(false),
   titles: fields.titles.default([]),
-}).refine(twoFighters, twoFightersIssue);
+}).refine(twoFighters, twoFightersIssue).refine(oneWeight, oneWeightIssue);
 
 const boutPatchSchema = z.strictObject(fields).partial();
+
+const flag = (b: boolean): 0 | 1 => (b ? 1 : 0);
 
 type TitleOnTheLine = z.infer<typeof titlesSchema>[number];
 
@@ -77,16 +97,24 @@ const recordOf = (f: Fighter): FightRecord => ({
   kos: f.kos,
 });
 
-// Just the bout's own columns, out of a stored row with a PATCH spread over it.
-function bodyFields(b: BoutFields): BoutFields {
+// Just the bout's own columns, out of a stored row with a PATCH spread over
+// it; the missed-weight marks as sent (true/false) or as stored (0/1).
+type Merged = Omit<BoutFields, 'missed_weight_a' | 'missed_weight_b'> & {
+  missed_weight_a: boolean | 0 | 1;
+  missed_weight_b: boolean | 0 | 1;
+};
+function bodyFields(b: Merged): BoutFields {
   return {
     event_id: b.event_id,
     card_order: b.card_order,
     weight_class_id: b.weight_class_id,
+    contracted_weight: b.contracted_weight,
     scheduled_rounds: b.scheduled_rounds,
     fighter_a_id: b.fighter_a_id,
     fighter_b_id: b.fighter_b_id,
     corner_a: b.corner_a,
+    missed_weight_a: flag(Boolean(b.missed_weight_a)),
+    missed_weight_b: flag(Boolean(b.missed_weight_b)),
   };
 }
 
@@ -115,7 +143,7 @@ export function boutRoutes(db: GetDb): Hono {
     const { titles, ...rest } = body.data;
     const boutId = transaction(db(), () => {
       const card_order = rest.card_order ?? nextCardOrder(db(), rest.event_id);
-      const newId = insertBout(db(), { ...rest, card_order });
+      const newId = insertBout(db(), bodyFields({ ...rest, card_order }));
       replaceTitles(db(), newId, titles);
       return newId;
     });
@@ -137,6 +165,14 @@ export function boutRoutes(db: GetDb): Hono {
     if (!body.ok) return body.response;
     const { titles, ...changes } = body.data;
     const merged = bodyFields({ ...bout, ...changes });
+    // Moving a bout between a class and a contracted weight sends both, the
+    // one left null (D45); the row as it would stand must have exactly one.
+    if (!oneWeight(merged)) {
+      return c.json(
+        { error: 'invalid body', issues: [{ code: 'custom', ...oneWeightIssue }] },
+        400,
+      );
+    }
     // A finalised result has already moved these two fighters' records (§6).
     // Putting other fighters in the bout would leave those counts on the wrong
     // people, so it is refused rather than moved (D30).

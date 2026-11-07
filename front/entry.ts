@@ -411,16 +411,39 @@ export function readJudge(text: string): number | null | undefined {
 }
 
 // The titles on the line that are not of the bout's class: a heavyweight
-// belt left behind when the class was changed to lightweight. The server
-// does not check this, so the form does.
+// belt left behind when the class was changed to lightweight. A bout at a
+// contracted weight has no class (`classId` null), so every belt is off it:
+// a title is fought for at its class's limit. The server does not check
+// this, so the form does.
 export function titlesOffClass(
   lines: { title_id: number }[],
   titles: Title[],
-  classId: number,
+  classId: number | null,
 ): Title[] {
   return lines
     .map((l) => titles.find((t) => t.id === l.title_id))
     .filter((t): t is Title => t !== undefined && t.weight_class_id !== classId);
+}
+
+// What the bout form's weight comes to (D26, D45): the class chosen, or the
+// contracted weight typed in pounds, the other null, as the API takes them.
+// A contracted weight is required once chosen, and is a positive number.
+export function readBoutWeight(
+  by: 'class' | 'contracted',
+  classId: number,
+  contracted: string,
+):
+  | { weight_class_id: number; contracted_weight: null }
+  | { weight_class_id: null; contracted_weight: number }
+  | { error: string } {
+  if (by === 'class') return { weight_class_id: classId, contracted_weight: null };
+  if (contracted.trim() === '') return { error: 'type the contracted weight in lbs' };
+  const weight = readWeight(contracted, 'lbs');
+  // Read to the hundredth, so "0.001" comes out as 0, which is no weight.
+  if ('error' in weight || weight.pounds === null || weight.pounds <= 0) {
+    return { error: 'the contracted weight is a positive number of lbs' };
+  }
+  return { weight_class_id: null, contracted_weight: weight.pounds };
 }
 
 // A PATCH carries only what the form changed, so an edit made from a list
