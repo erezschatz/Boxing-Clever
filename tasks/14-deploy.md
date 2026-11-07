@@ -1,14 +1,18 @@
-# 14 · Deploy and retire v1
+# 14 · Deploy
 
 ## Context
 
 **Promise.** The new app is the one I use, at its Atrium address, with all the data in
-it; the old one is kept but no longer written to.
+it.
+
+*Edited 2026-11-07 under D40:* what happens to v1 (kept running, unused,
+deleted with its data kept, or anything else) is not part of this task or
+of this rewrite's completion. The promise's clause on v1 and the box that
+stopped its processes are removed.
 
 **Acceptance.**
 - [ ] Mounted in Atrium: symlinked into `chambers/boxing`, registered in `chambers.json`, `hono` and `zod` in Atrium's import map, reachable behind the login (moved from task 01, D16)
 - [ ] `scripts/deploy.sh` (pull, migrate, build, restart) per SETUP.md; run on the Atrium server
-- [ ] Data cut over: final v1 dumps imported (task 10 re-run), rejects zero or accepted
-- [ ] v1 pm2 processes stopped; repo noted read-only in BOXING-CLEVER-V1.md
+- [ ] Final data imported: the latest v1 dumps (task 10 re-run), rejects zero or accepted
 - [ ] `CHANGELOG.md` compiled; version 2.0.0
 - [ ] Verified by Erez: a fight scored on the deployed chamber

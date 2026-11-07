@@ -31,7 +31,7 @@ what keeps it from dropping out between them.
 | 11 | [Import: the Numbers sheet](../tasks/11-import-sheet.md) — CSV → staged import, rejects report, alias seeding |
 | 12 | [TBRB: current rankings](../tasks/12-tbrb-current.md) — daily scrape, snapshots, diff, display on fighter and bout |
 | 13 | [TBRB: history tool](../tasks/13-tbrb-history.md) — manual back-fill from archive pages |
-| 14 | [Deploy and retire v1](../tasks/14-deploy.md) — mounted in Atrium, data cut over, v1 read-only |
+| 14 | [Deploy](../tasks/14-deploy.md) — mounted in Atrium, final data imported |
 | 15 | [Live use and fixes](../tasks/15-live-use.md) — a month of fights on the new app |
 
 Out-of-order work that a decision placed in the sequence:
@@ -52,8 +52,12 @@ Out-of-order work that a decision placed in the sequence:
 - **After 08:** the app can replace v1 for a fight night, standalone on the
   laptop. The design is still the programmer's own.
 - **After 11:** the database holds every fight watched since Nov 2021.
-- **After 14:** v1 is retired; the chamber on Atrium is the one in use.
+- **After 14:** the chamber on Atrium is the one in use, with all the data in it.
 - **After 15:** phase 1 complete; the project goes quiet.
+
+What happens to v1 is not a step or a milestone here. Whether it keeps
+running, stops, or goes with its data kept is Erez's call, outside this
+plan, and nothing in it waits on that (D40).
 
 ## Not in phase 1
 

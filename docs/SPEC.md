@@ -50,7 +50,7 @@ Parity with v1 **plus**:
 - Fighter card redesign, and a design pass over the whole front end.
 - Real URLs (deep links, back button) instead of v1's atom router.
 - Server-side tests at three tiers (see Testing); the suite is green before
-  v1 is retired.
+  every deploy.
 
 ### Explicitly out of phase 1
 

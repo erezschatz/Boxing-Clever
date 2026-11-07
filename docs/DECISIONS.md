@@ -702,3 +702,26 @@ fight).
 **Why:** Rounds are scored as pairs, 10–9, one round after another, so
 the box after a score is the other half of the pair. "Score" says what
 the link is for.
+
+### D40 · 2026-11-07 · v1's fate is not part of this rewrite
+**Decision:** Erez's word: whether v1 keeps running, sits unused, or is
+deleted with its data kept "is not something we should be basing this
+rewrite's completion upon". No task, box, milestone or test here depends
+on what happens to v1. The changes:
+- Task 14 is "Deploy". It no longer retires v1, and its box that stopped
+  v1's pm2 processes is gone.
+- PLAN's milestone after 14 is that the chamber is the one in use, with
+  all the data in it.
+- SPEC's suite is green "before every deploy", not "before v1 is retired".
+
+v1 stays what it is to this repo: a read-only reference for behaviour, and
+the source of data that the importer reads (task 10). D1's rejected "keep
+v1's own process behind pm2" is about the shape of v2's server, not about
+v1.
+**Rejected:** Retiring v1 at task 14 (the plan had it from the skeleton,
+2026-10-31, with no decision behind it). Recording retirement as Erez's
+choice and keeping it in the plan.
+**Why:** The rewrite is done when the new app does its job with all the
+data in it. What becomes of the old app is a separate decision, with its
+own timing, and it should not be made by a checklist written before either
+app was compared in use.
