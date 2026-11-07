@@ -254,7 +254,8 @@ reference lists, every fighter, class and title (D34). Pages:
   focus moves across to the other fighter, or on to the next round when
   that box is scored (D39); deductions open a small
   dialog; "End bout" opens the decision dialog (type, winner, round, time,
-  three judges). Champion marker and belt list under each name; corner
+  three judges) and, once it has saved, goes back to the card; "Change
+  decision" stays. Champion marker and belt list under each name; corner
   colour on the column header; TBRB rank as of the event date (from the
   snapshot). Focus moves on once an entry cannot grow; a save (the API's
   draft) keeps the whole typed card when the rules accept it, never

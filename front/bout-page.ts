@@ -14,6 +14,7 @@ import { DecisionForm } from './decision-form.ts';
 import { Confirm } from './dialog.ts';
 import { dateText, fighterName, resultLabel, resultText } from './format.ts';
 import {
+  afterDecision,
   type Deduction,
   draftToSave,
   entriesOf,
@@ -26,7 +27,7 @@ import {
   reopenBody,
   runningTotals,
 } from './scorecard.ts';
-import { messageOf } from './router.ts';
+import { messageOf, navigate } from './router.ts';
 import type { Side } from '../server/rules/decisions.ts';
 import type { Result } from '../server/rules/scoring.ts';
 
@@ -213,6 +214,7 @@ export class BoutPage extends Component<State> {
   // dialog, which finalises through this.
   async decide(names: { A: string; B: string }) {
     const bout = this.state.bout!;
+    const wasFinalised = this.finalised;
     const lastScored = lastTyped(this.state.entries, this.state.deductions);
     const saved = await new DecisionForm(
       names,
@@ -222,7 +224,12 @@ export class BoutPage extends Component<State> {
       this.finalised,
       (result, judges) => this.finalise(result, judges),
     ).open();
-    if (saved) this.set({ message: 'Finalised' });
+    if (!saved) return;
+    this.set({ message: 'Finalised' });
+    // End bout: back to the card. The bout is final now, so leaving sends
+    // no draft save (saveOnLeave).
+    const next = afterDecision(wasFinalised, bout.event_id);
+    if (next) navigate(next);
   }
 
   // The card the result implies (finalCard, by the rules), saved in turn

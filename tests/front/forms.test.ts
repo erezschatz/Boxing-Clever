@@ -29,7 +29,14 @@ import {
   winnerAfter,
   winnersFor,
 } from '../../front/entry.ts';
-import { entriesOf, type Entry, finalCard, lastTyped, reopenBody } from '../../front/scorecard.ts';
+import {
+  afterDecision,
+  entriesOf,
+  type Entry,
+  finalCard,
+  lastTyped,
+  reopenBody,
+} from '../../front/scorecard.ts';
 import type { BoutView, Fighter, Title } from '../../front/api.ts';
 import { type Api, recordOf, testApi, usykFury } from '../helpers/api.ts';
 
@@ -515,6 +522,11 @@ Deno.test('End bout never drops what was typed: it says what to clear or correct
   // The stoppage round itself may be half typed: it becomes 0–0.
   const ok3 = finalCard(bout, typed([[10, 9], [10, 9], [10, null]]), [], ko3, noJudges);
   deepStrictEqual(ok3.body?.rounds.at(-1), { round_no: 3, a: 0, b: 0 });
+});
+
+Deno.test('End bout goes back to the card; Change decision on a finalised bout stays', () => {
+  assertEquals(afterDecision(false, 7), '/events/7');
+  assertEquals(afterDecision(true, 7), null);
 });
 
 Deno.test('saving the same finalised card again does not move the records twice (§6)', async () => {

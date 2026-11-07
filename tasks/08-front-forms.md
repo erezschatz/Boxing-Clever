@@ -532,3 +532,21 @@ bout: a click on the row's class cell opened `/bouts/1`; Back, then
 "edit" on the row opened Edit bout and stayed on the card; Add bout and
 "+ Fighter" showed the boxes as Won, KOs, Lost, Drawn, NC. The row click
 is a template and has no test, as the other templates.
+
+2026-11-07, from Erez: "after I finish the decision, we should jump to
+the event page". `afterDecision` (`front/scorecard.ts`): once "End bout"
+has saved, the page goes back to the card; "Change decision" on a bout
+already finalised is a correction and stays. `BoutPage.decide` navigates
+to it. The bout is final when the page is left, so the leaving save sends
+nothing. `docs/SPEC.md` Front end says so. Test: "End bout goes back to
+the card; Change decision on a finalised bout stays" in
+`tests/front/forms.test.ts`.
+
+`deno task test` 174/174; `deno task check`, `deno lint`, `deno fmt
+--check` clean, run by Claude on the Mac.
+
+Checked by Claude in the browser pane on a scratch four-round bout: End
+bout, KO, Joe Schmoe, round 1, 2:01, Finalise; the page went to the card
+at `/events/1`, which read "Joe Schmoe · KO 1 (2:01)". The server held
+the bout final and Schmoe at 19 wins, 7 KOs. "Change decision" staying
+was not clicked through; it is the null branch of the test.

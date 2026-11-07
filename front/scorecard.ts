@@ -266,6 +266,14 @@ function asCard(
 
 // The belts a side brought into the bout, and so whether they are champion:
 // a title on the line whose holder is that side (SPEC Data model, bout_title).
+// Where the page goes once the decision dialog has saved (Erez,
+// 2026-11-07): "End bout" is the end of the night's work on this fight, so
+// the page goes back to the card; "Change decision" on a bout already
+// finalised is a correction, and the page stays. Null means stay.
+export function afterDecision(wasFinalised: boolean, eventId: number): string | null {
+  return wasFinalised ? null : `/events/${eventId}`;
+}
+
 export function beltsOf(bout: BoutView, side: Side): number[] {
   return bout.titles.filter((t) => t.holder_side === side).map((t) => t.title_id);
 }
