@@ -124,7 +124,7 @@ export class EventPage extends Component<State> {
           })}
         </td>
         <td title=${resultLabel(bout)}>
-          <a href="/bouts/${bout.id}">${resultText(bout, nameA, nameB) || 'score'}</a>
+          <a href="/bouts/${bout.id}">${resultText(bout, nameA, nameB) || 'Score'}</a>
         </td>
         <td class="row-actions">
           <button type="button" class="quiet" @click=${() => this.editBout(bout)}>edit</button>

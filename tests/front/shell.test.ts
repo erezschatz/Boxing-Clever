@@ -84,16 +84,16 @@ Deno.test('the pages say names, records, dates and titles as v1 did', () => {
   assertEquals(titleText({ ...title, status: 'Interim' }), 'WBC Interim World');
 });
 
-Deno.test('the result on the card says who, how, and when it was stopped', () => {
+Deno.test('the result on the card says who, how, and when it was stopped, never "draft"', () => {
   const bout = (
     result: BoutView['card']['result'],
     is_draft = false,
   ) => ({ card: { result, is_draft } }) as BoutView;
   assertEquals(resultText(bout(null), 'Usyk', 'Fury'), '');
-  assertEquals(resultText(bout(null, true), 'Usyk', 'Fury'), 'draft');
+  assertEquals(resultText(bout(null, true), 'Usyk', 'Fury'), ''); // the page offers "Score" (D39)
   const ud = { decision_type: 'UD', winner: 'A', round: null, time: null } as const;
   assertEquals(resultText(bout(ud), 'Usyk', 'Fury'), 'Usyk · UD');
-  assertEquals(resultText(bout(ud, true), 'Usyk', 'Fury'), 'Usyk · UD · draft');
+  assertEquals(resultText(bout(ud, true), 'Usyk', 'Fury'), 'Usyk · UD · not final');
   const ko = { decision_type: 'KO', winner: 'B', round: 9, time: '2:52' } as const;
   assertEquals(resultText(bout(ko), 'Usyk', 'Dubois'), 'Dubois · KO 9 (2:52)');
   const draw = { decision_type: 'D', winner: 'draw', round: null, time: null } as const;

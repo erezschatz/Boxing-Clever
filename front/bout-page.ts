@@ -1,10 +1,10 @@
 // `/bouts/:id`: the scorecard, the heart of the app (SPEC Front end). Two
 // columns, A left and B right, each round points · deductions · total; the
-// totals run in the browser through the rules (SPEC §2, §3). Focus moves down
-// a side as rounds are typed, as in v1 (D35). A draft is saved on demand and
-// when the page is left, and a reload restores it. Deductions and "End
-// bout" open dialogs (task 08). A finalised card is read-only (D35): its
-// decision can be changed, or it can be reopened as a draft to fix a round.
+// totals run in the browser through the rules (SPEC §2, §3). Focus moves
+// across the card and down as rounds are typed (D39). The card is saved on
+// demand and when the page is left, and a reload restores it. Deductions and
+// "End bout" open dialogs (task 08). A finalised card is read-only (D35):
+// its decision can be changed, or it can be reopened for scoring (D37).
 import { api, type BoutView, type Event, references } from './api.ts';
 import { inTurn, putCard, saves } from './card-saves.ts';
 import { sideHead } from './side-head.ts';
@@ -21,6 +21,7 @@ import {
   finalCard,
   isAssumed,
   lastTyped,
+  nextBox,
   readPoints,
   reopenBody,
   runningTotals,
@@ -153,7 +154,7 @@ export class BoutPage extends Component<State> {
         this.set({
           bout: saved,
           saving: false,
-          message: unsaved.length > 0 ? `Saved; ${unsaved.join('; ')}` : 'Draft saved',
+          message: unsaved.length > 0 ? `Progress saved; ${unsaved.join('; ')}` : 'Progress saved',
         });
       } catch (err) {
         this.set({ saving: false, message: `Not saved: ${messageOf(err)}` });
@@ -175,8 +176,8 @@ export class BoutPage extends Component<State> {
   }
 
   // A key in a points box. The value is checked as typed; a complete entry
-  // (any digit but 1, or 10) moves focus to the same side's next round, and
-  // Enter does it for a lone 1 (D35).
+  // (any digit but 1, or 10) moves focus on (nextBox, D39), and Enter does
+  // it for a lone 1 (D35).
   typed(event: InputEvent, round: number, side: Side) {
     const input = event.target as HTMLInputElement;
     const read = readPoints(input.value);
@@ -255,7 +256,7 @@ export class BoutPage extends Component<State> {
   // is finalised again, and the card can be edited.
   async reopen() {
     await new Confirm(
-      'Reopen as draft?',
+      'Reopen scoring?',
       "Reopening takes this result off both fighters' records until the bout is finalised again. The card can then be corrected, and End bout finalises it again.",
       'Reopen',
       () =>
@@ -281,9 +282,12 @@ export class BoutPage extends Component<State> {
     this.focusNext(event.target as HTMLInputElement, round, side);
   }
 
+  // Across to the other fighter, or on to the next round (nextBox, D39),
+  // judged on the boxes as they stand after this entry.
   focusNext(input: HTMLInputElement, round: number, side: Side) {
-    const next = input.closest('table')?.querySelector<HTMLInputElement>(
-      `input[data-side="${side}"][data-round="${round + 1}"]`,
+    const to = nextBox(this.state.entries, round, side);
+    const next = to && input.closest('table')?.querySelector<HTMLInputElement>(
+      `input[data-side="${to.side}"][data-round="${to.round}"]`,
     );
     if (next) {
       next.focus();
@@ -368,14 +372,14 @@ export class BoutPage extends Component<State> {
               Change decision
             </button>
             <button type="button" class="quiet" @click=${() => this.reopen()}>
-              Reopen as draft
+              Reopen scoring
             </button>
           </p>
         `
         : html`
           <p class="actions">
             <button type="button" ?disabled=${this.state.saving} @click=${() => this.save()}>
-              ${this.state.saving ? 'Saving…' : 'Save draft'}
+              ${this.state.saving ? 'Saving…' : 'Save progress'}
             </button>
             <button type="button" @click=${() => this.decide({ A: nameA, B: nameB })}>
               End bout
@@ -399,8 +403,15 @@ export class BoutPage extends Component<State> {
   }
 
   roundRow(round: number, entry: Entry, total: { a: number | null; b: number | null }) {
+    // The round being scored, and the round focus goes to next when that is
+    // another round (D35's marks, following D39's order).
     const focus = this.state.focus;
-    const mark = focus?.round === round ? 'scoring' : focus?.round === round - 1 ? 'next' : '';
+    const next = focus && nextBox(this.state.entries, focus.round, focus.side);
+    const mark = focus?.round === round
+      ? 'scoring'
+      : next && next.round !== focus?.round && next.round === round
+      ? 'next'
+      : '';
     return html`
       <tr class=${mark}>
         <th class="round-no">${round}</th>

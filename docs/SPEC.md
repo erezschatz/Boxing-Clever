@@ -246,15 +246,17 @@ reference lists, every fighter, class and title (D34). Pages:
   *delete and keep the records*, and *cancel* (back to the fight).
 - `/bouts/:id` **the scorecard** — the heart of the app. Two columns
   (A left, B right), per round: points · deductions · total; grand totals;
-  focus moves down the card as rounds are entered; deductions open a small
+  focus moves across to the other fighter, or on to the next round when
+  that box is scored (D39); deductions open a small
   dialog; "End bout" opens the decision dialog (type, winner, round, time,
   three judges). Champion marker and belt list under each name; corner
   colour on the column header; TBRB rank as of the event date (from the
-  snapshot). Focus moves on once an entry cannot grow; a draft saves the
-  whole typed card when the rules accept it, never dropping a stored round
-  by mistake, on demand and on leaving the page; a finalised card is
-  read-only: its decision can be changed, or it is reopened as a draft to
-  fix a round (D35, D37). The card a result implies comes from the rules
+  snapshot). Focus moves on once an entry cannot grow; a save (the API's
+  draft) keeps the whole typed card when the rules accept it, never
+  dropping a stored round by mistake, on demand and on leaving the page; a
+  finalised card is read-only: its decision can be changed, or it is
+  reopened for scoring to fix a round (D35, D37). The pages say "score",
+  "save progress" and "not final", never "draft" (D39). The card a result implies comes from the rules
   (`shapeForResult`, §4), never from the form.
 - `/fighters` grouped by last-name initial, record as W-L-D (N KOs); merge
 - `/fighters/:id` the **fighter card** (redesigned): name, nickname,

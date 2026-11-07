@@ -51,15 +51,17 @@ export function titleText(t: Title): string {
 
 // The result as the card reads it: who won and how, with the round and time
 // of a stoppage. The code goes on the page (SPEC §5); the label is the
-// tooltip. A draft or an unfinished bout says so instead.
+// tooltip. A bout with no result says nothing, and the page offers to score
+// it; a result not yet final (a bout reopened for scoring) says so. The word
+// "draft" is the API's, never the page's (D39).
 export function resultText(bout: BoutView, nameA: string, nameB: string): string {
   const { result } = bout.card;
-  if (!result) return bout.card.is_draft ? 'draft' : '';
+  if (!result) return '';
   const when = result.round ? ` ${result.round}${result.time ? ` (${result.time})` : ''}` : '';
   const who = result.winner === 'A' ? nameA : result.winner === 'B' ? nameB : '';
   const how = `${result.decision_type}${when}`;
   const text = who ? `${who} · ${how}` : how;
-  return bout.card.is_draft ? `${text} · draft` : text;
+  return bout.card.is_draft ? `${text} · not final` : text;
 }
 
 export function resultLabel(bout: BoutView): string {

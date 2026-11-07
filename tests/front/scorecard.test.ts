@@ -9,6 +9,7 @@ import {
   entriesOf,
   type Entry,
   isAssumed,
+  nextBox,
   rankOf,
   readPoints,
   runningTotals,
@@ -33,6 +34,22 @@ Deno.test('points are whole numbers 0–10; focus moves on once the entry cannot
   for (const text of ['11', '01', '00', '-1', 'a', '9.5', '100', ' ']) {
     assertEquals(readPoints(text).ok, false, text);
   }
+});
+
+Deno.test('after a score, focus goes across to the other fighter, or on to the next round (D39)', () => {
+  // Round 1 started on A: across to B, then on to round 2's A.
+  deepStrictEqual(nextBox([e(10, null), e(null, null)], 1, 'A'), { round: 1, side: 'B' });
+  deepStrictEqual(nextBox([e(10, 9), e(null, null)], 1, 'B'), { round: 2, side: 'A' });
+  // Started on B: across to A, then on to round 2's B.
+  deepStrictEqual(nextBox([e(null, 9), e(null, null)], 1, 'B'), { round: 1, side: 'A' });
+  deepStrictEqual(nextBox([e(10, 9), e(null, null)], 1, 'A'), { round: 2, side: 'B' });
+  // After the last round there is nowhere to go.
+  assertEquals(nextBox([e(10, 9)], 1, 'B'), null);
+  // Across even when the next round is already scored.
+  deepStrictEqual(nextBox([e(10, null), e(10, 9)], 1, 'A'), { round: 1, side: 'B' });
+  // Correcting a round among rounds already scored: no box to go to is
+  // empty, so focus stays, and the next key cannot overwrite a score.
+  assertEquals(nextBox([e(9, 10), e(10, 9), e(10, 9)], 1, 'A'), null);
 });
 
 Deno.test('running totals follow the rules: points less deductions, empty boxes count nothing', () => {

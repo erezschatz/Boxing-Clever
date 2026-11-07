@@ -147,3 +147,57 @@ Not covered by a test: the template, focus movement in the DOM, the
 leave-the-page saves and the dialog, all checked by hand above.
 
 Left open: the last box. Erez has not scored a real fight on it.
+
+2026-11-07, after Erez's first run (D39).
+
+Focus now goes across, then down. After a score, focus moves to the
+other fighter's box in the same round. If that box is already scored, it
+moves to the other fighter's box in the next round (`nextBox` in
+`front/scorecard.ts`, used by `focusNext` in `front/bout-page.ts`). This
+replaces D35's down-the-same-side rule; the lone-1 and marked-row rules
+stand.
+
+The word "draft" is gone from the pages:
+- The event page links a bout with no result as "Score".
+- `resultText` says "… · not final" for a reopened bout's result and
+  nothing when there is no result.
+- The scorecard says "Save progress", "Progress saved" and "Reopen
+  scoring".
+
+Tests: `tests/front/scorecard.test.ts` "after a score, focus goes across
+to the other fighter, or on to the next round (D39)" covers both starting
+sides, the last round, and going across when the next round is already
+scored. `tests/front/shell.test.ts` now states that `resultText` never
+says "draft". `deno task test` 158/158; check, lint and fmt clean.
+
+Checked by Claude in the browser pane on the task 08 scratch database:
+- The event page listed one bout as "Score" and the reopened one as
+  "Oleksandr Usyk · KO 1 · not final".
+- On the other bout, typing 10, 9, 9, 10, 10, 10 from round 1 A filled
+  1: 10–9, 2: 9–10, 3: 10–10 and left focus on 4 A.
+- Starting at 5 B, 9 then 10 filled 5: 10–9 and left focus on 6 B.
+- The buttons read Save and End bout. "Save" became "Save progress" on
+  Erez's word right after.
+
+The independent reader (a read-only subagent over the staged diff and this
+record) found:
+- Correcting a score among rounds already scored sent focus to a filled
+  box with its score selected, so the next key overwrote it. `nextBox` now
+  moves only into an empty box, and otherwise focus stays.
+- The "next" row mark no longer showed where focus goes. It now marks the
+  round `nextBox` goes to when that is another round.
+- Two comments still described the old rule, and the record's wording did
+  not match the button label.
+
+All fixed. `tests/front/scorecard.test.ts` now also states that a
+correction among scored rounds goes nowhere. `deno task test` 158/158;
+check, lint and fmt clean.
+
+Rechecked in the pane on bout 2 of the task 08 scratch database:
+- 10, 9, 10, 9 from round 1 A filled 1: 10–9 and 2: 10–9, left focus on
+  3 A, and marked only round 3.
+- 9 typed over round 1 A left focus on 1 A; round 2 was untouched.
+- The buttons read "Save progress" and "End bout".
+
+Not covered by a test: `focusNext` in the page, and the template words
+(the tests state `nextBox` and `resultText`).

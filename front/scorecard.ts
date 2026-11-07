@@ -56,6 +56,30 @@ export function readPoints(
   return { ok: true, points, complete: text !== '1' };
 }
 
+// Where focus goes once a box is scored (D39, Erez's request, replacing
+// D35's "down the same side"): across to the other fighter in the same
+// round, unless that box already has a score, and then to the other
+// fighter's box in the next round. Scoring forward into empty rounds, the
+// card is scored by alternating, whichever side a round was started on.
+// Focus only ever moves into an empty box: correcting a score among rounds
+// already scored, the next box would be a score, selected, and the next key
+// would overwrite it, so focus stays where it is (null). Null after the
+// last round too.
+export function nextBox(
+  entries: Entry[],
+  round: number,
+  side: Side,
+): { round: number; side: Side } | null {
+  const other: Side = side === 'A' ? 'B' : 'A';
+  const empty = (n: number, s: Side) => {
+    const e = entries[n - 1];
+    return e !== undefined && (s === 'A' ? e.a : e.b) === null;
+  };
+  if (empty(round, other)) return { round, side: other };
+  if (empty(round + 1, other)) return { round: round + 1, side: other };
+  return null;
+}
+
 // Running totals while scoring: each side's typed rounds, with the
 // deductions, through the rules' own §2 and §3. An empty box counts nothing,
 // but a deduction in its round still counts, as it does on the server.
@@ -217,8 +241,8 @@ export function finalCard(
   };
 }
 
-// What "Reopen as draft" sends (D32, D37): the card as it stands, result
-// and all, as a draft. The result stays because the card's shape depends
+// What "Reopen scoring" sends (D32, D37, D39): the card as it stands,
+// result and all, as a draft. The result stays because the card's shape depends
 // on it (a KO's last round is 0–0, which only a stoppage allows), so the
 // rounds before it can be corrected and the draft still saves; changing
 // where the bout ended is "End bout" again.

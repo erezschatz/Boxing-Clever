@@ -671,3 +671,34 @@ a `<datalist>` (no way to tell two fighters with the same name apart, and
 no record beside the name).
 **Why:** The name typed in full is what the user meant. A partial name or
 a shared one is a search, and only the user can turn it into a choice.
+
+### D39 · 2026-11-07 · Focus goes across, then down; the pages never say "draft" (reopens D35's focus rule)
+**Decision:** Asked by Erez after his first run. Two changes.
+*Focus.* This replaces D35's "focus moves to the same side's next round".
+After a box is scored, focus goes across to the other fighter's box in the
+same round. If that box already has a score, it goes to the other
+fighter's box in the next round (`nextBox`, `front/scorecard.ts`).
+Scoring forward into empty rounds, the card is scored by alternating,
+whichever side a round was started on. Focus only moves into an empty box.
+When a score is corrected among rounds already scored, focus stays where it
+is; otherwise it would land on a selected score, and the next key would
+overwrite it. The rest of D35's focus rule stands: when an entry is
+complete, and a lone 1 waiting for Enter. The marked rows now follow this
+order: the round being scored, and the round focus goes to next when that
+is another round.
+*Words.* The pages do not say "draft".
+- On the event page, a bout with no result shows "Score", linked to the
+  card.
+- A result that is not final, on a bout reopened for scoring, reads
+  "… · not final".
+- The scorecard says "Save progress", "Progress saved" and "Reopen
+  scoring" (Erez's words: "save progress or save fight").
+- `is_draft` stays in the API and the code, where it is precise.
+**Rejected:** On "move to next row", the same fighter's box in the next
+round. After A then B, that would land on B, and the next score typed
+would be B's, out of turn. Also rejected: keeping "draft" on the pages (it
+is the API's word for an unfinished card, not how a scorer thinks of a
+fight).
+**Why:** Rounds are scored as pairs, 10–9, one round after another, so
+the box after a score is the other half of the pair. "Score" says what
+the link is for.
