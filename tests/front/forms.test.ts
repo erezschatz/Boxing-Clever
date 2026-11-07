@@ -6,6 +6,7 @@ import { deepStrictEqual, ok, strictEqual as assertEquals } from 'node:assert/st
 import {
   changedFields,
   exactFighter,
+  fillFromCards,
   findFighters,
   readJudge,
   readWeight,
@@ -56,6 +57,18 @@ Deno.test('a fighter is found by every word typed, in any order, accents ignored
   deepStrictEqual(findFighters(all, 'tyson').map((f) => f.id), [4, 3]); // shortest name first
   deepStrictEqual(findFighters(all, ''), []);
   deepStrictEqual(findFighters(all, 'tyson', 1).map((f) => f.id), [4]);
+});
+
+Deno.test('the cards fill a points decision until the user, or the bout, has chosen one (D41)', () => {
+  const split = [{ a: 115, b: 113 }, { a: 113, b: 115 }, { a: 116, b: 112 }];
+  deepStrictEqual(fillFromCards('UD', false, split), { decision_type: 'SD', winner: 'A' });
+  // A decision picked by the user, or already on a finalised bout, is kept.
+  assertEquals(fillFromCards('UD', true, split), null);
+  // A generic DEC, a stoppage, a technical result and an NC are never filled.
+  for (const code of ['DEC', 'KO', 'TKO', 'TD', 'T', 'NC'] as const) {
+    assertEquals(fillFromCards(code, false, split), null, code);
+  }
+  assertEquals(fillFromCards('UD', false, [{ a: 115, b: null }, ...split.slice(1)]), null);
 });
 
 Deno.test('a name typed in full names its fighter without a click, unless two share it', () => {

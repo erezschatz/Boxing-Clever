@@ -84,3 +84,27 @@ export function winnerFits(code: DecisionType, winner: Winner): boolean {
       return winner === 'none';
   }
 }
+
+export type JudgeCard = { a: number | null; b: number | null };
+
+// §5, from the three judges' cards (D41): who wins a decision that went the
+// distance, and what kind it is. Each card goes to the side with more
+// points, or is even. 3–0 is a unanimous decision, 2–1 a split one, two for
+// a side and one even a majority decision; two even and one for a side is a
+// majority draw, and three even, or one each and one even, a draw. Null
+// until all three cards are complete.
+export function decisionFromCards(
+  cards: JudgeCard[],
+): { decision_type: DecisionType; winner: Winner } | null {
+  if (cards.length !== 3 || cards.some((c) => c.a === null || c.b === null)) return null;
+  const forA = cards.filter((c) => c.a! > c.b!).length;
+  const forB = cards.filter((c) => c.b! > c.a!).length;
+  const even = 3 - forA - forB;
+  const lead: Side = forA > forB ? 'A' : 'B';
+  const most = Math.max(forA, forB);
+  if (most === 3) return { decision_type: 'UD', winner: lead };
+  if (most === 2 && even === 0) return { decision_type: 'SD', winner: lead };
+  if (most === 2 && even === 1) return { decision_type: 'MD', winner: lead };
+  if (even === 2) return { decision_type: 'MT', winner: 'draw' };
+  return { decision_type: 'D', winner: 'draw' }; // three even, or one each and one even
+}

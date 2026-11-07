@@ -179,7 +179,11 @@ origin; the three stoppage defects there are fixed by construction here.
    0–0), and went the distance otherwise. A card with no rounds at all
    (watched, not scored) is valid with any result, the round included.
    Rounds may arrive in any order. The scorecard never has to agree with
-   the decision.
+   the decision. The decision dialog offers a points decision worked out
+   from the three judges' cards, each won or even: 3–0 UD, 2–1 SD, 2 and
+   one even MD; two even and one won MT, three even or 1–1–1 D
+   (`decisionFromCards`). It is a suggestion, filled in until the user
+   picks otherwise, never a check (D41).
 6. **Record update on finalise**, once and atomically: KO/TKO/RTD → winner
    won+1 kos+1, loser lost+1; other wins → won+1 / lost+1; draws → both
    draws+1; NC → both nc+1. Re-saving a finalised bout does not double count;

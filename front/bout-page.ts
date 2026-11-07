@@ -308,6 +308,10 @@ export class BoutPage extends Component<State> {
     const { bout, event, refs } = this.state;
     if (!bout || !event || !refs) return html`<p class="muted">Loading…</p>`;
     const { A: nameA, B: nameB } = this.names();
+    // Each side's points column says whose it is (Erez, after his first fight).
+    const surname = (id: number) => refs.fighters.get(id)?.last_name ?? '';
+    const pointsA = surname(bout.fighter_a_id) || 'A';
+    const pointsB = surname(bout.fighter_b_id) || 'B';
     const cornerB = bout.corner_a === 'red' ? 'blue' : bout.corner_a === 'blue' ? 'red' : null;
     const totals = runningTotals(this.state.entries, this.state.deductions);
     const weightClass = refs.classes.get(bout.weight_class_id)?.name ?? '';
@@ -342,11 +346,11 @@ export class BoutPage extends Component<State> {
           </tr>
           <tr class="columns">
             <th>Rd</th>
-            <th>Pts</th>
+            <th class="whose" title="${nameA}, points">${pointsA}</th>
             <th>Ded</th>
             <th>Total</th>
             <th></th>
-            <th>Pts</th>
+            <th class="whose" title="${nameB}, points">${pointsB}</th>
             <th>Ded</th>
             <th>Total</th>
           </tr>

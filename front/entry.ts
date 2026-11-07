@@ -2,7 +2,14 @@
 // fighter found by name, a decision and its round, a judge's card.
 // Pure, so the tests can state it (SPEC Testing); the dialogs are templates
 // over these.
-import { type DecisionType, ending, type Winner, winnerKind } from '../server/rules/decisions.ts';
+import {
+  decisionFromCards,
+  type DecisionType,
+  ending,
+  type JudgeCard,
+  type Winner,
+  winnerKind,
+} from '../server/rules/decisions.ts';
 import {
   convertFromPounds,
   convertToPounds,
@@ -132,6 +139,22 @@ export function winnerAfter(code: DecisionType, chosen: Winner | null): Winner |
   const allowed = winnersFor(code);
   if (allowed.length === 1) return allowed[0];
   return chosen !== null && allowed.includes(chosen) ? chosen : null;
+}
+
+// What the judges' cards fill into the decision dialog (D41), or null to
+// leave the decision as it is. Only while the decision is still the cards'
+// to give: one they can produce (UD, SD, MD, MT, D, never the generic DEC,
+// a stoppage, a technical result or a no-contest), and not one the user
+// chose or the bout already had (`chosen`). Then only once all six totals
+// are in.
+const FROM_CARDS: DecisionType[] = ['UD', 'SD', 'MD', 'MT', 'D'];
+export function fillFromCards(
+  code: DecisionType,
+  chosen: boolean,
+  cards: JudgeCard[],
+): { decision_type: DecisionType; winner: Winner } | null {
+  if (chosen || !FROM_CARDS.includes(code)) return null;
+  return decisionFromCards(cards);
 }
 
 // Whether the form asks for the round the bout ended in. A stopped bout

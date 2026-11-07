@@ -725,3 +725,31 @@ choice and keeping it in the plan.
 data in it. What becomes of the old app is a separate decision, with its
 own timing, and it should not be made by a checklist written before either
 app was compared in use.
+
+### D41 · 2026-11-07 · A points decision follows from the judges' cards
+**Decision:** Erez, after scoring his first fight on v2: he used to tally
+the cards by hand, but "if it's 2 judges to 1 for fighter A then it's a
+split decision and a win, … why not have the UI figure that on its own".
+`decisionFromCards` (`server/rules/decisions.ts`, §5) reads each card as
+won by one side or even:
+- 3–0 is UD; 2–1 is SD; two for a side and one even is MD;
+- two even and one won is MT (majority draw);
+- three even, or one each and one even, is D.
+
+In the decision dialog, once all six totals are typed, the type and the
+winner are filled in from the cards, with a line saying so ("SD for …,
+from the cards (2–1)"). The decision must still be the cards' to give
+(`fillFromCards`, `front/entry.ts`): one of UD, SD, MD, MT or D, so never
+the generic DEC, a stoppage, a technical decision or draw, or a
+no-contest; and not one the user has chosen. Picking a decision or a
+winner, or opening the dialog on a bout that already has a result
+("Change decision", or a bout reopened for scoring), makes the decision
+the user's. After that, a later fix to a card never changes it.
+**Rejected:** Checking the user's choice against the cards and refusing a
+mismatch (cards are sometimes misread or misreported; the result is the
+user's to record, and SPEC §5 says the scorecard never has to agree with
+the decision). Filling the type for TD/T from the cards as well (they are
+already chosen as technical, which the cards cannot say).
+**Why:** The type of a points decision is arithmetic on the three cards,
+and arithmetic is what the rules are for. It is filled, not forced, so the
+rule can be corrected in use: Erez said he may revise it.

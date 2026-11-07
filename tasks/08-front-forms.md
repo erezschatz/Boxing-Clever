@@ -230,3 +230,49 @@ version; the messages are unchanged in the second):
 Rechecked in the pane after those fixes: "fury" then Enter chose Fury for
 A. "Tyson Fury" typed for B, then Enter, said Fighter B: "Tyson Fury" is
 already the other fighter, and no new fighter form opened.
+
+2026-11-07, after Erez scored a full fight on it ("finished the fight,
+scored, added a winner"), with no deductions in that bout.
+
+From his notes:
+- The decision dialog now works out a points decision from the judges'
+  cards (D41). `decisionFromCards` in `server/rules/decisions.ts` gives
+  3–0 UD, 2–1 SD, 2 + even MD, two even MT, three even or 1–1–1 D.
+  `DecisionForm.judged` fills the type and winner once all six totals are
+  in, while the decision goes the distance, and says so under the select;
+  choosing another type clears that line.
+- The judges' grid has a header row with each fighter's name over their
+  column. Before, the names were only in the legend, as "A – B".
+
+Test: `tests/rules/decisions.test.ts` "§5, D41: a decision that went the
+distance follows from the three cards" covers UD, SD for either side, MD,
+MT, the two draw shapes, and nothing until all six totals are in.
+`deno task test` 159/159; check, lint and fmt clean.
+
+Checked by Claude in the browser pane: on a 12-round draft, End bout with
+cards 115–113, 113–115, 116–112 typed (Tab between them) gave "SD for
+Oleksandr Usyk, from the cards (2–1)", the select on SD, Usyk checked and
+round 12, with both names over the judges' columns.
+
+Not covered by a test: `judged` itself (the rule is tested, the dialog
+was checked by hand).
+
+The independent reader (a read-only subagent over the staged diff)
+confirmed the classification for all ten combinations of three cards, and
+found:
+- A decision the user picked by hand was overwritten by the cards on the
+  next edit to any judge box. The same happened to a generic DEC, and to a
+  finalised bout's stored result on "Change decision", where fixing one
+  judge's total could have changed the result and both records.
+- Picking a winner left a stale "from the cards" line.
+
+Fixed: `fillFromCards` (`front/entry.ts`) fills only UD/SD/MD/MT/D, and
+only while the decision is not the user's. Picking a decision or a winner,
+or opening the dialog on a bout with a result, makes it the user's. The
+reader also found gaps in the tests: UD and MD for B, MT for A, a missing
+A total, four cards. All are added, along with a test of `fillFromCards`.
+`deno task test` 160/160; check, lint and fmt clean.
+
+Rechecked in the pane: the cards filled "SD for Oleksandr Usyk, from the
+cards (2–1)". Picking Fury cleared the line and kept Fury, and changing
+judge 3's total afterwards left SD for Fury as picked.

@@ -201,3 +201,10 @@ Rechecked in the pane on bout 2 of the task 08 scratch database:
 
 Not covered by a test: `focusNext` in the page, and the template words
 (the tests state `nextBox` and `resultText`).
+
+2026-11-07, from Erez's first fight on it: the boxes did not say whose
+they were. Each side's points column is now headed with the fighter's
+surname ("Usyk", "Fury") instead of "Pts", in the ink colour, with the
+full name as its tooltip (`front/bout-page.ts`). This is a template change
+with no rule behind it, so there is no test; it was checked in the browser
+pane: the column row read "Rd Usyk Ded Total Fury Ded Total".
