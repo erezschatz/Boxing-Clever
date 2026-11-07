@@ -265,7 +265,9 @@ No CSS framework. One stylesheet, custom properties, light theme only.
 Native `<dialog>` for modals (v1 already did this): each form is a
 `DialogForm` (`dialog.ts`) that opens over the page and answers what it
 made (D37). The forms are `event-form.ts`, `fighter-form.ts`,
-`bout-form.ts` (fighters by search, with a new one added on the spot;
+`bout-form.ts` (fighters by search: Enter takes the highlighted match, a
+name typed in full is taken on Save, and a new one is added on the spot
+(D38);
 titles with holder side, with a new title added on the spot),
 `deduction-form.ts`, `decision-form.ts`, `bout-delete.ts` (D23, D31) and
 `merge-form.ts` (D31); what they make of typed text is in `entry.ts`.

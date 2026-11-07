@@ -41,17 +41,72 @@ export function weightText(pounds: number | null, unit: WeightUnit | null): stri
 }
 
 // Fighters whose name holds every word typed, any order, accents ignored:
-// "alv can" finds Saúl "Canelo" Álvarez. Up to `limit`, best (shortest
-// name) first; nothing typed finds nobody.
+// "alv can" finds Saúl "Canelo" Álvarez. A name typed in full comes first,
+// then the shortest names; up to `limit`. Nothing typed finds nobody.
 export function findFighters(fighters: Fighter[], query: string, limit = 8): Fighter[] {
   const words = fold(query).split(/\s+/).filter(Boolean);
   if (words.length === 0) return [];
+  const exact = (f: Fighter) => (isNamed(f, query) ? 0 : 1);
   return fighters
     .map((f) => ({ f, name: fold(fighterName(f)) }))
     .filter(({ name }) => words.every((w) => name.includes(w)))
-    .sort((x, y) => x.name.length - y.name.length || x.name.localeCompare(y.name))
+    .sort((x, y) =>
+      exact(x.f) - exact(y.f) || x.name.length - y.name.length || x.name.localeCompare(y.name)
+    )
     .slice(0, limit)
     .map(({ f }) => f);
+}
+
+// Whether `typed` is this fighter's name in full: first and last, or as the
+// list shows it with the nickname, quotes optional; accents, case and
+// spacing ignored.
+function isNamed(f: Fighter, typed: string): boolean {
+  const want = squash(typed);
+  return want !== '' &&
+    (squash(`${f.first_name} ${f.last_name}`) === want || squash(fighterName(f)) === want);
+}
+
+// The one fighter a typed name names exactly, among every fighter; null
+// when nobody or more than one fighter has that name.
+export function exactFighter(fighters: Fighter[], typed: string): Fighter | null {
+  const named = fighters.filter((f) => isNamed(f, typed));
+  return named.length === 1 ? named[0] : null;
+}
+
+// What the text in one side's search box comes to when the bout form is
+// saved, or Enter finds no match (D38): the fighter it names in full, or
+// what the user must do. Judged against every fighter, so the list's limit
+// and the other side's choice do not hide anyone. `absent` means nobody has
+// that name, so Enter may offer to add them.
+export function resolveTyped(
+  fighters: Fighter[],
+  typed: string,
+  otherId: number | null,
+): { fighter: Fighter } | { error: string; absent: boolean } {
+  const text = typed.trim();
+  if (text === '') return { error: 'type a name and pick from the list', absent: false };
+  const named = fighters.filter((f) => isNamed(f, text));
+  if (named.length === 1) {
+    if (named[0].id === otherId) {
+      return { error: `"${text}" is already the other fighter`, absent: false };
+    }
+    return { fighter: named[0] };
+  }
+  if (named.length > 1) {
+    return {
+      error: `${named.length} fighters are called "${text}"; pick one from the list`,
+      absent: false,
+    };
+  }
+  const found = findFighters(fighters, text, Infinity).filter((f) => f.id !== otherId);
+  if (found.length > 0) {
+    return { error: `pick "${text}" from the list (click, or Enter)`, absent: false };
+  }
+  return { error: `"${text}" is not in the list; add them with + New fighter`, absent: true };
+}
+
+function squash(text: string): string {
+  return fold(text).replace(/"/g, '').split(/\s+/).filter(Boolean).join(' ');
 }
 
 function fold(text: string): string {

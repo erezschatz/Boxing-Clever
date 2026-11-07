@@ -5,9 +5,11 @@
 import { deepStrictEqual, ok, strictEqual as assertEquals } from 'node:assert/strict';
 import {
   changedFields,
+  exactFighter,
   findFighters,
   readJudge,
   readWeight,
+  resolveTyped,
   roundAsked,
   titlesOffClass,
   weightText,
@@ -54,6 +56,61 @@ Deno.test('a fighter is found by every word typed, in any order, accents ignored
   deepStrictEqual(findFighters(all, 'tyson').map((f) => f.id), [4, 3]); // shortest name first
   deepStrictEqual(findFighters(all, ''), []);
   deepStrictEqual(findFighters(all, 'tyson', 1).map((f) => f.id), [4]);
+});
+
+Deno.test('a name typed in full names its fighter without a click, unless two share it', () => {
+  const all = [
+    fighter(1, 'Saúl', 'Álvarez', 'Canelo'),
+    fighter(3, 'Tyson', 'Fury', 'The Gypsy King'),
+    fighter(5, 'Mike', 'Tyson'),
+    fighter(6, 'Mike', 'Tyson'),
+  ];
+  assertEquals(exactFighter(all, 'tyson  fury')?.id, 3);
+  assertEquals(exactFighter(all, 'Tyson "The Gypsy King" Fury')?.id, 3);
+  assertEquals(exactFighter(all, 'saul canelo alvarez')?.id, 1); // no accents, no quotes
+  assertEquals(exactFighter(all, 'Fury'), null); // part of one fighter's name is a search
+  assertEquals(exactFighter(all, 'Mike Tyson'), null); // two of them: the user must pick
+  assertEquals(exactFighter(all, ''), null);
+});
+
+Deno.test('a name typed in full is the top match, so Enter and Save take the same fighter', () => {
+  const all = [fighter(1, 'Joe', 'Leeds'), fighter(2, 'Joe', 'Lee', 'Bomber')];
+  deepStrictEqual(findFighters(all, 'joe lee').map((f) => f.id), [2, 1]);
+});
+
+Deno.test('what a typed name comes to on Save is judged against every fighter (D38)', () => {
+  const many = Array.from({ length: 12 }, (_, i) => fighter(100 + i, 'Joe', `Smith${i}`));
+  const smith = fighter(9, 'Joe', 'Smith', 'The Very Long Nickname Indeed');
+  const all = [
+    ...many,
+    smith,
+    fighter(3, 'Tyson', 'Fury'),
+    fighter(5, 'Mike', 'Tyson'),
+    fighter(6, 'Mike', 'Tyson'),
+  ];
+  const pick = (typed: string, otherId: number | null = null) => resolveTyped(all, typed, otherId);
+
+  // Found though twelve shorter names would fill the list first.
+  deepStrictEqual(pick('Joe Smith'), { fighter: smith });
+  // Already chosen on the other side: said so, never "not in the list".
+  deepStrictEqual(pick('Tyson Fury', 3), {
+    error: '"Tyson Fury" is already the other fighter',
+    absent: false,
+  });
+  // A shared name stays the user's choice, whichever side is chosen.
+  deepStrictEqual(pick('Mike Tyson', 5), {
+    error: '2 fighters are called "Mike Tyson"; pick one from the list',
+    absent: false,
+  });
+  deepStrictEqual(pick('Fury'), {
+    error: 'pick "Fury" from the list (click, or Enter)',
+    absent: false,
+  });
+  deepStrictEqual(pick('Joe Nobody'), {
+    error: '"Joe Nobody" is not in the list; add them with + New fighter',
+    absent: true,
+  });
+  deepStrictEqual(pick('  '), { error: 'type a name and pick from the list', absent: false });
 });
 
 Deno.test('the decision dialog offers the winners and asks for the round each code allows (§5)', () => {

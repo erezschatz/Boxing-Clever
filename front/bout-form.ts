@@ -5,7 +5,7 @@
 import { api, type BoutView, type Fighter, json, type Title, type WeightClass } from './api.ts';
 import { html, nothing } from './component.ts';
 import { DialogForm, type DialogState, FRESH } from './dialog.ts';
-import { findFighters, titlesOffClass } from './entry.ts';
+import { findFighters, resolveTyped, titlesOffClass } from './entry.ts';
 import { FighterForm } from './fighter-form.ts';
 import { fighterName, recordText, titleText } from './format.ts';
 import { MAX_ROUNDS } from '../server/rules/scoring.ts';
@@ -18,6 +18,8 @@ type State = DialogState & {
   b: Fighter | null;
   queryA: string;
   queryB: string;
+  pickA: number; // the highlighted match, which Enter takes
+  pickB: number;
   corner_a: 'red' | 'blue' | '';
   weight_class_id: number;
   scheduled_rounds: string;
@@ -40,6 +42,8 @@ export class BoutForm extends DialogForm<State, BoutView> {
       b: find(b?.fighter_b_id),
       queryA: '',
       queryB: '',
+      pickA: 0,
+      pickB: 0,
       corner_a: b?.corner_a ?? 'red',
       weight_class_id: b?.weight_class_id ?? lists.classes.at(-1)?.id ?? 0,
       scheduled_rounds: String(b?.scheduled_rounds ?? 12),
@@ -92,10 +96,11 @@ export class BoutForm extends DialogForm<State, BoutView> {
   }
 
   // One side: the chosen fighter, or a search box with what it finds and a
-  // way to add the fighter when they are not there yet.
+  // way to add the fighter when they are not there yet. Typing searches; a
+  // click, or Enter on the highlighted match (arrows move it), chooses. Enter
+  // with no match opens the new fighter form with the name typed.
   fighterField(side: 'A' | 'B', chosen: Fighter | null, query: string) {
     const key = side === 'A' ? 'a' : 'b';
-    const queryKey = side === 'A' ? 'queryA' : 'queryB';
     if (chosen) {
       return html`
         <div class="field">
@@ -111,27 +116,30 @@ export class BoutForm extends DialogForm<State, BoutView> {
         </div>
       `;
     }
-    const other = side === 'A' ? this.state.b : this.state.a;
-    const found = findFighters(this.lists.fighters, query).filter((f) => f.id !== other?.id);
+    const found = this.found(side, query);
+    const pick = Math.min(this.pickOf(side), Math.max(0, found.length - 1));
     return html`
       <div class="field">
         <label>Fighter ${side}
           <input
-            placeholder="Type a name"
+            placeholder="Type a name, then Enter"
             autocomplete="off"
             .value=${query}
-            @input=${(e: InputEvent) =>
-              this.set({ [queryKey]: (e.target as HTMLInputElement).value } as Partial<State>)}
+            @input=${(e: InputEvent) => this.search(side, (e.target as HTMLInputElement).value)}
+            @keydown=${(e: KeyboardEvent) => this.searchKey(e, side, found, pick, query)}
           >
         </label>
-        <ul class="found">
-          ${found.map((f) =>
+        <ul class="found ${found.length > 0 || query.trim() ? 'listed' : ''}" role="listbox">
+          ${found.map((f, i) =>
             html`
               <li>
-                <button type="button" class="pick" @click=${() =>
-                  this.set({ [key]: f } as Partial<State>)}>
-                              ${fighterName(f)} <span class="record">${recordText(f)}</span>
-                            </button>
+                <button
+                  type="button"
+                  class="pick ${i === pick ? 'highlighted' : ''}"
+                  @click=${() => this.choose(side, f)}
+                >
+                  ${fighterName(f)} <span class="record">${recordText(f)}</span>
+                </button>
               </li>
             `
           )}
@@ -139,8 +147,12 @@ export class BoutForm extends DialogForm<State, BoutView> {
             ? html`
               <li>
                 <button type="button" class="quiet" @click=${() => this.addFighter(side, query)}>
-                              + New fighter "${query.trim()}"
-                            </button>
+                  + New fighter "${query.trim()}"${found.length === 0
+                    ? html`
+                      <span class="muted">(Enter)</span>
+                    `
+                    : nothing}
+                </button>
               </li>
             `
             : nothing}
@@ -149,11 +161,55 @@ export class BoutForm extends DialogForm<State, BoutView> {
     `;
   }
 
+  found(side: 'A' | 'B', query: string): Fighter[] {
+    const other = side === 'A' ? this.state.b : this.state.a;
+    return findFighters(this.lists.fighters, query).filter((f) => f.id !== other?.id);
+  }
+
+  pickOf(side: 'A' | 'B'): number {
+    return side === 'A' ? this.state.pickA : this.state.pickB;
+  }
+
+  search(side: 'A' | 'B', query: string) {
+    this.set(
+      (side === 'A' ? { queryA: query, pickA: 0 } : { queryB: query, pickB: 0 }) as Partial<State>,
+    );
+  }
+
+  // Against every fighter, with the other side's choice as it stands.
+  resolve(side: 'A' | 'B', typed: string) {
+    const other = side === 'A' ? this.state.b : this.state.a;
+    return resolveTyped(this.lists.fighters, typed, other?.id ?? null);
+  }
+
+  choose(side: 'A' | 'B', fighter: Fighter) {
+    this.set({ [side === 'A' ? 'a' : 'b']: fighter, error: null } as Partial<State>);
+  }
+
+  searchKey(e: KeyboardEvent, side: 'A' | 'B', found: Fighter[], pick: number, query: string) {
+    const move = (to: number) =>
+      this.set({ [side === 'A' ? 'pickA' : 'pickB']: to } as Partial<State>);
+    if (e.key === 'ArrowDown' && found.length > 0) {
+      e.preventDefault();
+      move(Math.min(pick + 1, found.length - 1));
+    } else if (e.key === 'ArrowUp' && found.length > 0) {
+      e.preventDefault();
+      move(Math.max(pick - 1, 0));
+    } else if (e.key === 'Enter' && !e.isComposing) {
+      e.preventDefault(); // Enter here chooses; it never saves the bout
+      if (found.length > 0) return this.choose(side, found[pick]);
+      const typed = this.resolve(side, query);
+      if ('fighter' in typed) this.choose(side, typed.fighter);
+      else if (typed.absent) this.addFighter(side, query);
+      else this.set({ error: `Fighter ${side}: ${typed.error}` });
+    }
+  }
+
   async addFighter(side: 'A' | 'B', typed: string) {
     const fighter = await new FighterForm(null, typed).open();
     if (!fighter) return;
     this.lists.fighters.push(fighter);
-    this.set({ [side === 'A' ? 'a' : 'b']: fighter } as Partial<State>);
+    this.choose(side, fighter);
   }
 
   // The belts on the line: each a title of this class and who brought it.
@@ -261,8 +317,17 @@ export class BoutForm extends DialogForm<State, BoutView> {
   }
 
   async save() {
+    // A name typed in full is a choice; anything else says what to do (D38).
+    const problems: string[] = [];
+    for (const side of ['A', 'B'] as const) {
+      if (side === 'A' ? this.state.a : this.state.b) continue;
+      const typed = this.resolve(side, side === 'A' ? this.state.queryA : this.state.queryB);
+      if ('fighter' in typed) this.choose(side, typed.fighter);
+      else problems.push(`Fighter ${side}: ${typed.error}`);
+    }
+    if (problems.length > 0) return this.set({ error: problems.join('. ') });
     const s = this.state;
-    if (!s.a || !s.b) return this.set({ error: 'choose both fighters' });
+    if (!s.a || !s.b) return; // resolved above
     const rounds = Number(s.scheduled_rounds);
     if (!Number.isInteger(rounds) || rounds < 1 || rounds > MAX_ROUNDS) {
       return this.set({ error: `scheduled rounds are 1–${MAX_ROUNDS}` });

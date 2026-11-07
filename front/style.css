@@ -525,8 +525,18 @@ button.pick {
   padding: 0.25rem 0.4rem;
 }
 
-button.pick:hover {
+button.pick:hover,
+button.pick.highlighted {
   background: var(--band);
+}
+
+button.pick.highlighted {
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+ul.found.listed {
+  border: 1px solid var(--line);
+  border-radius: 4px;
 }
 
 table.preview td {

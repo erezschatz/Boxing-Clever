@@ -180,3 +180,53 @@ task 09).
 
 Left open: the last box. Erez has not entered and scored a full event on
 it.
+
+2026-11-07, after Erez's first run. He added an event, typed two names
+and a title, and Save said "choose both fighters": the search box only
+searched, and nothing said a click was needed. Fixed in
+`front/bout-form.ts` (D38):
+- A name typed in full is listed first. The top match is highlighted, the
+  arrow keys move it, and Enter takes it.
+- On Save, or on Enter with an empty list, `resolveTyped` in
+  `front/entry.ts` judges the text against every fighter. A name typed in
+  full is taken without a click. Otherwise the form says per side what to
+  do: pick from the list, pick one of two who share the name, the name is
+  already the other fighter, or add the fighter. Only that last case makes
+  Enter open the new fighter form.
+- Adding a fighter clears the old error. Enter that confirms an IME
+  composition is ignored.
+- The match list has a border, so it reads as a list to choose from.
+
+Tests in `tests/front/forms.test.ts`:
+- a full name with or without the nickname, accents and quotes optional,
+  names its fighter; part of one fighter's name and a shared name do not;
+- a full name is the top match, so Enter and Save agree (Joe "Bomber" Lee
+  before Joe Leeds);
+- `resolveTyped` finds a full name past the first eight matches, says when
+  the name is the other fighter's, leaves a shared name to the user, and
+  tells "pick" from "add".
+
+`deno task test` 157/157; check, lint and fmt clean.
+
+An independent reader found the first version of this fix:
+- judged only the eight listed matches;
+- let the other side's choice settle a shared name;
+- told the user to add a fighter who was already on the other side;
+- could take one fighter on Enter and another on Save;
+- left the old error up after an add;
+- and acted on IME Enter.
+
+All fixed above.
+
+Checked by Claude in the browser pane on the scratch database (the first
+version; the messages are unchanged in the second):
+- "usy" then Enter chose Usyk. "Tyson Fury" was typed in full and not
+  clicked; Save made the bout Usyk v Fury.
+- "Joe Nobody" and "Tyson" then Save said: Fighter A: "Joe Nobody" is not
+  in the list; add them with + New fighter. Fighter B: pick "Tyson" from
+  the list (click, or Enter).
+- Enter on "Joe Nobody" opened New fighter with Joe / Nobody filled in.
+
+Rechecked in the pane after those fixes: "fury" then Enter chose Fury for
+A. "Tyson Fury" typed for B, then Enter, said Fighter B: "Tyson Fury" is
+already the other fighter, and no new fighter form opened.

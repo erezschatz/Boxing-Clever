@@ -646,3 +646,28 @@ in silence).
 running (CLAUDE.md), so the card a result implies is computed by them in
 the browser, as the totals already are. Reopening says out loud that the
 records move, which an edit in place would hide.
+
+### D38 · 2026-11-07 · Choosing a fighter in the bout form: Enter, or a name typed in full
+**Decision:** After Erez's first run of the bout form, where typing two
+names and pressing Save only said "choose both fighters". In the fighter
+search, a name typed in full is listed first, then the shortest names. The
+top match is highlighted and the arrow keys move it. Enter takes the
+highlighted match. Enter in the search never saves the bout. On Save, and
+on Enter when the list is empty, `resolveTyped` (`front/entry.ts`) judges
+the text against every fighter, not just the eight listed. It takes the one
+fighter whose full name it is: first and last name, or with the nickname,
+quotes optional; accents, case and spacing ignored. Otherwise it says what
+to do:
+- pick from the list, for a partial name;
+- pick one, for a name two fighters share, even when one of them is
+  already on the other side;
+- the name is already the other fighter;
+- or the name is not in the list, and only then does Enter open the new
+  fighter form with it.
+**Rejected:** Choosing as you type (the first match changes with every
+letter, and "Tyson" would pick someone before "Fury" is typed); taking the
+top match of a partial name on Save (a guess the user did not see made);
+a `<datalist>` (no way to tell two fighters with the same name apart, and
+no record beside the name).
+**Why:** The name typed in full is what the user meant. A partial name or
+a shared one is a search, and only the user can turn it into a choice.
