@@ -80,8 +80,10 @@ Deno.test('the pages say names, records, dates and titles as v1 did', () => {
   assertEquals(dateText('2024-05-18'), '18 May 2024');
   assertEquals(dateText('2024-01-01'), '1 Jan 2024'); // a calendar date, not a UTC instant
   const title = { id: 1, sanctioning_body: 'WBC', area: 'World', weight_class_id: 18 };
-  assertEquals(titleText({ ...title, status: 'Active' }), 'WBC World');
-  assertEquals(titleText({ ...title, status: 'Interim' }), 'WBC Interim World');
+  // D42: interim is the one kind; Silver and the like are part of the area.
+  assertEquals(titleText({ ...title, interim: 0 }), 'WBC World');
+  assertEquals(titleText({ ...title, interim: 1 }), 'WBC Interim World');
+  assertEquals(titleText({ ...title, area: 'World Silver', interim: 0 }), 'WBC World Silver');
 });
 
 Deno.test('the result on the card says who, how, and when it was stopped, never "draft"', () => {

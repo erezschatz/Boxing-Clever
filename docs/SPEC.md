@@ -138,7 +138,7 @@ none. All ids are `INTEGER PRIMARY KEY`.
 | `bout` | event_id, card_order, weight_class_id, scheduled_rounds, fighter_a_id, fighter_b_id, **corner_a** (`red`/`blue`, null when not recorded), a/b **as-of snapshot** (record ×5, weight, unit, colors, tbrb_rank), result (decision_type, winner `A`/`B`/`draw`/`none`, round, time), judges ×3 ×2, is_draft. *Pending D26: a contracted weight instead of a class, and a missed-weight mark per side* | the snapshot is what v1's Mongo document was for and is kept on purpose (D4); its columns are `a_won` … `a_tbrb_rank`, `b_won` …, null until first save; result columns `decision_type`, `winner`, `result_round`, `result_time`; judges `judge1_a` … `judge3_b` |
 | `round_score` | bout_id, round_no, side, points | one row per fighter per round actually scored; the stoppage round has points `0` (see Scoring) |
 | `deduction` | bout_id, round_no, side, points, reason | reasons: knockdown, low blow, holding, headbutt, other — a free text alongside |
-| `title` | sanctioning_body, area, weight_class_id, status | unique on the four |
+| `title` | sanctioning_body, area (`World`, `World Silver`, `European`…), weight_class_id, interim (0/1) | unique on the four; a belt is regular or interim, nothing else; vacancy is the fight's, by `bout_title.holder_side` (D42) |
 | `bout_title` | bout_id, title_id, holder_side (`A`/`B`/`vacant`) | champion and title-for-title fall out of this |
 | `tbrb_snapshot` | snapshot_date, weight_class_id, rank (0 = champion), fighter_name, fighter_id (nullable) | one row per ranked name per snapshot; resolution to `fighter_id` by alias, never fuzzy (TBRB.md) |
 | `import_batch`, `import_reject` | source, started_at, counts; row text + reason | the staged importer's audit trail (IMPORT.md) |

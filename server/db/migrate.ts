@@ -8,6 +8,9 @@ const MIGRATIONS = new URL('../migrations/', import.meta.url);
 
 export type Migration = { version: number; name: string; sql: string };
 
+// The first line of a migration that rebuilds a table other tables refer to.
+export const REBUILDS = '-- migrate: rebuilds a referenced table';
+
 export function migrate(db: Database, migrations: Migration[] = readMigrations()): number[] {
   db.exec('CREATE TABLE IF NOT EXISTS schema_version (version INTEGER PRIMARY KEY)');
   const done = new Set(
@@ -16,14 +19,33 @@ export function migrate(db: Database, migrations: Migration[] = readMigrations()
   const applied: number[] = [];
   for (const { version, name, sql } of migrations) {
     if (done.has(version)) continue;
-    db.exec('BEGIN');
+    // A file that rebuilds a table others refer to says so on its first
+    // line. SQLite's way (lang_altertable.html, "other kinds of table
+    // schema changes"): foreign keys off around the transaction, which a
+    // pragma cannot do inside one, and every reference checked before the
+    // commit, so a broken one rolls the whole file back.
+    const rebuild = sql.startsWith(REBUILDS);
+    if (rebuild) db.exec('PRAGMA foreign_keys = OFF');
     try {
-      db.exec(sql);
-      db.prepare('INSERT INTO schema_version (version) VALUES (?)').run(version);
-      db.exec('COMMIT');
-    } catch (err) {
-      db.exec('ROLLBACK');
-      throw new Error(`migration ${name} failed: ${(err as Error).message}`);
+      db.exec('BEGIN');
+      try {
+        db.exec(sql);
+        if (rebuild) {
+          const broken = db.prepare('PRAGMA foreign_key_check').all();
+          if (broken.length > 0) {
+            throw new Error(
+              `${broken.length} references broken, e.g. ${JSON.stringify(broken[0])}`,
+            );
+          }
+        }
+        db.prepare('INSERT INTO schema_version (version) VALUES (?)').run(version);
+        db.exec('COMMIT');
+      } catch (err) {
+        db.exec('ROLLBACK');
+        throw new Error(`migration ${name} failed: ${(err as Error).message}`);
+      }
+    } finally {
+      if (rebuild) db.exec('PRAGMA foreign_keys = ON');
     }
     applied.push(version);
   }

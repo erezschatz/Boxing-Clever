@@ -235,13 +235,13 @@ Deno.test('the header: belts a side brought make it champion; TBRB rank once the
     sanctioning_body: 'WBC',
     area: 'World',
     weight_class_id: HEAVYWEIGHT,
-    status: 'Active',
+    interim: false,
   })).json;
   const ibf = (await api.call('POST', '/api/titles', {
     sanctioning_body: 'IBF',
     area: 'World',
     weight_class_id: HEAVYWEIGHT,
-    status: 'Active',
+    interim: false,
   })).json;
   await api.call('PATCH', `/api/bouts/${boutId}`, {
     titles: [{ title_id: wbc.id, holder_side: 'B' }, { title_id: ibf.id, holder_side: 'vacant' }],

@@ -85,7 +85,7 @@ Deno.test('a bout and its card round-trip through the database', () => {
     sanctioning_body: 'WBC',
     area: 'World',
     weight_class_id: HEAVYWEIGHT,
-    status: 'Active',
+    interim: 0,
   });
   insertBoutTitle(db, { bout_id: boutId, title_id: titleId, holder_side: 'B' });
 
@@ -198,7 +198,7 @@ Deno.test('checked values outside their sets are refused', () => {
     sanctioning_body: 'WBO',
     area: 'World',
     weight_class_id: HEAVYWEIGHT,
-    status: 'Active',
+    interim: 0,
   });
   throws(
     () => insertBoutTitle(db, { bout_id: boutId, title_id: titleId, holder_side: 'C' as 'A' }),

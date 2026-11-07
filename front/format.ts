@@ -42,11 +42,10 @@ export function yearOf(iso: string): string {
   return iso.slice(0, 4);
 }
 
-// "WBC World", or "WBC Interim World": the kind is said only when it is not
-// the plain one, "Active" (v1's formatTitles; migration 001 keeps v1's kinds).
+// "WBC World", "WBC World Silver", or "WBC Interim World" (D42: interim is
+// the one kind a belt has; vacancy is said per fight, by its holder).
 export function titleText(t: Title): string {
-  const kind = t.status === 'Active' ? '' : `${t.status} `;
-  return `${t.sanctioning_body} ${kind}${t.area}`;
+  return `${t.sanctioning_body} ${t.interim ? 'Interim ' : ''}${t.area}`;
 }
 
 // The result as the card reads it: who won and how, with the round and time

@@ -65,7 +65,7 @@ Deno.test('GET /api/events/:id/bouts lists the card in order, each bout as GET /
     sanctioning_body: 'WBC',
     area: 'World',
     weight_class_id: 18,
-    status: 'Active',
+    interim: false,
   });
   const second = await api.call('POST', '/api/bouts', {
     event_id: eventId,

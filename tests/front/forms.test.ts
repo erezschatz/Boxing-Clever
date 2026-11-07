@@ -289,7 +289,7 @@ Deno.test('saving the same finalised card again does not move the records twice 
 
 Deno.test('the bout form refuses a title of another class; the fighter form sends only what changed', () => {
   const title = (id: number, weight_class_id: number) =>
-    ({ id, sanctioning_body: 'WBC', area: 'World', weight_class_id, status: 'Active' }) as Title;
+    ({ id, sanctioning_body: 'WBC', area: 'World', weight_class_id, interim: 0 }) as Title;
   const titles = [title(1, 18), title(2, 9)];
   deepStrictEqual(titlesOffClass([{ title_id: 1 }, { title_id: 2 }], titles, 18), [title(2, 9)]);
   deepStrictEqual(titlesOffClass([{ title_id: 1 }], titles, 18), []);

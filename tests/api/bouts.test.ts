@@ -10,7 +10,7 @@ async function belts(api: Api) {
       sanctioning_body: body,
       area: 'World',
       weight_class_id: HEAVYWEIGHT,
-      status: 'Active',
+      interim: false,
     }).then((r) => r.json.id as number);
   return { wbc: await make('WBC'), wba: await make('WBA'), ibf: await make('IBF') };
 }

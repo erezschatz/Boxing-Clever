@@ -753,3 +753,47 @@ already chosen as technical, which the cards cannot say).
 **Why:** The type of a points decision is arithmetic on the three cards,
 and arithmetic is what the rules are for. It is filled, not forced, so the
 rule can be corrected in use: Erez said he may revise it.
+
+### D42 · 2026-11-07 · A belt is regular or interim; vacancy is the fight's; Silver is an area
+**Decision:** Erez, after entering a title as kind "Vacant" because v1's
+form offered it:
+- "Vacancy is only per fight, once the title is won, it's not vacant
+  anymore."
+- "Active" is not a status either: the only real status is interim.
+- Silver, Diamond and the like are regions, "world silver" or "world
+  diamond".
+
+So a title is body, area, class and an `interim` flag, unique on the four.
+The free-text `status` column is gone. When neither side is the champion
+coming in, the holder is vacant, per bout (`bout_title.holder_side`), and
+the form says so ("vacant (neither is champion)"). The new-title form asks
+for body, area (with "World, World Silver, European…" as its hint) and an
+Interim checkbox, and says that vacancy is set per fight. Interim and any
+area combine freely, since whether an interim silver belt exists does not
+matter to the model.
+
+Migration 003 converts what is stored, reading kinds in any case and
+spacing:
+- Active, Vacant or no kind becomes regular.
+- Interim sets the flag. "Interim Silver" sets it and puts Silver in the
+  area.
+- Any other kind is appended to the area, or becomes the area when that is
+  blank.
+
+Rows that come out the same belt (body and area compared ignoring case and
+spacing) are merged into the lowest id, and their bouts are repointed. A
+bout that listed two of them keeps the one naming a holder over "vacant",
+else its first. The v1 import maps v1's kinds the same way (IMPORT.md). The API takes
+`interim: true/false`, regular when left out, and answers the stored 0/1,
+as a bout's `is_draft` does. `status` is refused as an unknown field. To
+rebuild `title`, the migration runner gained one switch: a file whose
+first line is `-- migrate: rebuilds a referenced table` runs with foreign
+keys off around its transaction, as SQLite documents, and every reference
+is checked before commit.
+**Rejected:** Keeping v1's free-text kind (Vacant then marks a belt rather
+than a fight, so the belt splits into two titles once it is won). A fixed
+list of kinds (the list is one item long). Keeping `status` beside the flag
+and leaving the old column in place (two answers to one question).
+**Why:** A belt has one history; whether anyone held it going into a fight
+is a fact about that fight. The form said "Kind (Active, Interim…)" and
+explained nothing, so the user did what v1 taught.

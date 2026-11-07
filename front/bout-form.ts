@@ -12,7 +12,7 @@ import { MAX_ROUNDS } from '../server/rules/scoring.ts';
 
 type Holder = 'A' | 'B' | 'vacant';
 type Line = { title_id: number; holder_side: Holder };
-type NewTitle = { sanctioning_body: string; area: string; status: string };
+type NewTitle = { sanctioning_body: string; area: string; interim: boolean };
 type State = DialogState & {
   a: Fighter | null;
   b: Fighter | null;
@@ -242,7 +242,9 @@ export class BoutForm extends DialogForm<State, BoutView> {
                 <option value="B" ?selected=${line.holder_side === 'B'}>held by ${name(
                   'B',
                 )}</option>
-                <option value="vacant" ?selected=${line.holder_side === 'vacant'}>vacant</option>
+                <option value="vacant" ?selected=${line.holder_side === 'vacant'}>
+                  vacant (neither is champion)
+                </option>
               </select>
               <button type="button" class="quiet" @click=${() =>
                 this.set({ titles: s.titles.filter((_, j) => j !== i) })}>remove</button>
@@ -267,7 +269,7 @@ export class BoutForm extends DialogForm<State, BoutView> {
             : nothing}
           ${s.newTitle ? nothing : html`
             <button type="button" class="quiet" @click=${() =>
-              this.set({ newTitle: { sanctioning_body: '', area: 'World', status: 'Active' } })}>
+              this.set({ newTitle: { sanctioning_body: '', area: 'World', interim: false } })}>
               + New title
             </button>
           `}
@@ -278,17 +280,28 @@ export class BoutForm extends DialogForm<State, BoutView> {
   }
 
   newTitleForm(t: NewTitle) {
-    const field = (key: keyof NewTitle, label: string) =>
+    const field = (key: 'sanctioning_body' | 'area', label: string, placeholder: string) =>
       html`
         <label>${label}
-          <input .value=${t[key]} @input=${(e: InputEvent) =>
+          <input .value=${t[key]} placeholder=${placeholder} @input=${(e: InputEvent) =>
             this.set({ newTitle: { ...t, [key]: (e.target as HTMLInputElement).value } })}>
         </label>
       `;
     return html`
       <div class="new-title">
-        ${field('sanctioning_body', 'Body (WBC, IBF…)')} ${field('area', 'Area')}
-        ${field('status', 'Kind (Active, Interim…)')}
+        ${field('sanctioning_body', 'Body', 'WBC, IBF, IBO…')}
+        ${field('area', 'Area', 'World, World Silver, European…')}
+        <label class="inline">
+          <input
+            type="checkbox"
+            .checked=${t.interim}
+            @change=${(e: Event) =>
+              this.set({ newTitle: { ...t, interim: (e.target as HTMLInputElement).checked } })}
+          > Interim
+        </label>
+        <p class="muted hint">
+          Whether it is vacant is said per fight, by who holds it coming in, not here.
+        </p>
         <button type="button" @click=${() => this.addTitle(t)}>Add title</button>
         <button type="button" class="quiet" @click=${() => this.set({ newTitle: null })}>
           Never mind

@@ -76,6 +76,16 @@ is mapped by code (v1 already stored codes). Bouts with no Mongo document
 are imported as unscored bouts. Fighters are matched to sheet-imported
 fighters by exact name; both may exist and are merged by the user.
 
+v1's title kinds (its form offered Active, Vacant, Interim, Silver,
+Diamond) map as migration 003 does (D42):
+- Active and Vacant become the regular belt. A v1 bout under a "Vacant"
+  title has holder `vacant`, unless v1 names a holder.
+- Interim becomes the interim flag; "Interim Silver" is the flag plus
+  "World Silver".
+- Any other kind joins the area: Silver becomes "World Silver".
+- Rows that come out the same belt, ignoring case and spacing, are one
+  title.
+
 ## Order
 
 v1 first (task 10), then the sheet (task 11): v1 is smaller and structured,
