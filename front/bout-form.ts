@@ -29,6 +29,8 @@ type State = DialogState & {
 type Lists = { fighters: Fighter[]; classes: WeightClass[]; titles: Title[] };
 
 export class BoutForm extends DialogForm<State, BoutView> {
+  readonly #opened: string; // what the form held when it opened, for dirty()
+
   constructor(
     readonly eventId: number,
     readonly lists: Lists,
@@ -50,6 +52,28 @@ export class BoutForm extends DialogForm<State, BoutView> {
       titles: b?.titles.map((t) => ({ ...t })) ?? [],
       newTitle: null,
     });
+    this.#opened = this.held();
+  }
+
+  // The choices and text the form holds, as one string to compare.
+  held(): string {
+    const s = this.state;
+    return JSON.stringify([
+      s.a?.id ?? null,
+      s.b?.id ?? null,
+      s.queryA,
+      s.queryB,
+      s.corner_a,
+      s.weight_class_id,
+      s.scheduled_rounds,
+      s.titles,
+      s.newTitle,
+    ]);
+  }
+
+  // Cancel asks when a fighter was chosen or anything typed (D44).
+  override dirty(): boolean {
+    return this.held() !== this.#opened;
   }
 
   // A finalised bout's fighters cannot change (D30).

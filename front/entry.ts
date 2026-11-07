@@ -113,6 +113,24 @@ export function fighterFor(
   return { use: named[0] };
 }
 
+// Whether the name typed in the form may be saved for a fighter the form
+// is about (found, or being edited): a name left as theirs is theirs,
+// whoever else shares it (two Joe Smiths are allowed to exist, D43); a
+// name changed into someone else's is refused by `fighterFor`. Null when
+// the name may be saved.
+export function renameProblem(
+  list: Fighter[],
+  entry: { first_name: string; last_name: string },
+  self: Fighter,
+  otherId: number | null,
+): string | null {
+  const first = entry.first_name.trim();
+  const last = entry.last_name.trim();
+  if (first === self.first_name && last === self.last_name) return null;
+  const who = fighterFor(list, first, last, self.id, otherId);
+  return 'error' in who ? who.error : null;
+}
+
 export type TypedDetails = {
   nickname: string | null;
   colors: string | null;
@@ -161,6 +179,124 @@ export function updatesForExisting(stored: Fighter, typed: TypedDetails): Partia
     patch.weight_unit = typed.weight_unit;
   }
   return patch;
+}
+
+// The fighter form's boxes, as typed (D44). Strings, since they are what the
+// user sees; `readDetails` and `readRecord` make numbers of them.
+export type FighterEntry = {
+  first_name: string;
+  last_name: string;
+  nickname: string;
+  colors: string;
+  weight: string;
+  unit: WeightUnit;
+  won: string;
+  lost: string;
+  draws: string;
+  nc: string;
+  kos: string;
+};
+export type RecordCounts = { won: number; lost: number; draws: number; nc: number; kos: number };
+export const RECORD_KEYS = ['won', 'lost', 'draws', 'nc', 'kos'] as const;
+const RECORD_WORDS = { won: 'Won', lost: 'Lost', draws: 'Drawn', nc: 'NC', kos: 'KOs' };
+
+// The record as typed: five whole numbers, or which box is not one.
+export function readRecord(entry: FighterEntry): RecordCounts | { error: string } {
+  const counts = {} as RecordCounts;
+  for (const k of RECORD_KEYS) {
+    if (!/^\d+$/.test(entry[k].trim())) return { error: `${RECORD_WORDS[k]} is a whole number` };
+    counts[k] = Number(entry[k]);
+  }
+  return counts;
+}
+
+function recordOf(r: RecordCounts): RecordCounts {
+  return { won: r.won, lost: r.lost, draws: r.draws, nc: r.nc, kos: r.kos };
+}
+
+function sameRecord(x: RecordCounts, y: RecordCounts): boolean {
+  return RECORD_KEYS.every((k) => x[k] === y[k]);
+}
+
+// What the fighter form shows once the name typed turns out to be a
+// fighter in the list (D44): the form stays open and becomes theirs. Their
+// name goes in the name boxes. Tonight's nickname, colours and weight stay
+// as typed, and an empty box keeps what is stored (D43); the unit shown is
+// theirs unless one was chosen, which is how `readDetails` reads it. The
+// record boxes take their stored record, since the app keeps it fight by
+// fight; the record typed off the broadcast is kept beside it when it
+// differs, for the user to take with a click or leave. Zeros were not
+// typed, so they are not offered back.
+export function fieldsOnFound(
+  typed: FighterEntry,
+  unitTouched: boolean,
+  stored: Fighter,
+): { fields: FighterEntry; typedRecord: RecordCounts | null } {
+  const read = readRecord(typed);
+  const typedRecord = 'error' in read ||
+      sameRecord(read, stored) ||
+      RECORD_KEYS.every((k) => read[k] === 0)
+    ? null
+    : read;
+  return {
+    fields: {
+      ...typed,
+      first_name: stored.first_name,
+      last_name: stored.last_name,
+      unit: unitTouched ? typed.unit : stored.weight_unit ?? typed.unit,
+      ...recordStrings(recordOf(stored)),
+    },
+    typedRecord,
+  };
+}
+
+// "Not him": the form is a new fighter's again. The name and record go back
+// to what was typed before the find; the details typed since stay, since
+// they are tonight's whoever it is.
+export function fieldsUnfound(current: FighterEntry, before: FighterEntry): FighterEntry {
+  return {
+    ...current,
+    first_name: before.first_name,
+    last_name: before.last_name,
+    won: before.won,
+    lost: before.lost,
+    draws: before.draws,
+    nc: before.nc,
+    kos: before.kos,
+  };
+}
+
+export function recordStrings(r: RecordCounts): Pick<FighterEntry, typeof RECORD_KEYS[number]> {
+  return {
+    won: String(r.won),
+    lost: String(r.lost),
+    draws: String(r.draws),
+    nc: String(r.nc),
+    kos: String(r.kos),
+  };
+}
+
+// What saving the form sends for a fighter it found (D44): the name and
+// the record only where they were changed, since a change there is a
+// deliberate correction (D28), and tonight's details by D43's rule
+// (`updatesForExisting`: typed replaces, empty keeps). Nothing to send is
+// an empty patch, and the fighter is taken as they are.
+export function patchForFound(
+  stored: Fighter,
+  entry: FighterEntry,
+  unitTouched: boolean,
+): { patch: Record<string, unknown> } | { error: string } {
+  const details = readDetails(entry, unitTouched, stored.weight_unit);
+  if ('error' in details) return details;
+  const record = readRecord(entry);
+  if ('error' in record) return record;
+  const named = { first_name: entry.first_name.trim(), last_name: entry.last_name.trim() };
+  return {
+    patch: {
+      ...changedFields(stored as unknown as Record<string, unknown>, { ...named, ...record }),
+      ...updatesForExisting(stored, details),
+    },
+  };
 }
 
 // The bout form's way to add a fighter, offered whether or not a name has

@@ -23,17 +23,41 @@ export abstract class DialogForm<S extends DialogState, R> extends Component<S> 
     return nothing;
   }
 
+  // Whether the form holds work that Cancel would lose. A dirty form asks
+  // before it goes (D44): at ringside, what was typed cost thirty seconds of
+  // the announcement, and Escape is also the key that dismisses a list.
+  dirty(): boolean {
+    return false;
+  }
+
+  // Cancel, from the button or Escape: nothing while a request is out; a
+  // question first when the form is dirty.
+  cancel() {
+    if (this.state.busy) return;
+    if (this.dirty() && !this.state.leaving) return this.set({ leaving: true } as Partial<S>);
+    this.done(null);
+  }
+
   view() {
     return html`
       <h2>${this.title()}</h2>
       ${this.body()}
       ${this.state.error ? html`<p class="error">${this.state.error}</p>` : nothing}
       <div class="dialog-actions">
-        ${this.actions()}
-        ${this.cancellable()
-          ? html`<button type="button" class="quiet" @click=${() =>
-            this.done(null)}>Cancel</button>`
-          : nothing}
+        ${this.state.leaving
+          ? html`
+            <span class="leaving">Discard what you typed?</span>
+            <button type="button" class="danger" @click=${() => this.done(null)}>Discard</button>
+            <button type="button" class="quiet" @click=${() =>
+              this.set({ leaving: false } as Partial<S>)}>Keep editing</button>
+          `
+          : html`
+            ${this.actions()}
+            ${this.cancellable()
+              ? html`<button type="button" class="quiet" @click=${() =>
+                this.cancel()}>Cancel</button>`
+              : nothing}
+          `}
       </div>
     `;
   }
@@ -41,7 +65,7 @@ export abstract class DialogForm<S extends DialogState, R> extends Component<S> 
   // Runs a request with the form disabled; a refusal is shown in the form,
   // which stays open so it can be fixed.
   async attempt<X>(work: () => Promise<X>): Promise<X | undefined> {
-    this.set({ busy: true, error: null } as Partial<S>);
+    this.set({ busy: true, error: null, leaving: false } as Partial<S>); // a save answers the question
     try {
       return await work();
     } catch (err) {
@@ -64,10 +88,15 @@ export abstract class DialogForm<S extends DialogState, R> extends Component<S> 
     document.body.append(dialog);
     this.#dialog = dialog;
     const answer = new Promise<R | null>((resolve) => (this.#finish = resolve));
-    // Escape does nothing while a request is out: the answer must reach the
-    // page that asked, or it would not read again what was saved.
+    // Escape goes through cancel(): nothing while a request is out, since
+    // the answer must reach the page that asked, or it would not read again
+    // what was saved; a question first when the form is dirty. Chrome lets
+    // a dialog refuse Escape once per user activation; a second Escape with
+    // no click between closes it through the close listener below, which
+    // answers null, as cancel() would have.
     dialog.addEventListener('cancel', (event) => {
-      if (this.state.busy) event.preventDefault();
+      event.preventDefault();
+      this.cancel();
     });
     // The back button leaves the page the dialog belongs to; the dialog goes
     // with it rather than act on a page that is gone.
@@ -87,8 +116,8 @@ export abstract class DialogForm<S extends DialogState, R> extends Component<S> 
   }
 }
 
-export type DialogState = { error: string | null; busy: boolean };
-export const FRESH: DialogState = { error: null, busy: false };
+export type DialogState = { error: string | null; busy: boolean; leaving: boolean };
+export const FRESH: DialogState = { error: null, busy: false, leaving: false };
 
 // A question with one action, which runs inside the dialog so a refusal is
 // shown there: `await new Confirm('Reopen?', 'It will…', 'Reopen', work).open()`.

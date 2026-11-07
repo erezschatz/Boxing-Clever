@@ -6,14 +6,20 @@ import { deepStrictEqual, ok, strictEqual as assertEquals } from 'node:assert/st
 import {
   changedFields,
   exactFighter,
+  fieldsOnFound,
+  fieldsUnfound,
+  type FighterEntry,
   fighterFor,
   fillFromCards,
   findFighters,
   namedFighters,
   newFighterLabel,
+  patchForFound,
   readDetails,
   readJudge,
+  readRecord,
   readWeight,
+  renameProblem,
   resolveTyped,
   roundAsked,
   titlesOffClass,
@@ -195,6 +201,128 @@ Deno.test("a fighter found in the list keeps the record and takes tonight's deta
     weight: 226,
     weight_unit: 'kg',
   });
+});
+
+// The fighter form's boxes as Erez types them off the announcement: the
+// details first, the name last.
+const announced: FighterEntry = {
+  first_name: 'Joe',
+  last_name: '',
+  nickname: '',
+  colors: 'Gold and white',
+  weight: '174.5',
+  unit: 'lbs',
+  won: '19',
+  lost: '1',
+  draws: '0',
+  nc: '0',
+  kos: '7',
+};
+const schmoe = {
+  id: 7,
+  first_name: 'Joe',
+  last_name: 'Schmoe',
+  nickname: 'Nobody',
+  colors: 'Black',
+  weight: 78.02, // 172 lbs, kept in kg
+  weight_unit: 'kg',
+  won: 18,
+  lost: 1,
+  draws: 0,
+  nc: 0,
+  kos: 6,
+} as Fighter;
+
+Deno.test('finding a fighter makes the form theirs and loses nothing typed (D44)', () => {
+  const { fields, typedRecord } = fieldsOnFound(announced, false, schmoe);
+  // Their name; tonight's details as typed; their unit, since none was chosen.
+  assertEquals(fields.first_name, 'Joe');
+  assertEquals(fields.last_name, 'Schmoe');
+  assertEquals(fields.colors, 'Gold and white');
+  assertEquals(fields.weight, '174.5');
+  assertEquals(fields.nickname, ''); // empty keeps the stored one (D43)
+  assertEquals(fields.unit, 'kg');
+  // The record boxes are theirs; what was announced is kept beside them.
+  deepStrictEqual([fields.won, fields.lost, fields.draws, fields.nc, fields.kos], [
+    '18',
+    '1',
+    '0',
+    '0',
+    '6',
+  ]);
+  deepStrictEqual(typedRecord, { won: 19, lost: 1, draws: 0, nc: 0, kos: 7 });
+  // A unit chosen in the form stays chosen.
+  assertEquals(fieldsOnFound(announced, true, schmoe).fields.unit, 'lbs');
+  // The same record, or none typed, is not offered back.
+  const same = { ...announced, won: '18', kos: '6' };
+  assertEquals(fieldsOnFound(same, false, schmoe).typedRecord, null);
+  const none = { ...announced, won: '0', lost: '0', kos: '0' };
+  assertEquals(fieldsOnFound(none, false, schmoe).typedRecord, null);
+  // Not them: the name and record as typed, the details as they stand now.
+  const back = fieldsUnfound({ ...fields, colors: 'Gold' }, announced);
+  assertEquals(back.first_name, 'Joe');
+  assertEquals(back.last_name, '');
+  assertEquals(back.won, '19');
+  assertEquals(back.kos, '7');
+  assertEquals(back.colors, 'Gold');
+});
+
+Deno.test("saving a found fighter sends tonight's details, and the name and record only where corrected (D44)", async () => {
+  const bound = fieldsOnFound(announced, false, schmoe).fields;
+  // As found: the weight is read in their unit, the colours taken, the
+  // empty nickname kept, the record untouched.
+  deepStrictEqual(patchForFound(schmoe, bound, false), {
+    patch: { colors: 'Gold and white', weight: 384.71, weight_unit: 'kg' },
+  });
+  // Nothing typed but the name: nothing to send.
+  const blank = { ...bound, colors: '', weight: '' };
+  deepStrictEqual(patchForFound(schmoe, blank, false), { patch: {} });
+  // The record taken from the announcement is a correction, and goes.
+  const corrected = { ...bound, won: '19', kos: '7' };
+  deepStrictEqual(patchForFound(schmoe, corrected, false), {
+    patch: { won: 19, kos: 7, colors: 'Gold and white', weight: 384.71, weight_unit: 'kg' },
+  });
+  // A name fixed in the boxes goes too; a bad record box is named.
+  deepStrictEqual(patchForFound(schmoe, { ...blank, last_name: 'Schmo' }, false), {
+    patch: { last_name: 'Schmo' },
+  });
+  deepStrictEqual(patchForFound(schmoe, { ...blank, won: 'x' }, false), {
+    error: 'Won is a whole number',
+  });
+  deepStrictEqual(readRecord({ ...blank, nc: '' }), { error: 'NC is a whole number' });
+
+  // Through the API: the patch applies, and the stored record moves only
+  // when it was corrected.
+  const api = testApi();
+  const { aId } = await usykFury(api); // Usyk, 21-0-0
+  const usyk = (await api.call('GET', `/api/fighters/${aId}`)).json as Fighter;
+  const before = recordOf(api.db, aId);
+  const tonight = fieldsOnFound({ ...announced, won: '22', kos: '15' }, false, usyk);
+  deepStrictEqual(tonight.typedRecord, { won: 22, lost: 1, draws: 0, nc: 0, kos: 15 });
+  const kept = patchForFound(usyk, tonight.fields, false);
+  ok('patch' in kept);
+  const after = (await api.call('PATCH', `/api/fighters/${aId}`, kept.patch)).json as Fighter;
+  assertEquals(after.colors, 'Gold and white');
+  assertEquals(after.weight, 174.5);
+  deepStrictEqual(recordOf(api.db, aId), before);
+  const used = patchForFound(after, { ...tonight.fields, won: '22' }, false);
+  ok('patch' in used);
+  deepStrictEqual(used.patch, { won: 22 });
+  await api.call('PATCH', `/api/fighters/${aId}`, used.patch);
+  deepStrictEqual(recordOf(api.db, aId), { ...before, won: 22 });
+});
+
+Deno.test("a found or edited fighter keeps a shared name; only a change into someone else's is refused (D44)", () => {
+  const smiths = [fighter(2, 'Joe', 'Smith'), fighter(3, 'Joe', 'Smith'), schmoe];
+  const one = smiths[0];
+  // Picked from the list and saved as is: theirs, whoever else is a Joe Smith.
+  assertEquals(renameProblem(smiths, { first_name: 'Joe', last_name: 'Smith' }, one, null), null);
+  // Renamed into a free name: fine. Into Schmoe's: refused, with merge as the way.
+  assertEquals(renameProblem(smiths, { first_name: 'Joe', last_name: 'Smyth' }, one, null), null);
+  assertEquals(
+    renameProblem(smiths, { first_name: 'Joe', last_name: 'Schmoe' }, one, null),
+    'Joe Schmoe is already in your list; merge them on the fighters page instead',
+  );
 });
 
 Deno.test('a name typed in full is the top match, so Enter and Save take the same fighter', () => {

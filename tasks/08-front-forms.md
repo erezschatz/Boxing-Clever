@@ -386,3 +386,128 @@ Rechecked in the pane: Usyk chosen as A by Enter. On B, "+ Fighter (new,
 or from your list)" with 250 lbs, Red and "Oleksandr Usyk" offered no
 match and, on Save, said "Oleksandr Usyk is already the other fighter".
 Usyk's stored weight and colours stayed 230 / Gold.
+
+2026-11-07, from Erez's run of the D43 form at ringside: he typed the
+weight, colours and record off the announcement, then "Joe"; the form
+moved under him; Escape and Cancel closed it with everything typed; "Use"
+wrote to the fighter and closed before he could see that the record
+announced (19-1, 7 KOs) was not the stored one (18-1, 6 KOs). "Fix two
+things and break five others." Replayed by Claude in the browser pane on a
+scratch database with two Joes, and seen as described. D44 reopens the
+exit in D43 and takes v1's one-exit form back: finding a fighter keeps the
+form open and makes it theirs.
+
+Now:
+- `front/fighter-form.ts` has a Found state. Picking a match (click,
+  or Enter on the highlighted one; arrows move it), or saving a name that
+  is exactly one fighter's, binds the form to them: the title is their
+  name, a status line says "In your list, 18-1-0 (6 KOs). Save updates
+  them. Not them", their name is in the name boxes, tonight's nickname,
+  colours and weight stay as typed with the stored values as placeholders
+  in empty boxes, the unit shown is theirs unless one was chosen, the
+  record boxes hold their record, and "You typed 19-1-0 (7 KOs). Use it"
+  sits under them when the typed record differs. "Not them" returns the
+  name and record as typed and keeps the details. Only Save writes:
+  `patchForFound` sends the name and record where changed and the details
+  by D43. Escape in the name boxes closes the match list and nothing else;
+  typing a name opens it again.
+- `front/entry.ts` (pure): `FighterEntry`, `readRecord`, `fieldsOnFound`,
+  `fieldsUnfound`, `recordStrings`, `patchForFound`.
+- `front/dialog.ts`: `dirty()` on `DialogForm`, false by default, and
+  `cancel()`: Escape, the Cancel button and the backdrop go through it;
+  nothing while busy; "Discard what you typed? Discard / Keep editing" in
+  the action row when dirty. `DialogState` gains `leaving`. The fighter
+  form is dirty when any box differs from how it opened or a fighter is
+  found; `front/bout-form.ts` when a fighter was chosen or anything typed
+  (`held()`). The event, deduction and decision forms keep the default.
+- `front/style.css`: the matches as a dropdown over the row below the
+  name (`.names`, `ul.found.drop`), the status line with a reserved
+  height, `button.link`, the typed-record line, the leaving question.
+- `docs/SPEC.md` Front end: the form's behaviour and the dirty question.
+  `docs/DECISIONS.md`: D44.
+
+Tests in `tests/front/forms.test.ts`:
+- "finding a fighter makes the form theirs and loses nothing typed
+  (D44)": the stored name and record go in, tonight's details and the
+  stored unit stay, the typed record is kept when it differs and not when
+  it is the same or all zeros, and "not them" restores the name and record
+  while keeping the details typed since.
+- "saving a found fighter sends tonight's details, and the name and
+  record only where corrected (D44)": the patch for a found fighter, in
+  their unit; nothing typed sends nothing; a corrected record and a fixed
+  name go; a bad box is named; and through the API, the patch applies, the
+  stored record stays, and a correction moves it.
+
+- "a found or edited fighter keeps a shared name; only a change into
+  someone else's is refused (D44)": `renameProblem`, added after the
+  reader's finding below.
+
+`deno task test` 172/172; `deno task check`, `deno lint`, `deno fmt
+--check` clean, run by Claude on the Mac.
+
+Checked by Claude in the browser pane, standalone (port 8897, a new
+scratch database with Joe "Nobody" Schmoe 18-1-0 at 172 lbs in Black and
+Joe Smith 10-2-0):
+- Add bout, "+ Fighter (new, or from your list)": weight 174.5, Gold and
+  white, 19 / 1 / 7, then "Joe": the two Joes dropped down over the
+  nickname row; the other boxes did not move. Escape closed the list and
+  the form stayed with everything in it.
+- "Sch" in the last name and Enter: the title became Joe "Nobody" Schmoe,
+  the status line gave his record, Nickname showed "Nobody" greyed, the
+  record boxes read 18-1-0 (6 KOs) with "You typed 19-1-0 (7 KOs). Use
+  it" under them.
+- Escape on that form asked "Discard what you typed?"; Keep editing kept
+  it. "Use it" put 19 and 7 in the boxes. Save closed the form with Joe
+  chosen as A at 19-1-0 (7 KOs); the server row read 174.5 lbs, Gold and
+  white, nickname Nobody kept, 19-1-0-0-7.
+- Escape on the bout form, with A chosen, asked the same question.
+- Side B: "Joe Smith" typed in full, Escape to close the list, Enter:
+  the form became Joe Smith's and stayed open instead of saving. "Not
+  them" made it a new fighter's again with the name as typed and zeros.
+  "Joe Schmoe" and Enter said "Joe Schmoe is already the other fighter".
+  Escape twice discarded it; the bout form still held Joe as A.
+
+Not checked in the pane: the edit form from /fighters (its save path is
+`saveEdit`, the same body as before, now behind `readRecord`), the
+backdrop click, and a found fighter kept in kg or stone (covered by the
+tests). Not covered by a test: the templates, the key handling and the
+dirty question (checked by hand above).
+
+Known, by D43's rule and unchanged: after "Not them", Save with the same
+full name finds them again, since nobody is added under a name someone
+has; a second fighter of the same name needs a different spelling, or
+the first one's name corrected.
+
+The independent reader (a read-only subagent over the working tree and
+this record) ran the suite itself and found:
+- A found fighter whose full name another fighter shares could not be
+  saved: `saveFound` ran the rename check whether or not the name was
+  touched, so picking one of two Joe Smiths from the list and pressing
+  Save was refused with a pointer to merge. The edit form from /fighters
+  had the same shape. Fixed: `renameProblem` (`front/entry.ts`) lets a
+  name left as theirs through and refuses only a change into someone
+  else's, on both paths; tested.
+- Text in the bout form's new-title boxes did not count as dirty. Fixed:
+  `held()` includes `newTitle`.
+- A comment and this record said the backdrop reaches `cancel()`; a
+  native modal dialog does nothing on a backdrop click. Removed.
+- SPEC said every form asks; only the fighter and bout forms do. SPEC
+  now says which.
+- While "Discard what you typed?" was showing, the boxes were still live
+  and Enter could save under the question. A save now clears the
+  question (`attempt()` sets `leaving` false).
+- Chrome lets a dialog refuse Escape once per user activation, so the
+  second Escape closes the dialog through the close listener, which
+  answers null as `cancel()` would; the pane check's "Escape twice
+  discarded it" holds by that route. The comment in `dialog.ts` says so.
+  Pre-existing and left: two Escapes while a save is out close the
+  dialog before the answer; the save still lands.
+Left as noted, not changed:
+- After a find, the unit select shows the found fighter's unit under a
+  weight typed with another showing (D43's rule, now visible). Flipping
+  the select back converts the number (`changeUnit` keeps the weight)
+  rather than rereading it, so the weight must be retyped in that case.
+- A typed record with an unreadable box ("1x") is not offered back after
+  a find; "Not them" brings it back.
+The reader confirmed every other claim in this record and in D44 against
+the diff.

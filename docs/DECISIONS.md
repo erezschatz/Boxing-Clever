@@ -836,3 +836,49 @@ Saving a fighter with no name, to name later.
 **Why:** At ringside the details come before the name. The list must not
 grow a second copy of a fighter because the form was opened before the
 scorer knew who it was.
+
+### D44 · 2026-11-07 · The fighter form is a place, not a chute: finding a fighter keeps it open (reopens the exit in D43)
+**Decision:** After Erez's run of the D43 form at ringside. He typed the
+weight, colours and record off the announcement, then the first name, and
+the form changed under him; Escape, the key that dismisses a list, closed
+the dialog with everything typed; Cancel did the same; and "Use" wrote to
+the fighter and closed before he had seen that the record announced
+(19-1, 7 KOs) was not the one stored (18-1, 6 KOs). v1's form had one way
+to finish and one to abort, and picking a match turned it into that
+fighter's edit form; its one flaw was loading the stored fighter over what
+was typed, which D43 fixed by making the match an exit. This entry keeps
+D43's rule for the details and takes v1's shape back:
+- Only Save ends the form. Picking a match (`bind`), or saving a name that
+  is exactly one fighter's, makes the form that fighter's and keeps it
+  open: the title is their name, a status line says they are in the list
+  with their record, and "Not them" makes it a new fighter's again with
+  the name and record as typed and the details as they stand.
+- On a find (`fieldsOnFound`, `front/entry.ts`): their name goes in the
+  name boxes; nickname, colours and weight stay as typed, an empty box
+  shows the stored value as its placeholder and keeps it (D43); the unit
+  shown is theirs unless one was chosen; the record boxes take their
+  stored record, and the record typed is kept beside them, "You typed
+  19-1-0 (7 KOs). Use it", when it differs and is not all zeros. A change
+  to the record boxes is a correction (D28). Save sends the name and
+  record only where changed and the details by D43 (`patchForFound`);
+  nothing changed sends nothing.
+- The matches drop down over the row below the name instead of pushing
+  the fields; arrows move, Enter takes, Escape closes the list and nothing
+  else; typing a name opens it again. The status line is always there, so
+  the form does not jump when it changes.
+- Cancel and Escape ask "Discard what you typed?" when the form is dirty,
+  in the dialog base (`DialogForm.dirty`), so the bout form asks too; the
+  event, deduction and decision forms do not define dirtiness yet.
+**Rejected:** The match as an exit (D43's "Use", which saved and closed
+unseen). Binding as the name is typed when it is exactly one fighter's
+(the boxes would change mid-word, and "Joe Smith" would bind on the way to
+"Joe Smithson"; D38 rejected choosing as you type for the same reason).
+Taking the record typed over the stored one (D43; the app keeps it fight
+by fight) or dropping it unseen (what the D43 form did). A separate "which
+fighter?" step before the form (the name comes last, so the step would
+come last too). A nested confirm dialog for Cancel (the question fits in
+the action row, and a second modal over a modal is one too many).
+**Why:** The form is where the fight's people are entered while the
+announcement runs; it must stand still and lose nothing until the user
+says so. Erez: "fix two things and break five others" is what the D43
+form did to v1's flow.
