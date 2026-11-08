@@ -122,3 +122,8 @@ Not checked by Claude: anything in the browser. The bout form's weight
 dropdown and box, the missed-weight ticks, and the tag on the scorecard
 and the card are Erez's to try.
 
+Verified by Erez in the browser on 2026-11-08: the contracted weight and
+the missed-weight marks work. Erez's note: a missed weight comes up once
+every month or two, so it need not be as prominent as the bordered
+fieldset in the bout form and the yellow tag make it. Toning it down is a
+separate change, not done here.

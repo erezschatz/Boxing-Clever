@@ -12,7 +12,7 @@ name, in pounds and kilograms, as the old app showed it.
 **Acceptance.**
 - [x] The bout form's class dropdown reads "Name (lbs / kg)", in v1's format
 - [x] Heavyweight, which has no limit (D17), says so rather than showing Cruiserweight's
-- [ ] Verified by Erez in the browser
+- [x] Verified by Erez in the browser
 
 ## What was done
 
@@ -29,3 +29,6 @@ dropdown. It is the only class dropdown in the app.
 
 Tested in `tests/front/shell.test.ts`, with Flyweight and Heavyweight.
 `deno task test` 183/183. Not checked in the browser by Claude.
+
+Verified by Erez in the browser on 2026-11-08: the dropdown shows each
+class with its limit.
