@@ -40,6 +40,7 @@ Out-of-order work that a decision placed in the sequence:
 - [Merge asks before records move](../tasks/merge-asks-before-records-move.md) (D31) — its API with 04, its dialog with 08.
 - [Contracted weight and missed weight](../tasks/contracted-weight-and-missed-weight.md) (D26) — before 10.
 - [The class dropdown shows each limit](../tasks/class-limits-in-dropdown.md) (D46) — with the contracted weight.
+- [A missed weight is noted quietly](../tasks/quiet-missed-weight.md) (D47) — after the contracted weight.
 - [A belt is regular or interim](../tasks/title-kinds.md) (D42) — done with 08's follow-ups, before 10.
 - [Open questions, 2026-11-03](../tasks/questions-2026-11-03.md) — the TD/T and 9/9 import answers before 10–11; the rest before the step each names.
 - [Which TBRB list counts](../tasks/tbrb-rank-across-classes.md) — before 12.

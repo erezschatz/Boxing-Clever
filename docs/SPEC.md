@@ -244,8 +244,8 @@ reference lists, every fighter, class and title (D34). Pages:
 
 - `/` events list (newest first, folded by year with the newest open, as in v1)
 - `/events/:id` the card: bouts in order with both fighters and their
-  record on the night (the snapshot, once taken), a missed weight marked
-  beside the fighter who missed it, corners, class or "Contracted at
+  record on the night (the snapshot, once taken), a missed weight noted
+  quietly beside the fighter who missed it (D47), corners, class or "Contracted at
   N lbs" (D26), rounds,
   titles with who brought each, and the result; the whole row opens the
   scorecard; add/edit bout.
@@ -260,8 +260,8 @@ reference lists, every fighter, class and title (D34). Pages:
   dialog; "End bout" opens the decision dialog (type, winner, round, time,
   three judges) and, once it has saved, goes back to the card; "Change
   decision" stays. The class or the contracted weight under the title;
-  champion marker and belt list under each name; a missed weight marked
-  under the name of the side that missed it, to stand out (D26); corner
+  champion marker and belt list under each name; a missed weight noted
+  under the name of the side that missed it (D26, D47); corner
   colour on the column header; TBRB rank as of the event date (from the
   snapshot). Focus moves on once an entry cannot grow; a save (the API's
   draft) keeps the whole typed card when the rules accept it, never
@@ -274,8 +274,8 @@ reference lists, every fighter, class and title (D34). Pages:
 - `/fighters/:id` the **fighter card** (redesigned): name, nickname,
   colors, current record, current TBRB rank per class, titles held, the
   list of their fights as witnessed with the as-of record beside each,
-  the contracted weight where there was one and a missed weight marked as
-  the scorecard marks it (D26; `boutWeightText` and `missedWeight` in
+  the contracted weight where there was one and a missed weight noted as
+  the scorecard notes it (D26, D47; `boutWeightText` and `missedWeightNote` in
   `format.ts`).
 
 No CSS framework. One stylesheet, custom properties, light theme only.
@@ -295,7 +295,7 @@ name typed in full is taken on Save, and a fighter is found or added on
 the spot, before the name is known if need be (D38, D43);
 the class, each shown with its limit as v1 did, "Flyweight (112 lbs /
 50.802 kg)", or "Contracted weight (no class)" and the pounds typed;
-"Missed weight" ticked per side (D26, D45, D46); titles with holder side,
+"Missed weight" ticked per side on one plain line (D26, D45, D46, D47); titles with holder side,
 with a new title added on the spot, in `bout-titles.ts`),
 `deduction-form.ts`, `decision-form.ts`, `bout-delete.ts` (D23, D31) and
 `merge-form.ts` (D31); what they make of typed text is in `entry.ts`.

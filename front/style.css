@@ -9,8 +9,6 @@
   --band: #f5f5f3;
   --accent: #8a1c1c;
   --red: #c62828;
-  --warn: #fff1c2; /* a missed weight's mark (D26) */
-  --warn-ink: #6b4a00;
   --blue: #1e5aa8;
   --font: system-ui, -apple-system, 'Segoe UI', sans-serif;
   --mono: ui-monospace, 'SF Mono', Menlo, monospace;
@@ -176,17 +174,12 @@ table.card tbody tr.bout:hover td {
   white-space: nowrap;
 }
 
-/* A side marked as having missed weight stands out wherever the fight is
-   shown (D26). */
+/* A side marked as having missed weight is noted wherever the fight is
+   shown (D26), quietly: it happens once every month or two (D47). */
 .missed {
-  padding: 0 0.4em;
-  border-radius: 0.25em;
-  background: var(--warn);
-  color: var(--warn-ink);
-  font-size: 0.8rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-style: italic;
   white-space: nowrap;
 }
 
@@ -494,10 +487,19 @@ dialog.form fieldset {
   border-radius: 4px;
 }
 
-dialog.form fieldset.missed-weight {
+dialog.form .missed-weight {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem 1.5rem;
+  align-items: center;
+  gap: 0.25rem 1rem;
+  margin-top: 0.5rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+dialog.form .missed-weight label.inline {
+  color: inherit;
+  font-size: 0.85rem;
 }
 
 dialog.form fieldset.counts {

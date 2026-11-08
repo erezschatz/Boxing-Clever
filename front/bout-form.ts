@@ -174,13 +174,14 @@ export class BoutForm extends DialogForm<State, BoutView> {
   }
 
   // Who missed weight: neither, either or both, ticked by the user, never
-  // worked out from the weigh-in (D26).
+  // worked out from the weigh-in (D26). One plain line, not a box of its
+  // own: it is ticked once every month or two (D47).
   missedField() {
     const s = this.state;
     const name = (f: Fighter | null, side: 'A' | 'B') => (f ? fighterName(f) : `Fighter ${side}`);
     return html`
-      <fieldset class="missed-weight">
-        <legend>Missed weight</legend>
+      <div class="missed-weight" role="group" aria-label="Missed weight">
+        <span>Missed weight:</span>
         <label class="inline">
           <input
             type="checkbox"
@@ -195,7 +196,7 @@ export class BoutForm extends DialogForm<State, BoutView> {
             @change=${(e: Event) => this.set({ missedB: (e.target as HTMLInputElement).checked })}
           > ${name(s.b, 'B')}
         </label>
-      </fieldset>
+      </div>
     `;
   }
 

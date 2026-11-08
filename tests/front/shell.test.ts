@@ -11,6 +11,7 @@ import {
   fighterName,
   initialOf,
   missedWeight,
+  missedWeightNote,
   recordText,
   resultText,
   titleText,
@@ -131,4 +132,10 @@ Deno.test('a bout says its class or its contracted weight; the class dropdown sh
   const marks = { missed_weight_a: 0, missed_weight_b: 1 } as const;
   assertEquals(missedWeight(marks, 'A'), false);
   assertEquals(missedWeight(marks, 'B'), true);
+});
+
+Deno.test('a side that missed weight gets a quiet note after its name, the other none (D47)', () => {
+  const marks = { missed_weight_a: 1, missed_weight_b: 0 } as const;
+  assertEquals(missedWeightNote(marks, 'A'), '(missed weight)');
+  assertEquals(missedWeightNote(marks, 'B'), '');
 });

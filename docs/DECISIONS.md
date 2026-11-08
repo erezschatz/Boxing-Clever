@@ -930,3 +930,19 @@ Cruiserweight's limit and which D17 removed. Rounding the kilograms to one
 decimal (v1 showed them as stored).
 **Why:** The limit is what the user checks the class against at
 ringside; the name alone left the limit to memory.
+
+### D47 · 2026-11-08 · A missed weight is noted quietly (supersedes D26 in part)
+**Decision:** A side that missed weight gets "(missed weight)" after its
+name on the card and under it on the scorecard, small, italic and in the
+muted colour (`missedWeightNote`, `front/format.ts`); the fighter card
+(task 09) notes it the same way. This replaces D26's "shown prominently". The bout form asks
+on one plain line, "Missed weight:" and a tickbox per fighter, instead of
+a bordered box with a heading. What is stored and how it is marked (D26,
+D45) do not change.
+**Rejected:** The yellow badge in bold capitals that D45's build gave it,
+and the bordered box in the form. Both were made to stand out, as D26
+asked.
+**Why:** Erez, 2026-11-08, after trying it in the browser: a missed
+weight comes up once every month or two, so it need not be that
+prominent. A note keeps it seen on the rare bout that has one, without
+the form asking about it louder than about the class or the rounds.

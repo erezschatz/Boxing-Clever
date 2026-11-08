@@ -107,3 +107,13 @@ export function missedWeight(
 ): boolean {
   return (side === 'A' ? bout.missed_weight_a : bout.missed_weight_b) === 1;
 }
+
+// The words the card and the scorecard put after a side that missed weight,
+// or '' when it did not. A quiet note, not a badge: it happens once every
+// month or two (D47).
+export function missedWeightNote(
+  bout: { missed_weight_a: 0 | 1; missed_weight_b: 0 | 1 },
+  side: 'A' | 'B',
+): string {
+  return missedWeight(bout, side) ? '(missed weight)' : '';
+}
