@@ -21,13 +21,14 @@
   ],
   "tasks": {
     "dev": "BOXING_DEV=1 deno serve --watch --port 8890 --allow-net --allow-read --allow-write --allow-env mod.ts",
-    "test": "deno test --allow-read --allow-env tests/",
+    "test": "deno test --allow-read --allow-env --allow-run=deno tests/",
     "check": "deno check mod.ts front/app.ts scripts/build.ts tests/",
     "migrate": "deno run --allow-read --allow-write --allow-env server/db/migrate.ts",
     "build": "deno run --allow-read --allow-env --allow-write=front/dist scripts/build.ts",
     "tbrb-daily": "deno run --allow-net --allow-read --allow-write --allow-env scripts/tbrb-daily.ts",
     "hooks": "git config core.hooksPath .githooks",
     "changelog": "deno run --allow-run=git,/bin/sh --allow-read --allow-env --allow-write=CHANGELOG.md scripts/compile-changelog.mjs",
+    "record": "deno run --allow-read --allow-write=docs scripts/compile-record.mjs",
     "check-unit-test": "node --test .claude/hooks/check-unit.test.mjs"
   },
   "fmt": {
@@ -37,7 +38,8 @@
     "exclude": [
       "**/*.md",
       ".claude/",
-      "scripts/compile-changelog.mjs"
+      "scripts/compile-changelog.mjs",
+      "scripts/compile-record.mjs"
     ]
   },
   "lint": {

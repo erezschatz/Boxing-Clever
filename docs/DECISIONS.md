@@ -1,8 +1,13 @@
 # Decisions
 
 Dated, append-only. A decision is reversed only by a new entry naming the one
-it supersedes. Format: `D<n> · YYYY-MM-DD · title` → **Decision** /
-**Rejected** / **Why**.
+it supersedes (`Supersedes: D<n>`).
+
+D1–D47 below were written in this file by hand, up to 2026-11-14. From D48 on,
+a decision is written in the task file of the work that made it, under
+`## Decisions` (format in `tasks/README.md`), and compiled here by
+`deno task record` before each commit, below the marker line. Nothing in this
+file is edited by hand any more, the entries above the marker included.
 
 ---
 
@@ -946,3 +951,51 @@ asked.
 weight comes up once every month or two, so it need not be that
 prominent. A note keeps it seen on the rare bout that has one, without
 the form asking about it louder than about the class or the rounds.
+
+<!-- Compiled from tasks/ by scripts/compile-record.mjs. Do not edit below this line by hand. -->
+
+## D48 · 2026-11-14 · Decisions and the plan are compiled from the task files
+
+**Decision** — Upgrade to the 2026-11-11 runbook (0.4.0). `docs/DECISIONS.md` and `docs/PLAN.md` are compiled by `scripts/compile-record.mjs` (`deno task record`) before every commit; a decision is written under `## Decisions` in the task file of the work that made it. D1–D47 stay above the marker as the file's hand-written head, with their numbers. The plan's hand-written step table gives way to the compiled steps; its out-of-order list stays, frozen, in the plan's introduction, and later placements are stated in the decision that makes them. This upgrade is recorded here in task 00, the task that carried out the first adoption.
+**Rejected** — Keeping both files hand-written (the old runbook); moving D1–D47 into task files and renumbering them; turning the out-of-order list into decision lines, which the compiler has no section for; a separate `tasks/unities-0.4.md`.
+**Why** — One record: status and decisions are derived from the task files and cannot drift from them. Old numbers are cited all over the code and docs (`D26`, `D47`), so they must not move. The strict staging is unchanged; a commit is also the merge, so it carries the compiled files. Recorded 2026-11-14.
+
+Source: [tasks/00-skeleton.md](../tasks/00-skeleton.md)
+
+## D49 · 2026-11-14 · The plan as it stood
+
+**Decision** — The milestones and the not-in-scope list of `docs/PLAN.md` as they stood on 2026-11-14, copied as written so the compiled plan carries them. The D40 paragraph on v1 is carried as a not-in-scope line.
+**Rejected** — Rewording them in the move.
+**Why** — The upgrade converts the plan's form, not its content.
+Milestone: After 05: the data model is proven. A bout can be created, scored, stopped in round 2 with a knockdown, finalised, and both fighters' records move once and atomically — all over HTTP against a real database, with the snapshot intact. Nothing after this is worth building if this fails.
+Milestone: After 08: the app can replace v1 for a fight night, standalone on the laptop. The design is still the programmer's own.
+Milestone: After 11: the database holds every fight watched since Nov 2021.
+Milestone: After 14: the chamber on Atrium is the one in use, with all the data in it.
+Milestone: After 15: phase 1 complete; the project goes quiet.
+Not in scope: What happens to v1 is not a step or a milestone here. Whether it keeps running, stops, or goes with its data kept is Erez's call, outside this plan, and nothing in it waits on that (D40).
+Not in scope: Mobile layout (D9).
+Not in scope: Public access (D2).
+Not in scope: Charts and trajectories.
+Not in scope: Service worker (D10).
+Not in scope: Playwright (D11).
+Not in scope: Automated TBRB history from archive.org.
+Not in scope: Other ranking bodies.
+Not in scope: Phase 2 is not planned here.
+
+Source: [tasks/00-skeleton.md](../tasks/00-skeleton.md)
+
+## D50 · 2026-11-14 · The record compiler gets a test under tests/, and the test task may run deno
+
+**Decision** — `tests/record.test.ts` runs `scripts/compile-record.mjs --check` against a fixture in `tests/fixtures/record/` shaped like this repo (a hand-written head ending at `### D47`) and asserts that the first decision from a task file is `D48` and that the plan derives each step's status. `deno task test` gains `--allow-run=deno`, and nothing broader.
+**Rejected** — Committing the upgrade with `--no-verify` as an adoption exemption (as `9785b17` was); widening the test task to `--allow-write` so the test could compile into a temporary directory.
+**Why** — `scripts/` is source here, so the gate asks for a change under `tests/`; the gate's own tests live in `.claude/hooks/` and do not count. The one thing about the compiler that is specific to this repo is that it must read the hand-written `### D<n>` head and continue from it; that is worth a test of its own, and a fixture checked with `--check` needs only read and run.
+
+Source: [tasks/00-skeleton.md](../tasks/00-skeleton.md)
+
+## D51 · 2026-11-14 · A record is new when its body is, not its heading
+
+**Decision** — `check-unit.mjs` counts a `## What was done` or `## Review` section as added by the scene when one of its body lines is added (`isNew`), not when its heading line is. A test in `.claude/hooks/check-unit.test.mjs` pins it: appending a record to a file that already holds an unreviewed one asks only the new one for a reader.
+**Rejected** — Appendix A as written, which matches the heading line; adding `Reviewed by:` lines to the two 00 records of 2026-10-31 and 2026-11-02, which nobody read cold.
+**Why** — Every `## What was done` heading reads the same, so appending one made each earlier record in the file count as new and be refused for want of a reader. Every task here with an earlier record would hit it on its next record. This is a local deviation from the 0.4.0 master; the fix belongs in the master too.
+
+Source: [tasks/00-skeleton.md](../tasks/00-skeleton.md)

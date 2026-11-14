@@ -11,10 +11,12 @@ what the app is lives in `docs/`.
 1. `docs/SPEC.md` — what the app is, scope, data model, API, stack. The contract.
 2. `docs/DECISIONS.md` — why things are the way they are, and what was rejected.
    **Do not re-open a decision listed there without saying so explicitly**;
-   propose a new entry instead of quietly doing it differently.
-3. `docs/PLAN.md` — the ordered steps. Status is not written there; it is
-   derived from the task files (see *The Unities*). Then the current step's
-   file in `tasks/`.
+   propose a new entry, in a task file, that supersedes it instead of quietly
+   doing it differently. Read it; never write it (it is compiled).
+3. `docs/PLAN.md` — the ordered steps, milestones and what is not in scope,
+   compiled from the task files with each step's derived status. Read it;
+   never write it. Then the current step's file in `tasks/`, and
+   `tasks/README.md` for the format.
 4. `docs/BOXING-CLEVER-V1.md` when the question is "how did the old app do
    this?" — the predecessor lives in `~/dev/Boxing-Clever` and is still in use.
 5. `docs/IMPORT.md` when touching the two data imports (v1 databases, the
@@ -34,15 +36,21 @@ refuses to end a turn with a half-recorded change, and `git commit` refuses an i
 scene (`.claude/hooks/check-unit.mjs`). `CHANGELOG.md` is compiled from task records at
 release (`deno task changelog -- <version>`) and is never edited by hand. If a change cannot
 be completed with its record in this sitting, revert it; do not leave it for later.
-Any choice with a rejected alternative gets a dated entry in `docs/DECISIONS.md`; a listed
-decision is not reopened quietly but by a new entry. Before committing, have a reader that
+Any choice with a rejected alternative gets a dated entry under `## Decisions` in the task
+file of the work that made it; a listed decision is not reopened quietly but by a new
+entry that supersedes it. `docs/DECISIONS.md` and `docs/PLAN.md` are read, never written:
+they are compiled from the task files (`deno task record`), the commit carries the
+compiler's output, and the gate refuses one where they are out of date. A review item
+(`## Review` in the task file) is done when every *Done when* line holds for the running
+program, not when its wording is satisfied; whatever a fix needs beyond its item is
+recorded as a decision before it is built. Before committing, have a reader that
 has not seen the work check that the task record describes the diff. The agent does not
 claim a build is green or a feature works where it runs; Erez does. The developer's side
 of all this is `docs/working-on-a-task.md`.
 
 Status lives in exactly one place: a task file with no `## What was done`
 section is open; with one, done; listed in a compiled release, shipped.
-`PLAN.md` has no status column on purpose. The runbook that installed the
+The "done" marks in `PLAN.md` are compiled from that, never typed. The runbook that installed the
 gates is `docs/UNITIES.md`; it is a migration, not a standing rule.
 
 ## Code rules

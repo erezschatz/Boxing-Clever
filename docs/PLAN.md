@@ -3,38 +3,23 @@
 Phase 1, in order. One file per step in `tasks/`; each states the promise
 from the user's point of view and the acceptance criteria that make it done.
 Steps are done strictly in order unless a decision in `DECISIONS.md` says
-otherwise.
+otherwise. Everything below the marker line is compiled from `tasks/` by
+`deno task record`: the steps (00–15 are phase 1; the unnumbered task files
+follow in alphabetical order), their status, the milestones and what is not
+in scope, the last two from `Milestone:` and `Not in scope:` lines in
+decisions. Nothing in this file is edited by hand.
 
-There is no status column. A task file without a `## What was done` section
-is open; with one, done; listed in a compiled `CHANGELOG.md` release,
-shipped. A step is done when every acceptance box is ticked, *What was done*
-is written, and Erez has run it where it runs (browser, Atrium) — not just
-`deno test`.
+Status is derived: a task file without a `## What was done` section is open;
+with one, done; listed in a compiled `CHANGELOG.md` release, shipped. A step
+is done when every acceptance box is ticked, *What was done* is written, and
+Erez has run it where it runs (browser, Atrium) — not just `deno test`.
 
 Each step is sized so it ends with something runnable the same day. No
 calendar estimates: this project moves in spare moments, and the form is
 what keeps it from dropping out between them.
 
-| # | Step |
-|---|------|
-| 00 | [Skeleton and documentation](../tasks/00-skeleton.md) |
-| 01 | [Toolchain green](../tasks/01-toolchain-green.md) — `deno task dev/test/check`, chamber boots standalone and under Atrium |
-| 02 | [Schema, migrations, database modules](../tasks/02-schema-and-db.md) — all tables, seed, in-memory test harness |
-| 03 | [The rules](../tasks/03-rules.md) — scoring, stoppage, decisions, record arithmetic as pure functions, with tier-1 tests |
-| 04 | [API: reference data](../tasks/04-api-reference-data.md) — weight classes, fighters + merge, events, titles, bouts |
-| 05 | [API: the scorecard](../tasks/05-api-scorecard.md) — save, finalise, snapshot, record update; tier-3 tests |
-| 06 | [Front: shell and read-only pages](../tasks/06-front-shell.md) — router, base class, events list, event, fighters |
-| 07 | [Front: the scorecard page](../tasks/07-front-scorecard.md) — v1 parity plus corners, champion and belts |
-| 08 | [Front: forms](../tasks/08-front-forms.md) — fighter, event, bout, titles with holder side, deductions, decision |
-| 09 | [Design pass](../tasks/09-design-pass.md) — Claude Design over all pages; fighter card redesign |
-| 10 | [Import: v1 databases](../tasks/10-import-v1.md) — MySQL + Mongo dumps → new schema, rejects report |
-| 11 | [Import: the Numbers sheet](../tasks/11-import-sheet.md) — CSV → staged import, rejects report, alias seeding |
-| 12 | [TBRB: current rankings](../tasks/12-tbrb-current.md) — daily scrape, snapshots, diff, display on fighter and bout |
-| 13 | [TBRB: history tool](../tasks/13-tbrb-history.md) — manual back-fill from archive pages |
-| 14 | [Deploy](../tasks/14-deploy.md) — mounted in Atrium, final data imported |
-| 15 | [Live use and fixes](../tasks/15-live-use.md) — a month of fights on the new app |
-
-Out-of-order work that a decision placed in the sequence:
+Out-of-order work that a decision placed in the sequence, as it stood on
+2026-11-14 (later placements are stated in the decision that makes them):
 
 - [Guarded bout delete](../tasks/guarded-bout-delete.md) (D23) — its API with 04, its dialogs with 08.
 - [Merge asks before records move](../tasks/merge-asks-before-records-move.md) (D31) — its API with 04, its dialog with 08.
@@ -46,24 +31,54 @@ Out-of-order work that a decision placed in the sequence:
 - [Which TBRB list counts](../tasks/tbrb-rank-across-classes.md) — before 12.
 - [The sheet's colours](../tasks/sheet-deduction-colours.md) — before 11.
 
+<!-- Compiled from tasks/ by scripts/compile-record.mjs. Do not edit below this line by hand. -->
+
+## Steps
+
+- [00-skeleton](../tasks/00-skeleton.md) — 00 · Skeleton and documentation · done
+- [01-toolchain-green](../tasks/01-toolchain-green.md) — 01 · Toolchain green · done
+- [02-schema-and-db](../tasks/02-schema-and-db.md) — 02 · Schema, migrations, database modules · done
+- [03-rules](../tasks/03-rules.md) — 03 · The rules · done
+- [04-api-reference-data](../tasks/04-api-reference-data.md) — 04 · API: reference data · done
+- [05-api-scorecard](../tasks/05-api-scorecard.md) — 05 · API: the scorecard · done
+- [06-front-shell](../tasks/06-front-shell.md) — 06 · Front: shell and read-only pages · done
+- [07-front-scorecard](../tasks/07-front-scorecard.md) — 07 · Front: the scorecard page · done
+- [08-front-forms](../tasks/08-front-forms.md) — 08 · Front: forms · done
+- [09-design-pass](../tasks/09-design-pass.md) — 09 · Design pass
+- [10-import-v1](../tasks/10-import-v1.md) — 10 · Import: v1 databases
+- [11-import-sheet](../tasks/11-import-sheet.md) — 11 · Import: the Numbers sheet
+- [12-tbrb-current](../tasks/12-tbrb-current.md) — 12 · TBRB: current rankings
+- [13-tbrb-history](../tasks/13-tbrb-history.md) — 13 · TBRB: history tool
+- [14-deploy](../tasks/14-deploy.md) — 14 · Deploy
+- [15-live-use](../tasks/15-live-use.md) — 15 · Live use and fixes
+- [answers-2026-11-03](../tasks/answers-2026-11-03.md) — Answers to the open questions, 2026-11-03 · done
+- [class-limits-in-dropdown](../tasks/class-limits-in-dropdown.md) — The class dropdown shows each limit · done
+- [contracted-weight-and-missed-weight](../tasks/contracted-weight-and-missed-weight.md) — Contracted weight and missed weight · done
+- [delete-finalised-bout](../tasks/delete-finalised-bout.md) — Deleting a finalised bout · done
+- [guarded-bout-delete](../tasks/guarded-bout-delete.md) — Guarded bout delete · done
+- [merge-asks-before-records-move](../tasks/merge-asks-before-records-move.md) — Merge asks before records move · done
+- [questions-2026-11-03](../tasks/questions-2026-11-03.md) — Open questions, 2026-11-03
+- [quiet-missed-weight](../tasks/quiet-missed-weight.md) — A missed weight is noted quietly · done
+- [sheet-deduction-colours](../tasks/sheet-deduction-colours.md) — The sheet's colours: knockdown or foul
+- [tbrb-rank-across-classes](../tasks/tbrb-rank-across-classes.md) — Which TBRB list counts for a bout
+- [title-kinds](../tasks/title-kinds.md) — A belt is regular or interim · done
+
 ## Milestones
 
-- **After 05:** the data model is proven. A bout can be created, scored,
-  stopped in round 2 with a knockdown, finalised, and both fighters' records
-  move once and atomically — all over HTTP against a real database, with the
-  snapshot intact. Nothing after this is worth building if this fails.
-- **After 08:** the app can replace v1 for a fight night, standalone on the
-  laptop. The design is still the programmer's own.
-- **After 11:** the database holds every fight watched since Nov 2021.
-- **After 14:** the chamber on Atrium is the one in use, with all the data in it.
-- **After 15:** phase 1 complete; the project goes quiet.
+- After 05: the data model is proven. A bout can be created, scored, stopped in round 2 with a knockdown, finalised, and both fighters' records move once and atomically — all over HTTP against a real database, with the snapshot intact. Nothing after this is worth building if this fails. (D49)
+- After 08: the app can replace v1 for a fight night, standalone on the laptop. The design is still the programmer's own. (D49)
+- After 11: the database holds every fight watched since Nov 2021. (D49)
+- After 14: the chamber on Atrium is the one in use, with all the data in it. (D49)
+- After 15: phase 1 complete; the project goes quiet. (D49)
 
-What happens to v1 is not a step or a milestone here. Whether it keeps
-running, stops, or goes with its data kept is Erez's call, outside this
-plan, and nothing in it waits on that (D40).
+## Not in scope
 
-## Not in phase 1
-
-Mobile layout (D9), public access (D2), charts and trajectories, service
-worker (D10), Playwright (D11), automated TBRB history from archive.org,
-other ranking bodies. Phase 2 is not planned here.
+- What happens to v1 is not a step or a milestone here. Whether it keeps running, stops, or goes with its data kept is Erez's call, outside this plan, and nothing in it waits on that (D40). (D49)
+- Mobile layout (D9). (D49)
+- Public access (D2). (D49)
+- Charts and trajectories. (D49)
+- Service worker (D10). (D49)
+- Playwright (D11). (D49)
+- Automated TBRB history from archive.org. (D49)
+- Other ranking bodies. (D49)
+- Phase 2 is not planned here. (D49)

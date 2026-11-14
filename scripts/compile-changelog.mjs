@@ -69,7 +69,7 @@ const trimBlank = lines => {
   while (b > a && !lines[b - 1].trim()) b--;
   return lines.slice(a, b);
 };
-const formatEntry = (e) => `${trimBlank(e.lines).join("\n")}\n\nRecorded in \`${e.hash}\`.`;
+const formatEntry = (e) => `${trimBlank(e.lines.filter(l => !/^Reviewed by:/.test(l))).join("\n")}\n\nRecorded in \`${e.hash}\`.`;
 const today = new Date().toISOString().slice(0, 10);
 let out = `## ${version ?? "<version>"} — ${today}\n\n`;
 for (const file of [...byTask.keys()].sort()) {
