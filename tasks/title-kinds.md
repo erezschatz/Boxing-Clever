@@ -20,7 +20,7 @@ each fight.
 - [x] The API takes `interim`, refuses `status`; the pages show "WBC Interim World", "WBC World Silver"
 - [x] The new-title form asks body, area, Interim, and says vacancy is per fight; the holder choice says "vacant (neither is champion)"
 - [x] IMPORT.md maps v1's kinds the same way
-- [ ] Verified by Erez: his database migrated, and a title entered the new way
+- [x] Verified by Erez: his database migrated, and a title entered the new way
 
 ## What was done
 
@@ -99,3 +99,8 @@ of Erez's database: "applied 3", with the same result as above (IBO World,
 regular, vacant for the Carroll fight, no broken references). Not covered
 by a test: the new-title form's Interim checkbox and its wording, which
 were checked in the pane.
+
+Verified by Erez on 2026-11-15: his database migrated, and a title entered
+the new way.
+
+Reviewed by: a read-only Explore subagent, cold, against the diff (found it accurate; asked that 06's note say the standalone check came through 07–08 and that the session-script line is new in 14, and that the notes claim no more than Erez confirmed; done).

@@ -14,7 +14,7 @@ records are reset, and deleting fights never takes the event with them.
 - [x] `DELETE /api/bouts/:id`: a draft bout is deleted; a finalised bout needs `?records=reverse` (both records lose the result in the same transaction) or `?records=keep`, else `409 {error}`; the event is never deleted
 - [x] Tier-3 tests: reverse moves both records back exactly; keep leaves them; a finalised delete without a choice is `409` and deletes nothing; deleting an event's last bout leaves the event
 - [x] Event page: deleting a draft bout asks "are you sure"; deleting a finalised bout asks "this is a finalised fight, are you sure?", then shows what both fighters' records will become, with *delete and reset the records*, *delete and keep the records*, and *cancel* (back to the fight)
-- [ ] Verified by Erez in the browser
+- [x] Verified by Erez in the browser
 
 ## What was done
 
@@ -44,3 +44,7 @@ its work now only closes). Not run in the pane: *Delete and keep*, and the
 reverse-impossible case. The API tests (task 04) cover both on the server.
 
 Left open: the last box. Erez has not run it.
+
+Verified by Erez in the browser on 2026-11-15.
+
+Reviewed by: a read-only Explore subagent, cold, against the diff (found it accurate; asked that 06's note say the standalone check came through 07–08 and that the session-script line is new in 14, and that the notes claim no more than Erez confirmed; done).

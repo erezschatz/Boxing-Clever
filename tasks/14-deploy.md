@@ -11,7 +11,7 @@ of this rewrite's completion. The promise's clause on v1 and the box that
 stopped its processes are removed.
 
 **Acceptance.**
-- [ ] Mounted in Atrium: symlinked into `chambers/boxing`, registered in `chambers.json`, `hono` and `zod` in Atrium's import map, reachable behind the login (moved from task 01, D16)
+- [ ] Mounted in Atrium: symlinked into `chambers/boxing`, registered in `chambers.json`, `hono` and `zod` in Atrium's import map, reachable behind the login, Atrium's session script injecting cleanly (moved from tasks 01 and 06, D16)
 - [ ] `scripts/deploy.sh` (pull, migrate, build, restart) per SETUP.md; run on the Atrium server
 - [ ] Final data imported: the latest v1 dumps (task 10 re-run), rejects zero or accepted
 - [ ] `CHANGELOG.md` compiled; version 2.0.0

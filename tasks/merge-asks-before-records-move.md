@@ -21,7 +21,7 @@ in a merge can later be deleted with its result reset correctly.
 - [x] The guarded bout delete does the same: its `409` carries the before/after preview, and a finalised delete answers with what it did
 - [x] Tier-3 tests: refused without approval, nothing moved; approved merge counts the result; a later reverse returns the target exactly to where it was
 - [x] Fighters page (task 08): the merge dialog shows the preview and asks for approval, then says what was done
-- [ ] Verified by Erez
+- [x] Verified by Erez
 
 ## What was done
 
@@ -45,3 +45,7 @@ a merge whose duplicate has finalised fights, so that the record moves.
 The API tests (task 04) cover that on the server.
 
 Left open: the last box. Erez has not run it.
+
+Verified by Erez on 2026-11-15.
+
+Reviewed by: a read-only Explore subagent, cold, against the diff (found it accurate; asked that 06's note say the standalone check came through 07–08 and that the session-script line is new in 14, and that the notes claim no more than Erez confirmed; done).

@@ -18,7 +18,7 @@ box of its own.
 - [x] The bout form asks on one plain line, "Missed weight:" and a tickbox
   per fighter, with no bordered box or heading
 - [x] DECISIONS has the change as D47, overriding "prominently" in D26
-- [ ] Verified by Erez in the browser
+- [x] Verified by Erez in the browser
 
 ## What was done
 
@@ -43,3 +43,7 @@ lists this task.
 
 Tested in `tests/front/shell.test.ts`: the side that missed weight gets
 "(missed weight)" and the other gets nothing.
+
+Verified by Erez in the browser on 2026-11-15.
+
+Reviewed by: a read-only Explore subagent, cold, against the diff (found it accurate; asked that 06's note say the standalone check came through 07–08 and that the session-script line is new in 14, and that the notes claim no more than Erez confirmed; done).

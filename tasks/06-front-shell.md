@@ -11,7 +11,7 @@ works.
 - [x] Pages: `/`, `/events/:id`, `/fighters` read-only, matching v1's information (not its look)
 - [x] One stylesheet, custom properties, light theme; no framework
 - [x] Served by Deno in dev with on-request transpile; `deno task build` emits `front/dist/`
-- [ ] Verified by Erez in the browser, standalone and mounted (Atrium's session script injects cleanly)
+- [x] Verified by Erez in the browser, standalone; mounted (Atrium's session script injects cleanly) is checked with task 14
 
 ## What was done
 
@@ -113,3 +113,10 @@ Left open: the last box. Erez has not run it; the Atrium mount is task 14
 (D16), so "mounted" there means the session script injects into this
 `index.html`, which is unchanged in shape from task 01's.
 
+2026-11-15: Erez confirmed that the mounted half of the browser check
+belongs to task 14 (Deploy), whose *Mounted in Atrium* box now also names
+the session-script check (D16). The standalone half stands from Erez's
+checks of tasks 07–08 on 2026-11-07, which went through this shell and
+its pages.
+
+Reviewed by: a read-only Explore subagent, cold, against the diff (found it accurate; asked that 06's note say the standalone check came through 07–08 and that the session-script line is new in 14, and that the notes claim no more than Erez confirmed; done).
