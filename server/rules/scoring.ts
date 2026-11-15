@@ -97,7 +97,9 @@ export function validateCard(card: Card): CardProblem[] {
 
   // §4: the card ends in the result round when the bout was stopped. After a
   // stoppage that round is 0–0; after a technical decision or draw it went to
-  // the cards and is scored like the others (D22). Every other round is scored.
+  // the cards, and after a retirement (a TKO at 3:00) it was fought in full,
+  // so either way it is scored like the others (D22, D55). Every other round
+  // is scored.
   const end = result && code ? cardEnd(card, result) : null;
   for (const round of card.rounds) {
     if (end?.zero && round.round_no === end.round) {
@@ -158,7 +160,7 @@ function cardEnd(card: Card, result: Result): { round: number; zero: boolean } |
   const round = result.round;
   switch (ending(result.decision_type)) {
     case 'stoppage':
-      return { round, zero: true };
+      return { round, zero: !isRetirement(result) };
     case 'cards':
       return { round, zero: false };
     case 'either': {
@@ -170,6 +172,15 @@ function cardEnd(card: Card, result: Result): { round: number; zero: boolean } |
       return null;
   }
 }
+
+// A corner retirement after round X is a TKO at 3:00 of round X (D55, §5).
+// Round X was fought in full and judged, so it is scored like any other
+// round, and the card ends there. Any other stoppage, a KO at the bell
+// included, keeps its 0–0 round.
+function isRetirement(result: Result): boolean {
+  return result.decision_type === 'TKO' && result.time === RETIREMENT_TIME;
+}
+const RETIREMENT_TIME = '3:00';
 
 function checkResult(
   card: Card,

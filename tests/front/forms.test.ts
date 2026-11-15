@@ -431,6 +431,34 @@ Deno.test('End bout on a KO: the rules shape the card, the API takes it, and the
   deepStrictEqual(recordOf(api.db, bId), { won: 34, lost: 1, draws: 1, nc: 0, kos: 24 });
 });
 
+Deno.test('End bout on a retirement, a TKO at 3:00: its round must be scored, is kept as typed, and counts as a KO (D55)', async () => {
+  const api = testApi();
+  const { boutId, aId, bId } = await usykFury(api);
+  const bout = await get(api, boutId);
+  const entries = entriesOf(bout);
+  entries[0] = e(10, 9);
+  entries[1] = e(9, 10);
+  entries[2] = e(10, null); // round 3 half typed when the corner pulled him
+  const rtd = { decision_type: 'TKO' as const, winner: 'A' as const, round: 3, time: '3:00' };
+
+  const half = finalCard(bout, entries, [], rtd, noJudges);
+  assertEquals(half.body, null);
+  ok(half.problems.join(' ').includes('round 3 has one side empty'), half.problems.join(' '));
+
+  entries[2] = e(10, 9);
+  const { body, problems } = finalCard(bout, entries, [], rtd, noJudges);
+  deepStrictEqual(problems, []);
+  deepStrictEqual(body?.rounds, [
+    { round_no: 1, a: 10, b: 9 },
+    { round_no: 2, a: 9, b: 10 },
+    { round_no: 3, a: 10, b: 9 },
+  ]);
+  const res = await api.call('PUT', `/api/bouts/${boutId}/card`, body);
+  assertEquals(res.status, 200);
+  deepStrictEqual(recordOf(api.db, aId), { won: 22, lost: 0, draws: 0, nc: 0, kos: 15 });
+  deepStrictEqual(recordOf(api.db, bId), { won: 34, lost: 1, draws: 1, nc: 0, kos: 24 });
+});
+
 Deno.test('End bout says why it cannot finalise: a points decision on a half-scored card', async () => {
   const api = testApi();
   const { boutId } = await usykFury(api);

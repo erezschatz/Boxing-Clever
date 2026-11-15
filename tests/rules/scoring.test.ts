@@ -214,7 +214,7 @@ Deno.test('a stoppage needs the round it ended in, within the schedule', () => {
   // without the round, the 0–0 round cannot be told from a mis-scored one either
   assertEquals(broken({ ...c, result: result('TKO', 'A') }).includes('result-round'), true);
   assertEquals(broken({ ...c, result: result('TKO', 'A', 13) }).includes('result-round'), true);
-  for (const code of ['KO', 'TKO', 'RTD', 'DQ'] as const) {
+  for (const code of ['KO', 'TKO', 'DQ'] as const) {
     deepStrictEqual(broken({ ...c, result: result(code, 'B', 2) }), [], code);
   }
   // a stoppage in the last scheduled round is still a stoppage
@@ -260,6 +260,46 @@ Deno.test('a technical decision or draw scores the round it ended in (D22)', () 
   deepStrictEqual(broken({ ...t, rounds: [...td.rounds.slice(0, 4), r(5, 0, 0)] }), ['points']);
   deepStrictEqual(broken({ ...t, rounds: [...td.rounds, r(6, 10, 9)] }), ['after-stoppage']);
   assertEquals(broken({ ...t, result: result('T', 'draw') }).includes('result-round'), true);
+});
+
+Deno.test('a corner retirement is a TKO at 3:00 of the round it followed: that round is scored, and the card ends there (D55)', () => {
+  // Pulled out by the corner after round 4, which was fought in full.
+  const rtd = card({
+    rounds: [r(1, 10, 9), r(2, 10, 9), r(3, 9, 10), r(4, 10, 9)],
+    result: result('TKO', 'A', 4, '3:00'),
+    is_draft: false,
+  });
+  deepStrictEqual(broken(rtd), []);
+  deepStrictEqual(
+    broken({ ...rtd, rounds: [...rtd.rounds.slice(0, 3), r(4, 10, 10)] }),
+    [],
+    'an even round',
+  );
+  deepStrictEqual(
+    broken({ ...rtd, rounds: [...rtd.rounds.slice(0, 3), r(4, 0, 0)] }),
+    ['points'],
+    'never 0–0',
+  );
+  deepStrictEqual(broken({ ...rtd, rounds: [...rtd.rounds, r(5, 10, 9)] }), ['after-stoppage']);
+  deepStrictEqual(broken({ ...rtd, rounds: rtd.rounds.slice(0, 3) }), ['no-gaps']);
+  deepStrictEqual(
+    broken(card({ result: result('TKO', 'A', 4, '3:00'), is_draft: false })),
+    [],
+    'unscored',
+  );
+  // The shaper keeps round 4 as scored and drops what came after.
+  deepStrictEqual(
+    shapeForResult({ ...rtd, rounds: [...rtd.rounds, r(5, 10, 9)] }).rounds,
+    rtd.rounds,
+  );
+
+  // Every other stoppage keeps its 0–0 round: a TKO in the round, without a
+  // time, and a KO at the bell.
+  const stopped = { ...rtd, rounds: [...rtd.rounds.slice(0, 3), r(4, 0, 0)] };
+  deepStrictEqual(broken({ ...stopped, result: result('TKO', 'A', 4, '2:15') }), []);
+  deepStrictEqual(broken({ ...stopped, result: result('TKO', 'A', 4) }), []);
+  deepStrictEqual(broken({ ...stopped, result: result('KO', 'A', 4, '3:00') }), []);
+  deepStrictEqual(broken({ ...rtd, result: result('TKO', 'A', 4, '2:15') }), ['stoppage-round']);
 });
 
 Deno.test('a no-contest may be stopped or go the distance (D20)', () => {

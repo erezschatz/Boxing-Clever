@@ -136,7 +136,7 @@ none. All ids are `INTEGER PRIMARY KEY`.
 | `fighter_alias` | fighter_id, alias text | names as TBRB and the sheet spell them; merge keeps aliases; an alias names one fighter (D19) |
 | `event` | date, location | |
 | `bout` | event_id, card_order, weight_class_id **or** contracted_weight (pounds; exactly one of the two, D26, D45), scheduled_rounds, fighter_a_id, fighter_b_id, **corner_a** (`red`/`blue`, null when not recorded), **missed_weight_a/b** (0/1, marked by the user, never computed; D26), a/b **as-of snapshot** (record ×5, weight, unit, colors, tbrb_rank), result (decision_type, winner `A`/`B`/`draw`/`none`, round, time), judges ×3 ×2, is_draft | there is no catchweight class: a bout fought at a weight that is no class's limit records that weight (migration 004); the snapshot is what v1's Mongo document was for and is kept on purpose (D4); its columns are `a_won` … `a_tbrb_rank`, `b_won` …, null until first save; result columns `decision_type`, `winner`, `result_round`, `result_time`; judges `judge1_a` … `judge3_b` |
-| `round_score` | bout_id, round_no, side, points | one row per fighter per round actually scored; the stoppage round has points `0` (see Scoring) |
+| `round_score` | bout_id, round_no, side, points | one row per fighter per round actually scored; the stoppage round has points `0`, except a retirement's (a TKO at 3:00, D55), which is scored (see Scoring) |
 | `deduction` | bout_id, round_no, side, points, reason | reasons: knockdown, low blow, holding, headbutt, other — a free text alongside |
 | `title` | sanctioning_body, area (`World`, `World Silver`, `European`…), weight_class_id, interim (0/1) | unique on the four; a belt is regular or interim, nothing else; vacancy is the fight's, by `bout_title.holder_side` (D42) |
 | `bout_title` | bout_id, title_id, holder_side (`A`/`B`/`vacant`) | champion and title-for-title fall out of this |
@@ -165,13 +165,20 @@ origin; the three stoppage defects there are fixed by construction here.
    carrying only the deductions that happened in it (a knockdown then a stop
    reads points 0, total −1 — *not* a 10–8 round). Rounds after the stoppage
    are not recorded. There are no gaps: every round up to and including the
-   stoppage round has a row for both sides.
+   stoppage round has a row for both sides. The one exception is a corner
+   retirement, a `TKO` at 3:00 (D55): its round was fought in full, so it is
+   scored like any other, and the card ends there. A KO, a DQ, or a TKO at
+   any other time keeps the 0–0 round.
 5. Decision types: `UD` `MD` `SD` `DEC` (unspecified points win), `KO` `TKO`
-   `RTD` `TD` `DQ` `NC` `MT` `T` (majority/technical draw) `D` (draw).
-   Winner is a side for the first group and for KO/TKO/RTD/TD/DQ; `draw` for
+   `TD` `DQ` `NC` `MT` `T` (majority/technical draw) `D` (draw). There is
+   no `RTD`: a corner retirement after round X is a `TKO` at 3:00 of round
+   X (D55; migration 005 converted the stored ones).
+   Winner is a side for the first group and for KO/TKO/TD/DQ; `draw` for
    MT/T/D; `none` for NC. The wire carries the code, never a display label.
-   Which card shape each code implies (D20, D22): `KO` `TKO` `RTD` `DQ` end
-   in a stoppage round (§4) and need the result round; `TD` and `T` were
+   Which card shape each code implies (D20, D22, D55): `KO` `TKO` `DQ` end
+   in a stoppage round (§4) and need the result round, except a `TKO` at
+   3:00, a retirement, whose round was fought in full and is scored like any
+   other, with nothing after it; `TD` and `T` were
    stopped and went to the cards, so they need the result round too but
    score it like any other round, and nothing comes after it; `UD` `MD` `SD`
    `DEC` `MT` `D` go the distance, every scheduled round scored; `NC` is a
@@ -184,7 +191,7 @@ origin; the three stoppage defects there are fixed by construction here.
    one even MD; two even and one won MT, three even or 1–1–1 D
    (`decisionFromCards`). It is a suggestion, filled in until the user
    picks otherwise, never a check (D41).
-6. **Record update on finalise**, once and atomically: KO/TKO/RTD → winner
+6. **Record update on finalise**, once and atomically: KO/TKO → winner
    won+1 kos+1, loser lost+1; other wins → won+1 / lost+1; draws → both
    draws+1; NC → both nc+1. Re-saving a finalised bout does not double count;
    editing the result of a finalised bout reverses the old increment and
@@ -258,7 +265,9 @@ reference lists, every fighter, class and title (D34). Pages:
   focus moves across to the other fighter, or on to the next round when
   that box is scored (D39); deductions open a small
   dialog; "End bout" opens the decision dialog (type, winner, round, time,
-  three judges) and, once it has saved, goes back to the card; "Change
+  three judges; with a TKO it says that a corner retirement after round X
+  is round X at 3:00, scored, D55) and, once it has saved, goes back to the
+  card; "Change
   decision" stays. The class or the contracted weight under the title;
   champion marker and belt list under each name; a missed weight noted
   under the name of the side that missed it (D26, D47); corner

@@ -242,7 +242,7 @@ function beforeContractedWeight() {
 Deno.test('migration 004: every bout keeps its class, card and belts; none has a contracted weight or a missed weight (D26, D45)', () => {
   const db = beforeContractedWeight();
   const before = db.prepare('SELECT * FROM bout ORDER BY id').all().map((b) => ({ ...b }));
-  deepStrictEqual(migrate(db), [4]);
+  deepStrictEqual(migrate(db, readMigrations().filter((m) => m.version <= 4)), [4]);
   const after = db.prepare('SELECT * FROM bout ORDER BY id').all().map((b) => ({ ...b }));
   deepStrictEqual(
     after,
@@ -266,4 +266,64 @@ Deno.test('migration 004: every bout keeps its class, card and belts; none has a
   deepStrictEqual([count('round_score'), count('deduction'), count('bout_title')], [0, 0, 0]);
   // And a bout is refused with neither a class nor a contracted weight.
   throws(() => db.prepare('UPDATE bout SET weight_class_id = NULL WHERE id = 2').run(), /CHECK/);
+});
+
+Deno.test('migration 005: an RTD becomes a TKO at 3:00 in the same round; nothing else changes, and RTD is refused after (D55)', () => {
+  const db = openDatabase(':memory:');
+  migrate(db, readMigrations().filter((m) => m.version <= 4));
+  db.exec(`
+    INSERT INTO event (id, date, location) VALUES (1, '2026-03-15', 'Dublin');
+    INSERT INTO fighter (id, first_name, last_name) VALUES (1, 'A', 'A'), (2, 'B', 'B');
+    INSERT INTO bout (id, event_id, card_order, weight_class_id, contracted_weight, scheduled_rounds,
+                      fighter_a_id, fighter_b_id, missed_weight_b,
+                      decision_type, winner, result_round, result_time, is_draft)
+    VALUES (1, 1, 1, 18, NULL, 12, 1, 2, 0, 'RTD', 'A', 7, NULL, 0),
+           (2, 1, 2, NULL, 150, 10, 1, 2, 1, 'TKO', 'B', 3, '1:40', 0),
+           (3, 1, 3, 18, NULL, 12, 1, 2, 0, NULL, NULL, NULL, NULL, 1);
+    INSERT INTO round_score (bout_id, round_no, side, points) VALUES (1, 7, 'A', 0), (1, 7, 'B', 0);
+  `);
+  deepStrictEqual(migrate(db), [5]);
+  const bouts = db.prepare(
+    `SELECT id, weight_class_id, contracted_weight, missed_weight_b, decision_type, winner,
+            result_round, result_time, is_draft FROM bout ORDER BY id`,
+  ).all().map((b) => ({ ...b }));
+  deepStrictEqual(bouts, [
+    {
+      id: 1,
+      weight_class_id: 18,
+      contracted_weight: null,
+      missed_weight_b: 0,
+      decision_type: 'TKO',
+      winner: 'A',
+      result_round: 7,
+      result_time: '3:00',
+      is_draft: 0,
+    },
+    {
+      id: 2,
+      weight_class_id: null,
+      contracted_weight: 150,
+      missed_weight_b: 1,
+      decision_type: 'TKO',
+      winner: 'B',
+      result_round: 3,
+      result_time: '1:40',
+      is_draft: 0,
+    },
+    {
+      id: 3,
+      weight_class_id: 18,
+      contracted_weight: null,
+      missed_weight_b: 0,
+      decision_type: null,
+      winner: null,
+      result_round: null,
+      result_time: null,
+      is_draft: 1,
+    },
+  ]);
+  // The rounds still point at their bout.
+  assertEquals(db.prepare('SELECT COUNT(*) AS n FROM round_score WHERE bout_id = 1').get()?.n, 2);
+  deepStrictEqual(db.prepare('PRAGMA foreign_key_check').all(), []);
+  throws(() => db.exec("UPDATE bout SET decision_type = 'RTD' WHERE id = 2"), /CHECK/);
 });

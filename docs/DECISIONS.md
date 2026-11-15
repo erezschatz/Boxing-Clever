@@ -1064,3 +1064,11 @@ Source: [tasks/questions-2026-11-03.md](../tasks/questions-2026-11-03.md)
 **Why** — Erez, 2026-11-15: the bout's class only, and no ranking at a contracted weight. Claude's reading: a ranking says where a fighter stands in a division, and a fight outside it, or at a weight that belongs to no division, isn't fought from that standing.
 
 Source: [tasks/tbrb-rank-across-classes.md](../tasks/tbrb-rank-across-classes.md)
+
+## D60 · 2026-11-15 · Migration 005 rebuilds the bout table to drop RTD from its check
+
+**Decision** — `server/migrations/005-retirement-is-a-tko.sql` rebuilds `bout`, as 004 did, so that its `decision_type` check no longer lists `'RTD'`, and converts the stored RTDs in the same copy.
+**Rejected** — Converting the rows with an `UPDATE` and leaving `'RTD'` in the check, which would avoid a rebuild but let the database take a code the rules no longer know.
+**Why** — SQLite can't change a check in place. The schema states what the app accepts, as it does for every other code (§5), so the rebuild is worth its cost, and 004 already showed the way.
+
+Source: [tasks/retirement-is-a-tko.md](../tasks/retirement-is-a-tko.md)

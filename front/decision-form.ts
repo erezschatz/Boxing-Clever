@@ -119,6 +119,12 @@ export class DecisionForm extends DialogForm<State, BoutView> {
             @input=${(e: InputEvent) => this.set({ time: (e.target as HTMLInputElement).value })}
           >
         </label>
+        <!-- D55: a retirement is entered as a TKO at 3:00, so say so where it is entered -->
+        ${s.code === 'TKO'
+          ? html`<p class="wide muted">
+            A corner retirement after round X is round X at 3:00, and round X is scored.
+          </p>`
+          : nothing}
         <fieldset class="wide judges">
           <legend>Judges' cards</legend>
           <div class="judge head">

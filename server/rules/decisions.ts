@@ -14,7 +14,6 @@ export type DecisionType =
   | 'DEC'
   | 'KO'
   | 'TKO'
-  | 'RTD'
   | 'TD'
   | 'DQ'
   | 'NC'
@@ -27,7 +26,8 @@ export type WinnerKind = 'side' | 'draw' | 'none';
 
 // What a decision says about the card's shape (§4, D20, D22): every scheduled
 // round scored ("distance"); stopped in the result round, which is 0–0
-// ("stoppage"); stopped and sent to the scorecards, so the result round is
+// ("stoppage", except a TKO at 3:00, which is a retirement after a round
+// fought in full and scored: D55, scoring.ts); stopped and sent to the scorecards, so the result round is
 // scored like any other ("cards"); or a no-contest, which can be a stoppage
 // or an overturned distance fight ("either").
 export type Ending = 'distance' | 'stoppage' | 'cards' | 'either';
@@ -41,7 +41,6 @@ const DECISIONS: Record<DecisionType, Decision> = {
   DEC: { label: 'Decision', winner: 'side', ending: 'distance', ko: false },
   KO: { label: 'Knockout', winner: 'side', ending: 'stoppage', ko: true },
   TKO: { label: 'Technical Knockout', winner: 'side', ending: 'stoppage', ko: true },
-  RTD: { label: 'Corner Retirement', winner: 'side', ending: 'stoppage', ko: true },
   TD: { label: 'Technical Decision', winner: 'side', ending: 'cards', ko: false },
   DQ: { label: 'Disqualification', winner: 'side', ending: 'stoppage', ko: false },
   NC: { label: 'No Contest', winner: 'none', ending: 'either', ko: false },
@@ -68,7 +67,7 @@ export function ending(code: DecisionType): Ending {
   return DECISIONS[code].ending;
 }
 
-// KO, TKO and RTD add to the winner's kos (§6).
+// KO and TKO add to the winner's kos (§6). A corner retirement is a TKO (D55).
 export function countsAsKo(code: DecisionType): boolean {
   return DECISIONS[code].ko;
 }

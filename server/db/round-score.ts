@@ -1,5 +1,6 @@
 // round_score: one row per side per round actually scored. Points are 0–10;
-// the stoppage round is points 0 for both sides (SPEC Scoring §1, §4). Whether
+// the stoppage round is points 0 for both sides, except a retirement's (a TKO
+// at 3:00, D55), which is scored (SPEC Scoring §1, §4). Whether
 // a card's rows make sense together is server/rules/, not this module.
 import type { Database } from './connection.ts';
 import type { Side } from '../rules/decisions.ts';

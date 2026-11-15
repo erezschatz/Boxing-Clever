@@ -18,8 +18,8 @@ const rec = (won = 0, lost = 0, draws = 0, nc = 0, kos = 0): FightRecord => ({
   kos,
 });
 
-Deno.test('§6: KO, TKO and RTD — winner won+1 kos+1, loser lost+1', () => {
-  for (const decision_type of ['KO', 'TKO', 'RTD'] as const) {
+Deno.test('§6: KO and TKO — winner won+1 kos+1, loser lost+1', () => {
+  for (const decision_type of ['KO', 'TKO'] as const) {
     deepStrictEqual(recordDelta({ decision_type, winner: 'A' }), {
       a: rec(1, 0, 0, 0, 1),
       b: rec(0, 1),

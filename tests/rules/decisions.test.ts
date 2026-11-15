@@ -11,19 +11,20 @@ import {
   winnerKind,
 } from '../../server/rules/decisions.ts';
 
-Deno.test('§5: the thirteen decision codes, and only those', () => {
+Deno.test('§5: the twelve decision codes, and only those; a retirement is a TKO (D55)', () => {
   deepStrictEqual(
     [...DECISION_TYPES].sort(),
-    ['D', 'DEC', 'DQ', 'KO', 'MD', 'MT', 'NC', 'RTD', 'SD', 'T', 'TD', 'TKO', 'UD'],
+    ['D', 'DEC', 'DQ', 'KO', 'MD', 'MT', 'NC', 'SD', 'T', 'TD', 'TKO', 'UD'],
   );
   assertEquals(isDecisionType('KO'), true);
   assertEquals(isDecisionType('ko'), false);
   assertEquals(isDecisionType('RSC'), false, "the sheet's spellings are the importer's to map");
+  assertEquals(isDecisionType('RTD'), false, 'a retirement is entered as a TKO at 3:00');
   assertEquals(isDecisionType('toString'), false);
 });
 
 Deno.test('§5: points wins and stoppages have a side as winner', () => {
-  for (const code of ['UD', 'MD', 'SD', 'DEC', 'KO', 'TKO', 'RTD', 'TD', 'DQ'] as const) {
+  for (const code of ['UD', 'MD', 'SD', 'DEC', 'KO', 'TKO', 'TD', 'DQ'] as const) {
     assertEquals(winnerKind(code), 'side', code);
     assertEquals(winnerFits(code, 'A'), true, code);
     assertEquals(winnerFits(code, 'B'), true, code);
@@ -60,7 +61,7 @@ Deno.test('§5: the label comes from the code', () => {
 Deno.test('§4, D20, D22: which decisions end in a stoppage round, and which go to the cards', () => {
   deepStrictEqual(
     DECISION_TYPES.filter((code) => ending(code) === 'stoppage').sort(),
-    ['DQ', 'KO', 'RTD', 'TKO'],
+    ['DQ', 'KO', 'TKO'],
   );
   deepStrictEqual(DECISION_TYPES.filter((code) => ending(code) === 'cards').sort(), ['T', 'TD']);
   deepStrictEqual(
@@ -70,8 +71,8 @@ Deno.test('§4, D20, D22: which decisions end in a stoppage round, and which go 
   assertEquals(ending('NC'), 'either');
 });
 
-Deno.test('§6: KO, TKO and RTD count as knockouts', () => {
-  deepStrictEqual(DECISION_TYPES.filter(countsAsKo).sort(), ['KO', 'RTD', 'TKO']);
+Deno.test('§6: KO and TKO count as knockouts', () => {
+  deepStrictEqual(DECISION_TYPES.filter(countsAsKo).sort(), ['KO', 'TKO']);
 });
 
 Deno.test('§5, D41: a decision that went the distance follows from the three cards', () => {
