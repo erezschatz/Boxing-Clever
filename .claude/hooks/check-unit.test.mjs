@@ -536,3 +536,54 @@ test("a review round from before this rule is left alone", () => {
   const ok = run(dir, ["--pr", "main"]);
   assert.equal(ok.status, 0, ok.stderr);
 });
+
+// ---- the same script, called from Codex's hooks (4.10) ----
+
+test("codex, adapted: the Stop hook continues the turn once with the note, then lets go and tells the person", () => {
+  const { dir, git, write, commit } = repo();
+  git("checkout -q -b feature");
+  write(SOURCE, "stage 1\n");
+  commit("stage-1");
+  const stop = (active) => JSON.stringify({ hook_event_name: "Stop", cwd: dir, turn_id: "t1", stop_hook_active: active });
+  const first = run(dir, ["--branch", "--codex", "main"], { stdin: stop(false) });
+  assert.equal(first.status, 0);
+  const told = JSON.parse(first.stdout);
+  assert.equal(told.decision, "block");
+  assert.match(told.reason, /no \w+ change/);
+  assert.match(told.reason, /fine to keep/);
+  assert.equal(told.hookSpecificOutput, undefined);   // Codex documents no such field at Stop
+  const second = run(dir, ["--branch", "--codex", "main"], { stdin: stop(true) });
+  assert.equal(second.status, 0);
+  assert.match(JSON.parse(second.stdout).systemMessage, /no \w+ change/);
+  complete(write);
+  assert.equal(run(dir, ["--branch", "--codex", "main"], { stdin: stop(false) }).stdout, "");
+});
+
+test("codex: the flag is not read as the base, wherever it stands", () => {
+  const { dir, git, write, commit } = repo();
+  git("checkout -q -b feature");
+  write(SOURCE, "changed\n");
+  commit("wip");
+  const plain = run(dir, ["--pr", "main"]);
+  for (const args of [["--pr", "--codex", "main"], ["--pr", "main", "--codex"]]) {
+    const flagged = run(dir, args);
+    assert.equal(flagged.status, plain.status);
+    assert.equal(flagged.stderr, plain.stderr);
+  }
+});
+
+test("codex, strict: Stop and PreToolUse refuse as they do under Claude Code", () => {
+  const { dir, write, git } = repo();
+  write(SOURCE, "wip\n");
+  const stop = (active) => JSON.stringify({ hook_event_name: "Stop", cwd: dir, turn_id: "t1", stop_hook_active: active });
+  const first = run(dir, ["--branch", "--codex"], { scene: "commit", stdin: stop(false) });
+  assert.equal(first.status, 2);
+  assert.match(first.stderr, /no \w+ change/);
+  const second = run(dir, ["--branch", "--codex"], { scene: "commit", stdin: stop(true) });
+  assert.equal(second.status, 0);
+  assert.match(JSON.parse(second.stdout).systemMessage, /no \w+ change/);
+  git("add -A");
+  const pre = (command) => JSON.stringify({ hook_event_name: "PreToolUse", cwd: dir, tool_name: "Bash", tool_input: { command } });
+  assert.equal(run(dir, ["--staged", "--codex"], { scene: "commit", stdin: pre("npm test") }).status, 0);
+  assert.equal(run(dir, ["--staged", "--codex"], { scene: "commit", stdin: pre("git commit -m wip") }).status, 2);
+});

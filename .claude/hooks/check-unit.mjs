@@ -6,18 +6,22 @@
 //   --pr <base>     : what the PR changes against its target     (gate; always enforces)
 //   --staged        : what `git commit` is about to record       (pre-commit, PreToolUse)
 //   --branch [base] : the scene so far, committed or not         (Stop)
+//
+//   --codex, after the mode: the caller is Codex's hooks, not Claude Code's (4.10). The
+//   checks are the same; only how an adapted Stop reaches the agent differs.
 import { execSync, spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 // ---- per-repo: written by the adoption procedure from what it found ----
-// Boxing Clever, 2026-10-31; upgraded to the 2026-11-11 runbook on 2026-11-14.
+// Boxing Clever, 2026-10-31; upgraded to the 2026-11-11 runbook on 2026-11-14,
+// and to the 2026-11-15 runbook (0.5.1) on 2026-11-15.
 // Strict staging: one developer, the commit is the scene.
 const SCENE = process.env.UNITIES_SCENE ?? "commit";
 const RULES = {
   source:  /^(server\/|front\/|scripts\/|mod\.ts$)/,        // the chamber, the browser, the tools
   test:    /^tests\//,                                         // all tiers live under tests/
-  doc:     /^(docs\/(?!reference\/)|(^|\/)(README|CLAUDE)\.md$)/, // docs/reference holds binaries, not docs
+  doc:     /^(docs\/(?!reference\/)|(^|\/)(README|CLAUDE|AGENTS)\.md$)/, // docs/reference holds binaries, not docs
   task:    /^tasks\/(?!README\.md$)[^/_][^/]*\.md$/,           // excludes README.md and _template.md
   shared:  /^CHANGELOG\.md$/,                                   // compiled; never edited or deleted by hand
   retired: /^$/,                                                // adopted as a new project: no tombstones
@@ -43,7 +47,9 @@ const REVIEW_EXEMPT = /^(Done before adoption; no record\.|Migrated from )/m;
 // -----------------------------------------------------------------------
 
 const strict = SCENE === "commit";
-const mode = process.argv[2] ?? "--branch";
+const codex = process.argv.includes("--codex");
+const argv = process.argv.slice(2).filter(a => a !== "--codex");
+const mode = argv[0] ?? "--branch";
 const input = process.stdin.isTTY ? {} : JSON.parse((await readStdin()) || "{}");
 const cwd = input.cwd ?? process.cwd();
 const lines = s => s.split("\n").map(l => l.trim()).filter(Boolean);
@@ -54,7 +60,7 @@ if (input.hook_event_name === "PreToolUse" &&
 
 let files, base, deleted;   // deleting a tombstone is not editing it
 if (mode === "--pr") {
-  base = process.argv[3];
+  base = argv[1];
   if (!base) fail("usage: check-unit.mjs --pr <base>");
   if (!adopted(base)) skip(`${base} has no ${SELF}; the record is not required until the target adopts it.`);
   files = lines(git(`diff --name-only ${base} HEAD`));
@@ -73,7 +79,7 @@ if (mode === "--pr") {
   if (strict) {
     base = "HEAD";
   } else {
-    base = process.argv[3] ?? BASE;
+    base = argv[1] ?? BASE;
     if (!gitOk(`rev-parse -q --verify ${base}`) || !adopted(base)) process.exit(0);
     base = git(`merge-base ${base} HEAD`).trim();
   }
@@ -204,11 +210,15 @@ if (strict) {
 
 const note = `${reason} ${what} is fine to keep, but the pull request will be refused until it is complete.`;
 if (input.hook_event_name === "Stop") {
-  // Advise the agent once, in its own context, so it can act; never block.
-  if (!input.stop_hook_active)
-    console.log(JSON.stringify({ hookSpecificOutput: { hookEventName: "Stop", additionalContext: note } }));
-  else
+  // Advise the agent once, in its own context, so it can act; never refuse the scene.
+  // Claude Code takes the note as additionalContext. Codex has no such field at Stop: its
+  // one channel to the agent is to continue the turn with the note as the prompt.
+  if (input.stop_hook_active)
     console.log(JSON.stringify({ systemMessage: note }));
+  else if (codex)
+    console.log(JSON.stringify({ decision: "block", reason: note }));
+  else
+    console.log(JSON.stringify({ hookSpecificOutput: { hookEventName: "Stop", additionalContext: note } }));
 } else {
   console.error(note);
 }

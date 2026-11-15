@@ -31,13 +31,18 @@ as the doc line. `docs/reference/` is binaries and does not count as docs either
 
 ## Finishing
 
+Code, test, document and review are one unit: a scene is complete only when its record
+has been read cold against the diff, as well as written.
+
 Tick the acceptance boxes that this commit satisfies. Where the work chose one thing over
 another, add a `## Decisions` entry to the task file (`### YYYY-MM-DD · title`, then
 **Decision** / **Rejected** / **Why**, no number). Append `## What was done` — dated,
 where things are, how it was verified — last, because its presence is what marks the
-task done. Before committing, have a reader who did not write it (a read-only subagent)
-read the diff against that section; its last line names that reader
-(`Reviewed by: …`), and the gate refuses a record without it. Then `deno task record`
+task done. Before committing, give the staged diff and the task file to a reader who did
+not write it (a read-only subagent, never the agent that did the work) to carry out
+`docs/reviewer.md`; what it finds goes into the task file, and the section's last line
+names that reader (`Reviewed by: …`). The gate refuses a record without that line; it
+cannot tell whether the reading took place, so that part is yours. Then `deno task record`
 and commit. If the scene cannot be finished in this sitting, revert it; do not commit
 half of it.
 

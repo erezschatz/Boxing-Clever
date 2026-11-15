@@ -999,3 +999,11 @@ Source: [tasks/00-skeleton.md](../tasks/00-skeleton.md)
 **Why** — Every `## What was done` heading reads the same, so appending one made each earlier record in the file count as new and be refused for want of a reader. Every task here with an earlier record would hit it on its next record. This is a local deviation from the 0.4.0 master; the fix belongs in the master too.
 
 Source: [tasks/00-skeleton.md](../tasks/00-skeleton.md)
+
+## D52 · 2026-11-15 · Claude Code is the only agent here; no Codex binding
+
+**Decision** — Upgrade to the 2026-11-15 runbook (0.5.1) without its 4.10. Erez works here with Claude Code alone, so the instructions stay in `CLAUDE.md`, and there is no `AGENTS.md` and no `.codex/`. What 0.5.x adds for every repo is installed: `docs/reviewer.md` as the cold reader's brief, the new strict paragraph in `CLAUDE.md`, and the gate's `--codex` flag with its three tests. The flag stays in the script even though nothing here passes it.
+**Rejected** — Installing 4.10 in advance (moving `CLAUDE.md` to `AGENTS.md`, adding `.codex/hooks.json` and the reader agent), since it would be a binding nobody runs and so could never be verified (Phase 6, step 8). Leaving the `--codex` code and its tests out of the script.
+**Why** — Erez answered the runbook's agent question, which repos adopted before 0.5.0 were never asked, on 2026-11-15: Claude Code only. Keeping the script equal to Appendix A, plus this repo's block and D51, keeps the next upgrade a diff against the master and not a merge. If someone starts working here with Codex, that is a new decision superseding this one, and a re-run installs 4.10.
+
+Source: [tasks/00-skeleton.md](../tasks/00-skeleton.md)

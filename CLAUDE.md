@@ -31,7 +31,8 @@ previous session failed the discipline below — fix the gap first.
 
 The work, its record and its location are the same thing at the same time. Every commit
 that changes source also carries its test, its doc line and a `## What was done` section
-appended to the task file in `tasks/`. This is enforced, not requested: a Stop hook
+appended to the task file in `tasks/`, read cold against the diff by a reader that did not
+write it: code, test, document, review are one unit. This is enforced, not requested: a Stop hook
 refuses to end a turn with a half-recorded change, and `git commit` refuses an incomplete
 scene (`.claude/hooks/check-unit.mjs`). `CHANGELOG.md` is compiled from task records at
 release (`deno task changelog -- <version>`) and is never edited by hand. If a change cannot
@@ -43,8 +44,10 @@ they are compiled from the task files (`deno task record`), the commit carries t
 compiler's output, and the gate refuses one where they are out of date. A review item
 (`## Review` in the task file) is done when every *Done when* line holds for the running
 program, not when its wording is satisfied; whatever a fix needs beyond its item is
-recorded as a decision before it is built. Before committing, have a reader that
-has not seen the work check that the task record describes the diff. The agent does not
+recorded as a decision before it is built. Before committing, give the staged diff and
+the task file to a reader that has not seen the work — a read-only subagent, never
+yourself — to carry out `docs/reviewer.md`; write what it finds into the task file and
+its name on the record's `Reviewed by:` line. The agent does not
 claim a build is green or a feature works where it runs; Erez does. The developer's side
 of all this is `docs/working-on-a-task.md`.
 

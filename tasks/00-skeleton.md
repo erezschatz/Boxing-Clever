@@ -121,6 +121,12 @@ Not in scope: Phase 2 is not planned here.
 **Rejected** — Appendix A as written, which matches the heading line; adding `Reviewed by:` lines to the two 00 records of 2026-10-31 and 2026-11-02, which nobody read cold.
 **Why** — Every `## What was done` heading reads the same, so appending one made each earlier record in the file count as new and be refused for want of a reader. Every task here with an earlier record would hit it on its next record. This is a local deviation from the 0.4.0 master; the fix belongs in the master too.
 
+### 2026-11-15 · Claude Code is the only agent here; no Codex binding
+
+**Decision** — Upgrade to the 2026-11-15 runbook (0.5.1) without its 4.10. Erez works here with Claude Code alone, so the instructions stay in `CLAUDE.md`, and there is no `AGENTS.md` and no `.codex/`. What 0.5.x adds for every repo is installed: `docs/reviewer.md` as the cold reader's brief, the new strict paragraph in `CLAUDE.md`, and the gate's `--codex` flag with its three tests. The flag stays in the script even though nothing here passes it.
+**Rejected** — Installing 4.10 in advance (moving `CLAUDE.md` to `AGENTS.md`, adding `.codex/hooks.json` and the reader agent), since it would be a binding nobody runs and so could never be verified (Phase 6, step 8). Leaving the `--codex` code and its tests out of the script.
+**Why** — Erez answered the runbook's agent question, which repos adopted before 0.5.0 were never asked, on 2026-11-15: Claude Code only. Keeping the script equal to Appendix A, plus this repo's block and D51, keeps the next upgrade a diff against the master and not a merge. If someone starts working here with Codex, that is a new decision superseding this one, and a re-run installs 4.10.
+
 ## What was done
 
 2026-11-14. The Unities runbook upgraded to the master copy dated 2026-11-11 (0.4.0) and carried out again; the staging stays strict. `docs/UNITIES.md` is replaced byte for byte; the old copy had no date line.
@@ -139,3 +145,35 @@ Unchanged: `.claude/settings.json` (`Stop` and `PreToolUse` already call the scr
 Verified in Claude's workspace (Deno 2.9, Node 22): `node --test .claude/hooks/check-unit.test.mjs` 33/33; `deno task test` 186/186; `deno task check` clean; `compile-record --check` exits 0; `--branch` on a clean tree prints nothing; a staged source-only probe under `server/` is refused with exit 2 and was removed. Nothing in the app changed, so there is nothing for Erez to run in the browser; the next real commit is the first one the new gate judges.
 
 Reviewed by: a read-only Explore subagent, cold, against the staged diff (found the record accurate; asked that the dropped step summaries and the doc-role change be stated, done; D51 came after its reading, from the Stop hook).
+
+## What was done
+
+2026-11-15. The Unities runbook upgraded to the master copy dated 2026-11-15 (0.5.1) and carried out again. The staging stays strict, and the agent question is answered: Claude Code only (D52).
+
+- `docs/UNITIES.md` is replaced byte for byte (was 2026-11-11 · 0.4.0).
+- `.claude/hooks/check-unit.mjs`: the `--codex` flag from Appendix A. It is taken out of the arguments before the mode and base are read, and an adapted `Stop` under Codex continues the turn once (`decision: "block"`) where Claude Code gets `additionalContext`. `AGENTS.md` joins `README.md` and `CLAUDE.md` in the `doc` role. The per-repo block (roles, `docs/reference/` exclusion, Deno commands) and the D51 deviation are unchanged.
+- `.claude/hooks/check-unit.test.mjs`: the three Codex tests from Appendix J are appended unchanged.
+- `docs/reviewer.md` is new: the reader's brief from Appendix G (three questions, and findings in the review-item shape).
+- `CLAUDE.md`: the Unities paragraph is now the 0.5.1 strict text from Appendix E. The reading is part of the unit, and the reader is a read-only subagent, never the author, carrying out `docs/reviewer.md`. `docs/working-on-a-task.md` *Finishing* opens with the four as one unit and says who the reader is, that what it finds goes into the task file, and that the gate checks the `Reviewed by:` line but not the reading.
+- `docs/DECISIONS.md` recompiled (D52); `docs/PLAN.md` unchanged in content.
+
+Not installed: 4.10 (no `AGENTS.md`, no `.codex/`), per D52. `.claude/settings.json`, `.githooks/pre-commit` and the compilers are unchanged; the runbook changed none of them.
+
+Verified in Claude's workspace: `node --test .claude/hooks/check-unit.test.mjs` 36/36; `deno task test` 186/186; `deno task check` clean; `compile-record --check` exits 0. Nothing in the app changed, so there is nothing for Erez to run in the browser.
+
+Reviewed by: a read-only Explore subagent, cold, against the staged diff and `docs/reviewer.md`. It found one item, recorded below and fixed in this change. It confirmed `docs/UNITIES.md` is identical to the master, and that the script, the tests and `docs/reviewer.md` match Appendices A, J and G.
+
+## Review · 2026-11-15
+
+### The record says *Finishing* matches CLAUDE.md, but it leaves out "one unit"
+
+**Found** — The record said `docs/working-on-a-task.md` *Finishing* "says the same" as the new `CLAUDE.md` paragraph. *Finishing* had the reader and `docs/reviewer.md`, but never said that code, test, document and review are one unit (runbook 4.8, item 3).
+
+**Done when**
+
+- [x] `docs/working-on-a-task.md` *Finishing* → says that code, test, document and review are one unit, so the cold reading is part of a complete scene
+- [x] `docs/working-on-a-task.md` *Finishing*, on who the reader is, `docs/reviewer.md`, the `Reviewed by:` line, `deno task record` and reverting an unfinished scene → reads as it did in the staged diff
+- [x] The 2026-11-15 record's line about *Finishing* → claims only what *Finishing* says
+- [x] `CLAUDE.md` → its Unities paragraph is Appendix E strict, with only `deno task` for `npm run` and Erez for `<who>`, as staged
+
+**Not asked** — The adapted-only wording of 4.8; the Codex sentence in 4.8 item 2; any change to D52.
