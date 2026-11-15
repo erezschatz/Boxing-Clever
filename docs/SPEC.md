@@ -197,9 +197,9 @@ origin; the three stoppage defects there are fixed by construction here.
    fighter is replaced, whose side is cleared and taken again at the next
    save (D32). A bout already finalised and counted without a snapshot (an
    import) is snapshotted with its own result taken off. The rank is read
-   from the bout's own class for now (D32); a bout at a contracted weight
-   has no class, so its rank is null until that question is answered
-   (D45).
+   from the bout's own class only, the last list on or before the fight
+   day (D32, D58, D59); a bout at a contracted weight has no class, so its
+   rank is null (D45, D59).
 
 ## API
 

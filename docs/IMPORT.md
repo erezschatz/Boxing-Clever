@@ -48,11 +48,15 @@ decision. When the inference is ambiguous → reject.
   per Erez), noted `reason assumed (import)` so the scorecard marks it.
   Whether the sheet's cell colours tell a knockdown from a foul, and can be
   read, is `tasks/sheet-deduction-colours.md`. A round with no 10 on either
-  side (`9`/`9`: the winner was docked) does not say who won it → reject,
-  until `tasks/questions-2026-11-03.md` answers it.
+  side (`9`/`9`: the winner was docked) does not say who won it → reject;
+  Erez fixes the sheet or enters the round by hand.
 - Technical decisions and draws (`TD`, `T`): D22 scores their last round,
   but the sheet's stopped-round cell holds a time or a marker, and v1 stored
-  it 0–0. Not imported until `tasks/questions-2026-11-03.md` answers it.
+  it 0–0 → reject, from either source; Erez enters them by hand.
+- Corner retirements (`RTD`, `RET`): there is no RTD code. A retirement
+  after round X becomes a `TKO` at 3:00 of round X, with round X scored
+  (`tasks/retirement-is-a-tko.md`). Where the source has no score for round
+  X (v1 stored it 0–0), the bout is rejected, like a TD.
 - The exact weight class when only a title line is present and the class
   name inside it does not match a known class or alternate name → reject.
 - A contracted weight (D26, D45). A `Category/Title` cell that is a weight

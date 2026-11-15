@@ -149,10 +149,10 @@ const recordOf = (f: Fighter): FightRecord => ({
 // §7: each fighter as they stood before this fight was counted. Normally
 // the bout is not counted yet. A bout finalised with no snapshot (an import)
 // already counts in the record, so its own result is taken off first
-// (`uncount`). The TBRB rank is read from the bout's own class for now
-// (D32; which list counts is tasks/tbrb-rank-across-classes.md). A bout at
-// a contracted weight has no class to read it from, so its rank is null
-// until that task answers (D45).
+// (`uncount`). The TBRB rank is read from the bout's own class only, the
+// last list on or before the fight day (D32, D58, D59): a fighter ranked in
+// another class is unranked here. A bout at a contracted weight has no
+// class, so it has no rank (D59).
 function snapshotOf(
   db: Database,
   f: Fighter,

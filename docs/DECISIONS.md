@@ -1007,3 +1007,60 @@ Source: [tasks/00-skeleton.md](../tasks/00-skeleton.md)
 **Why** — Erez answered the runbook's agent question, which repos adopted before 0.5.0 were never asked, on 2026-11-15: Claude Code only. Keeping the script equal to Appendix A, plus this repo's block and D51, keeps the next upgrade a diff against the master and not a merge. If someone starts working here with Codex, that is a new decision superseding this one, and a re-run installs 4.10.
 
 Source: [tasks/00-skeleton.md](../tasks/00-skeleton.md)
+
+## D53 · 2026-11-15 · Imported TD and T bouts are rejected to the list
+
+**Decision** — A `TD` or `T` bout from the sheet or from v1 is not imported. It goes on the rejects report, and Erez enters it by hand with its last round scored as D22 requires. This answers the question D22 and IMPORT.md left open.
+**Rejected** — Importing that round as 10–10 with a note (it passes §1 but guesses a score); importing it 0–0 as v1 stored it (the card then fails §1 if it is ever saved again).
+**Why** — Erez, 2026-11-15: reject to the list. Claude's reason: the sheet's cell for that round holds a time or a `KO`/`TKO` marker, not a score, so anything imported would be invented, and IMPORT.md promises that nothing is guessed.
+
+Source: [tasks/questions-2026-11-03.md](../tasks/questions-2026-11-03.md)
+
+## D54 · 2026-11-15 · A 9/9 round in the sheet is rejected to the list
+
+**Decision** — A sheet round with no 10 on either side (`9`/`9`) is rejected to the list. Erez fixes the sheet or enters that round by hand. D24's knockdown default for rounds under 9 is unchanged. This answers the question D24 left open.
+**Rejected** — Scoring it 10–10 less one point each (it passes §1 but changes who won the round); scoring it 10–9 to one side by some rule.
+**Why** — Erez, 2026-11-15: reject to the list. Claude's reason: the sheet doesn't say which side won the round, and that can't be read from anything else.
+
+Source: [tasks/questions-2026-11-03.md](../tasks/questions-2026-11-03.md)
+
+## D55 · 2026-11-15 · A retirement is a TKO at 3:00 of the round it followed, and that round is scored (supersedes D20 and D22 in part)
+
+**Decision** — There is no `RTD` code. A corner retirement after round X is entered as a `TKO` at 3:00 of round X, and a TKO at 3:00 has its result round scored (10–9, 9–10 or 10–10) like any other round and ends the card there. Any other TKO keeps D20's 0–0 stoppage round. The importers map v1's and the sheet's `RTD` and `RET` to that shape. Claude added three things to Erez's answer: `RET` (the sheet's other spelling) maps the same way; an imported retirement with no score for round X (v1 stored it 0–0) is rejected to the list, as D53 does for a TD; and the work goes under `tasks/retirement-is-a-tko.md`, before task 10, so the importers map onto it.
+**Rejected** — Keeping RTD as a code of its own; keeping round X 0–0 as D22's interim had it; entering a retirement as a TKO in round X+1 at 0:00, which would have kept the rules free of a special case (offered, and not chosen).
+**Why** — Erez, 2026-11-15, choosing from the options put to him: score round X, fold RTD into TKO, and enter it as a TKO at 3:00 of round X. The question gave the reason: round X was fought in full and judged. Claude's reading of the rule: a 3:00 TKO is the one stoppage whose round was completed, so it is the one that is scored. This replaces D20's "this holds whichever round convention is used for an RTD" and D22's interim "an RTD is treated like a TKO: its result round is 0–0".
+Supersedes: D20, D22
+
+Source: [tasks/questions-2026-11-03.md](../tasks/questions-2026-11-03.md)
+
+## D56 · 2026-11-15 · An event with finalised bouts still can't be deleted
+
+**Decision** — SPEC's rule stands: `DELETE /api/events/:id` answers `409` while any of its bouts is finalised. To delete such an event, each finalised fight is deleted through D23's guarded flow first, then the event.
+**Rejected** — Running D23's guarded flow from the event, with one reset-or-keep choice for all its finalised bouts.
+**Why** — Erez, 2026-11-15: keep refusing. The option put to him said it is rare, and that the fights can be deleted first, each through its own guarded flow. This answers the question D23 left open.
+
+Source: [tasks/questions-2026-11-03.md](../tasks/questions-2026-11-03.md)
+
+## D57 · 2026-11-15 · A kept result is stored as a per-fighter adjustment
+
+**Decision** — "Delete and keep the records" (D23) stores the kept result as a per-fighter adjustment. `scripts/recompute-records.ts` (D13), when it is written, adds each fighter's adjustments to what it rebuilds, so a kept result survives a recompute. This answers the question D23 left open. Claude added the shape, for `tasks/kept-result-is-stored.md` to build before task 14: the adjustment's five counts (won, lost, draws, nc, kos), written in the delete's transaction, and moved to the target by a merge (D31).
+**Rejected** — Storing nothing and letting a recompute undo the keep (the interim).
+**Why** — Erez, 2026-11-15: store an adjustment. Claude's reason: a keep is a deliberate choice made in a guarded dialog, and a rare maintenance script shouldn't quietly reverse it.
+
+Source: [tasks/questions-2026-11-03.md](../tasks/questions-2026-11-03.md)
+
+## D58 · 2026-11-15 · A TBRB list dated the fight day counts, and no list is too old
+
+**Decision** — D25's interim becomes the rule: a bout's standing is read from the last list dated on or before the fight date, however old that list is. This answers the two questions D25 left open.
+**Rejected** — Only lists strictly before the fight day; an age limit (six months was the one offered) past which the fighter shows as "no ranking available".
+**Why** — Erez, 2026-11-15: same day counts, no limit. Claude's note: the gap from April 2024 is then closed by back-filling the history (task 13), not by hiding old lists.
+
+Source: [tasks/questions-2026-11-03.md](../tasks/questions-2026-11-03.md)
+
+## D59 · 2026-11-15 · A bout's TBRB standing comes from the bout's class only; a contracted-weight bout shows none
+
+**Decision** — A fighter's standing for a bout is read only from the list of the bout's weight class: a super-middleweight champion fighting at light heavyweight is unranked for that fight. A bout at a contracted weight (D26) has no class to read, so it shows no TBRB standing for either fighter and stores none in the snapshot. Claude added that this isn't D25's rejected "unknown" standing: the lists are known, but no class applies. This answers the questions D32 and D45 left open. The code from task 05 already reads the rank this way (tested with this decision); tasks 12 and 13 must keep it.
+**Rejected** — The fighter's rank in whatever class they are listed in, with that class named; for a contracted weight, also the lightest class whose limit is at or above the weight (Claude offered both options).
+**Why** — Erez, 2026-11-15: the bout's class only, and no ranking at a contracted weight. Claude's reading: a ranking says where a fighter stands in a division, and a fight outside it, or at a weight that belongs to no division, isn't fought from that standing.
+
+Source: [tasks/tbrb-rank-across-classes.md](../tasks/tbrb-rank-across-classes.md)

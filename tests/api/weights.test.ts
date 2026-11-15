@@ -8,6 +8,7 @@ import { getBout } from '../../server/db/bout.ts';
 import { insertTbrbRow } from '../../server/db/tbrb-snapshot.ts';
 
 const LIGHTWEIGHT = 10;
+const CRUISERWEIGHT = 17;
 const weightOf = (b: { weight_class_id: number | null; contracted_weight: number | null }) => [
   b.weight_class_id,
   b.contracted_weight,
@@ -150,4 +151,43 @@ Deno.test("a contracted-weight bout's snapshot has no TBRB rank: it has no class
   const bout = getBout(api.db, boutId)!;
   assertEquals(bout.a_won !== null, true, 'the snapshot was taken');
   assertEquals(bout.a_tbrb_rank, null);
+});
+
+Deno.test("a bout's TBRB rank is its own class's last list on or before the fight day; another class's rank does not count (D58, D59)", async () => {
+  // Each case is a fresh database: the snapshot is taken once, at the first save (§7).
+  const rankWith = async (lists: [string, number, number][]) => {
+    const api = testApi();
+    const { boutId, aId } = await usykFury(api); // heavyweight, fought 2024-05-18
+    for (const [snapshot_date, weight_class_id, rank] of lists) {
+      insertTbrbRow(api.db, {
+        snapshot_date,
+        weight_class_id,
+        rank,
+        fighter_name: 'Usyk',
+        fighter_id: aId,
+      });
+    }
+    await api.call('PUT', `/api/bouts/${boutId}/card`, {
+      rounds: [],
+      result: null,
+      is_draft: true,
+    });
+    return getBout(api.db, boutId)!.a_tbrb_rank;
+  };
+  assertEquals(
+    await rankWith([['2024-05-15', CRUISERWEIGHT, 0]]),
+    null,
+    'a rank in another class is unranked here',
+  );
+  assertEquals(await rankWith([['2023-01-10', HEAVYWEIGHT, 3]]), 3, 'an old list still counts');
+  assertEquals(
+    await rankWith([['2024-05-10', HEAVYWEIGHT, 3], ['2024-05-18', HEAVYWEIGHT, 1]]),
+    1,
+    'a list dated the fight day counts',
+  );
+  assertEquals(
+    await rankWith([['2024-05-10', HEAVYWEIGHT, 3], ['2024-05-22', HEAVYWEIGHT, 0]]),
+    3,
+    'a list after the fight does not',
+  );
 });

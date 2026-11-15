@@ -41,8 +41,8 @@ export function eventRoutes(db: GetDb): Hono {
   });
 
   // Its bouts go with it, but never a finalised one: that has moved two
-  // records, and the event delete has no reset-or-keep choice (D23; whether it
-  // should is open in tasks/questions-2026-11-03.md).
+  // records, and the event delete has no reset-or-keep choice (D23, D56: each
+  // finalised fight is deleted through its own guarded flow first).
   routes.delete('/:id', (c) => {
     const id = pathId(c);
     if (!id || !getEvent(db(), id)) return notFound(c, 'event');

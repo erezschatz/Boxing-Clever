@@ -46,7 +46,7 @@ export function listTbrbRowsForFighter(db: Database, fighterId: number): TbrbSna
 
 // A fighter's standing in one class as of a date: their rank on that class's
 // last list on or before it (0 champion), or null when not on it, or when
-// no list is that old (D25; the same-day and age edges are open).
+// no list is that old (D25, D58: a list dated that day counts; no age limit).
 export function rankAsOf(
   db: Database,
   fighterId: number,
