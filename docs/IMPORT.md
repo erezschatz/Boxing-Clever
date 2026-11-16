@@ -44,12 +44,34 @@ decision. When the inference is ambiguous → reject.
 - Deductions as such, which the sheet folds into the round's number. A
   side written below 9 is stored as points 9 with 9 − n one-point
   deductions (D24), so `10`/`8` becomes 10–9 with one deduction and `10`/`7`
-  two. Their reason is the one inference: `knockdown` (about 95% of them,
-  per Erez), noted `reason assumed (import)` so the scorecard marks it.
-  Whether the sheet's cell colours tell a knockdown from a foul, and can be
-  read, is `tasks/sheet-deduction-colours.md`. A round with no 10 on either
-  side (`9`/`9`: the winner was docked) does not say who won it → reject;
-  Erez fixes the sheet or enters the round by hand.
+  two. Their reason comes from the cell's text colour, which a CSV does not
+  carry, so it is read from the `.numbers` file separately (D64):
+  - **red** text: a foul. Each point is a deduction with reason `other`
+    and the note `foul (red in the sheet)`;
+  - **blue** text: a knockdown, as Erez marked it;
+  - **no colour**: `knockdown`, the one inference (about 95% of them, per
+    Erez), noted `reason assumed (import)` so the scorecard marks it (D24).
+
+  That is for a round that has a 10, where the cell's base is 9. Colour on a
+  10, on a 9 in such a round, or on an `x` means nothing and is ignored, and
+  so is a row's green background, which highlights the whole row (D63).
+  A round with no 10 on either side (`9`/`9`, or `9`/`8`: the winner was
+  docked) is read from the colour too (D65). If exactly one side is red,
+  that side won it: points 10 less one foul deduction per point below 10,
+  and the other side 9 as above. With neither side or both red, it does not
+  say who won → reject; Erez fixes the sheet or enters the round by hand.
+
+  The colours come from `data/import/sheet-colours.csv` (gitignored), written
+  once by a JavaScript for Automation script run on a copy of the `.numbers`
+  file (D64): one line per coloured round cell, `row,round,colour,boxer`.
+  `row` is the Numbers table row with the header as row 1, which is the line
+  in `sheet.csv` exported with its header; `boxer` checks the match. The
+  importer refuses to run without this file.
+
+  Measured on 2026-11-16 (`tasks/sheet-deduction-colours.md`): of 424 round
+  cells under 9, 22 are red, 10 are blue and 392 have no colour, and every
+  coloured one is in a round with a 10. 15 red 9s each sit in a round with
+  no 10 and an uncoloured other side, 14 against a 9 and one against an 8.
 - Technical decisions and draws (`TD`, `T`): D22 scores their last round,
   but the sheet's stopped-round cell holds a time or a marker, and v1 stored
   it 0–0 → reject, from either source; Erez enters them by hand.

@@ -61,7 +61,7 @@ Out-of-order work that a decision placed in the sequence, as it stood on
 - [questions-2026-11-03](../tasks/questions-2026-11-03.md) — Open questions, 2026-11-03 · done
 - [quiet-missed-weight](../tasks/quiet-missed-weight.md) — A missed weight is noted quietly · done
 - [retirement-is-a-tko](../tasks/retirement-is-a-tko.md) — A retirement is a TKO at 3:00, with its round scored · done
-- [sheet-deduction-colours](../tasks/sheet-deduction-colours.md) — The sheet's colours: knockdown or foul
+- [sheet-deduction-colours](../tasks/sheet-deduction-colours.md) — The sheet's colours: knockdown or foul · done
 - [tbrb-rank-across-classes](../tasks/tbrb-rank-across-classes.md) — Which TBRB list counts for a bout
 - [title-kinds](../tasks/title-kinds.md) — A belt is regular or interim · done
 
