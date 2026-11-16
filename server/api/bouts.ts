@@ -16,6 +16,8 @@ import {
 import { deleteBoutTitles, insertBoutTitle } from '../db/bout-title.ts';
 import { boutView, readCard } from './card.ts';
 import { type Fighter, getFighter, setFighterRecord } from '../db/fighter.ts';
+import { getEvent } from '../db/event.ts';
+import { insertAdjustment } from '../db/record-adjustment.ts';
 import {
   applyDelta,
   type FightRecord,
@@ -222,10 +224,11 @@ export function boutRoutes(db: GetDb): Hono {
     // What each choice does to the two records, shown before the user picks
     // and returned after (D23, D31): `before` is now, `after_reverse` is the
     // record once this result is taken off.
-    const undo = reverseDelta(recordDelta({
+    const counted = recordDelta({
       decision_type: bout.decision_type!, // set on every finalised bout (D18)
       winner: bout.winner!,
-    }));
+    });
+    const undo = reverseDelta(counted);
     const side = (fighterId: number, delta: FightRecord) => {
       const f = getFighter(db(), fighterId)!;
       const before = recordOf(f);
@@ -260,6 +263,26 @@ export function boutRoutes(db: GetDb): Hono {
       if (choice === 'reverse') {
         setFighterRecord(db(), a.id, a.after_reverse);
         setFighterRecord(db(), b.id, b.after_reverse);
+      } else {
+        // Keep: the result stays counted with no bout behind it, so it is
+        // stored as each fighter's adjustment, what it added to their record,
+        // for the recompute to add back (D57).
+        const bout_description = `${a.name} vs ${b.name}, ${bout.decision_type}`;
+        const bout_date = getEvent(db(), bout.event_id)!.date; // a bout's event is never missing
+        insertAdjustment(db(), {
+          fighter_id: a.id,
+          opponent_id: b.id,
+          ...counted.a,
+          bout_description,
+          bout_date,
+        });
+        insertAdjustment(db(), {
+          fighter_id: b.id,
+          opponent_id: a.id,
+          ...counted.b,
+          bout_description,
+          bout_date,
+        });
       }
       deleteBout(db(), boutId);
     });

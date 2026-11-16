@@ -155,6 +155,7 @@ Deno.test('GET /api/fighters/:id/merge/:targetId previews the merge and changes 
     finalised_bouts: 0,
     aliases: 0,
     tbrb_rows: 0,
+    kept_results: 0,
   });
   assertEquals((await api.call('GET', `/api/fighters/${dup.id}`)).status, 200);
   assertEquals((await api.call('GET', `/api/fighters/999/merge/${aId}`)).status, 404);

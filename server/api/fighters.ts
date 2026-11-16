@@ -15,6 +15,11 @@ import {
 import { listAliases, repointAliases } from '../db/fighter-alias.ts';
 import { countBoutsBetween, listBoutsForFighter, repointBoutFighter } from '../db/bout.ts';
 import { listTbrbRowsForFighter, repointTbrbRows } from '../db/tbrb-snapshot.ts';
+import {
+  countAdjustmentsBetween,
+  listAdjustments,
+  repointAdjustments,
+} from '../db/record-adjustment.ts';
 import type { Side } from '../rules/decisions.ts';
 import { applyDelta, type FightRecord, resultsAdded } from '../rules/records.ts';
 import { boutView } from './card.ts';
@@ -85,7 +90,7 @@ function save(db: GetDb, id: number | null, f: FighterBody): number {
 }
 
 const nameOf = (f: Fighter) => `${f.first_name} ${f.last_name}`;
-const recordOf = (f: Fighter): FightRecord => ({
+const recordOf = (f: FightRecord): FightRecord => ({
   won: f.won,
   lost: f.lost,
   draws: f.draws,
@@ -108,6 +113,7 @@ export type MergePreview = {
   finalised_bouts: number;
   aliases: number;
   tbrb_rows: number;
+  kept_results: number;
 };
 
 function mergePlan(c: Context, db: GetDb): MergePlan {
@@ -123,8 +129,11 @@ function mergePlan(c: Context, db: GetDb): MergePlan {
       response: c.json({ error: 'a fighter cannot be merged into itself' }, 400),
     };
   }
-  // The same person cannot have fought themself; two who met are two people.
-  if (countBoutsBetween(db(), dupId, targetId) > 0) {
+  // The same person cannot have fought themself; two who met are two people,
+  // whether the fight is still here or was deleted and its result kept (D62).
+  if (
+    countBoutsBetween(db(), dupId, targetId) + countAdjustmentsBetween(db(), dupId, targetId) > 0
+  ) {
     return {
       ok: false,
       response: conflict(c, 'these fighters fought each other, so they are not the same fighter'),
@@ -135,6 +144,11 @@ function mergePlan(c: Context, db: GetDb): MergePlan {
     outcome: { decision_type: b.decision_type!, winner: b.winner! }, // set when finalised (D18)
     side: (b.fighter_a_id === dupId ? 'A' : 'B') as Side,
   }));
+  // A result the duplicate kept after its bout was deleted (D57) is counted
+  // like a finalised fight: added to the target's record, and its adjustment
+  // moves with it, so a recompute of the target keeps it (D61).
+  const kept = listAdjustments(db(), dupId);
+  const added = kept.reduce((sum, k) => applyDelta(sum, recordOf(k)), resultsAdded(finalised));
   const before = recordOf(target);
   const preview: MergePreview = {
     duplicate: { id: dup.id, name: nameOf(dup), record_dropped: recordOf(dup) },
@@ -142,12 +156,13 @@ function mergePlan(c: Context, db: GetDb): MergePlan {
       id: target.id,
       name: nameOf(target),
       before,
-      after: applyDelta(before, resultsAdded(finalised)),
+      after: applyDelta(before, added),
     },
     bouts: bouts.length,
     finalised_bouts: finalised.length,
     aliases: listAliases(db(), dupId).length,
     tbrb_rows: listTbrbRowsForFighter(db(), dupId).length,
+    kept_results: kept.length,
   };
   return { ok: true, preview, dupId, targetId };
 }
@@ -193,10 +208,11 @@ export function fighterRoutes(db: GetDb): Hono {
   });
 
   // :id is the duplicate, :targetId the fighter it duplicates. GET says what
-  // a merge would do; POST does it. Bouts, aliases and TBRB rows move to the
-  // target and the duplicate is deleted, all in one transaction or not at all
-  // (SPEC Testing, tier 3). The duplicate's finalised fights are added to the
-  // target's record, so each is counted once, by its owner, and the
+  // a merge would do; POST does it. Bouts, aliases, TBRB rows and kept
+  // results (D57) move to the target and the duplicate is deleted, all in one
+  // transaction or not at all (SPEC Testing, tier 3). The duplicate's
+  // finalised fights and kept results are added to the target's record, so
+  // each is counted once, by its owner, and the
   // duplicate's typed-in record is dropped. Every merge needs the user's
   // ?records=add, else 409 with the preview (D31).
   routes.get('/:id/merge/:targetId', (c) => {
@@ -218,6 +234,7 @@ export function fighterRoutes(db: GetDb): Hono {
       repointBoutFighter(db(), dupId, targetId);
       repointAliases(db(), dupId, targetId);
       repointTbrbRows(db(), dupId, targetId);
+      repointAdjustments(db(), dupId, targetId);
       setFighterRecord(db(), targetId, preview.target.after);
       deleteFighter(db(), dupId);
     });

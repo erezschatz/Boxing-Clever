@@ -2,9 +2,25 @@
 // moved both records; it is deleted only with the user's choice to reverse
 // them or keep them, and deleting bouts never deletes the event.
 import { deepStrictEqual, strictEqual as assertEquals } from 'node:assert/strict';
-import { finalise, fury, recordOf, testApi, usyk, usykFury } from '../helpers/api.ts';
+import { type Api, finalise, fury, recordOf, testApi, usyk, usykFury } from '../helpers/api.ts';
 import { getBout } from '../../server/db/bout.ts';
 import { getEvent } from '../../server/db/event.ts';
+import { listAdjustments } from '../../server/db/record-adjustment.ts';
+
+// A fighter's kept results as the recompute will read them: counts and the fight.
+const keptOf = (api: Api, fighterId: number) =>
+  listAdjustments(api.db, fighterId).map(
+    ({ opponent_id, won, lost, draws, nc, kos, bout_description, bout_date }) => ({
+      opponent_id,
+      won,
+      lost,
+      draws,
+      nc,
+      kos,
+      bout_description,
+      bout_date,
+    }),
+  );
 
 const before = {
   a: { won: usyk.won, lost: 0, draws: 0, nc: 0, kos: usyk.kos },
@@ -30,6 +46,8 @@ Deno.test('a finalised bout deleted with ?records=reverse moves both records bac
   assertEquals(getBout(api.db, boutId), undefined);
   deepStrictEqual(recordOf(api.db, aId), before.a);
   deepStrictEqual(recordOf(api.db, bId), before.b);
+  // Nothing was kept, so nothing is stored for a recompute to add (D57).
+  deepStrictEqual([keptOf(api, aId), keptOf(api, bId)], [[], []]);
 });
 
 Deno.test('reverse undoes a KO with its ko, and a draw on both sides', async () => {
@@ -150,4 +168,61 @@ Deno.test('a finalised bout keeps its fighters: PATCHing them is 409, other fiel
   assertEquals(swap.status, 409);
   assertEquals(getBout(api.db, boutId)?.fighter_a_id, aId);
   assertEquals((await api.call('PATCH', `/api/bouts/${boutId}`, { corner_a: 'red' })).status, 200);
+});
+
+Deno.test('D57: keep stores what the result added to each record, with the fight it came from', async () => {
+  for (
+    const [outcome, aKept, bKept] of [
+      [{ decision_type: 'UD', winner: 'A' }, { won: 1 }, { lost: 1 }],
+      [{ decision_type: 'KO', winner: 'B' }, { lost: 1 }, { won: 1, kos: 1 }],
+      [{ decision_type: 'D', winner: 'draw' }, { draws: 1 }, { draws: 1 }],
+      [{ decision_type: 'NC', winner: 'none' }, { nc: 1 }, { nc: 1 }],
+    ] as const
+  ) {
+    const api = testApi();
+    const { aId, bId, boutId } = await usykFury(api);
+    await finalise(api, boutId, outcome);
+    const res = await api.call('DELETE', `/api/bouts/${boutId}?records=keep`);
+    assertEquals(res.status, 200, outcome.decision_type);
+    const none = { won: 0, lost: 0, draws: 0, nc: 0, kos: 0 };
+    const fight = {
+      bout_description: `Oleksandr Usyk vs Tyson Fury, ${outcome.decision_type}`,
+      bout_date: '2024-05-18',
+    };
+    deepStrictEqual(
+      keptOf(api, aId),
+      [{ opponent_id: bId, ...none, ...aKept, ...fight }],
+      outcome.decision_type,
+    );
+    deepStrictEqual(
+      keptOf(api, bId),
+      [{ opponent_id: aId, ...none, ...bKept, ...fight }],
+      outcome.decision_type,
+    );
+  }
+});
+
+Deno.test('D57: keep stores the result even when the record was corrected by hand and reverse is refused', async () => {
+  const api = testApi();
+  const { bId, boutId } = await usykFury(api);
+  await finalise(api, boutId, { decision_type: 'UD', winner: 'A' });
+  await api.call('PATCH', `/api/fighters/${bId}`, { lost: 0 }); // D28
+  assertEquals((await api.call('DELETE', `/api/bouts/${boutId}?records=keep`)).status, 200);
+  deepStrictEqual(keptOf(api, bId).map((k) => k.lost), [1]);
+});
+
+Deno.test('D57: a refused delete and a draft delete store nothing', async () => {
+  const api = testApi();
+  const { aId, bId, eventId, boutId } = await usykFury(api);
+  const { json: draft } = await api.call('POST', '/api/bouts', {
+    event_id: eventId,
+    weight_class_id: 18,
+    scheduled_rounds: 12,
+    fighter_a_id: bId,
+    fighter_b_id: aId,
+  });
+  await finalise(api, boutId, { decision_type: 'UD', winner: 'A' });
+  assertEquals((await api.call('DELETE', `/api/bouts/${boutId}`)).status, 409);
+  assertEquals((await api.call('DELETE', `/api/bouts/${draft.id}?records=keep`)).status, 204);
+  deepStrictEqual([keptOf(api, aId), keptOf(api, bId)], [[], []]);
 });

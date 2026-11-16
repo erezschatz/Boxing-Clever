@@ -14,6 +14,7 @@ const SPEC_TABLES = [
   'fighter_alias',
   'import_batch',
   'import_reject',
+  'record_adjustment',
   'round_score',
   'tbrb_snapshot',
   'title',
@@ -282,7 +283,7 @@ Deno.test('migration 005: an RTD becomes a TKO at 3:00 in the same round; nothin
            (3, 1, 3, 18, NULL, 12, 1, 2, 0, NULL, NULL, NULL, NULL, 1);
     INSERT INTO round_score (bout_id, round_no, side, points) VALUES (1, 7, 'A', 0), (1, 7, 'B', 0);
   `);
-  deepStrictEqual(migrate(db), [5]);
+  deepStrictEqual(migrate(db, readMigrations().filter((m) => m.version <= 5)), [5]);
   const bouts = db.prepare(
     `SELECT id, weight_class_id, contracted_weight, missed_weight_b, decision_type, winner,
             result_round, result_time, is_draft FROM bout ORDER BY id`,

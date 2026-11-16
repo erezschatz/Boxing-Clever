@@ -81,6 +81,14 @@ export class MergeForm extends DialogForm<State, MergePreview> {
       `${p.aliases} ${p.aliases === 1 ? 'alias' : 'aliases'}`,
       `${p.tbrb_rows} TBRB ${p.tbrb_rows === 1 ? 'ranking' : 'rankings'}`,
     ];
+    // A kept result (D57) is named only when there is one; it is rare.
+    if (p.kept_results > 0) {
+      moving.push(`${p.kept_results} kept ${p.kept_results === 1 ? 'result' : 'results'}`);
+    }
+    const added = [
+      p.finalised_bouts > 0 ? 'the finalised fights' : '',
+      p.kept_results > 0 ? 'the deleted fights kept in the record' : '',
+    ].filter(Boolean).join(' and ');
     return html`
       <table class="list preview">
         <tbody>
@@ -98,8 +106,8 @@ export class MergeForm extends DialogForm<State, MergePreview> {
           </tr>
         </tbody>
       </table>
-      ${p.finalised_bouts > 0
-        ? html`<p class="muted">The results of the finalised fights are added to ${p.target.name}'s record.</p>`
+      ${added
+        ? html`<p class="muted">The results of ${added} are added to ${p.target.name}'s record.</p>`
         : nothing}
     `;
   }

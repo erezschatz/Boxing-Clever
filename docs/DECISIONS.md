@@ -1072,3 +1072,19 @@ Source: [tasks/tbrb-rank-across-classes.md](../tasks/tbrb-rank-across-classes.md
 **Why** — SQLite can't change a check in place. The schema states what the app accepts, as it does for every other code (§5), so the rebuild is worth its cost, and 004 already showed the way.
 
 Source: [tasks/retirement-is-a-tko.md](../tasks/retirement-is-a-tko.md)
+
+## D61 · 2026-11-16 · A merge adds the duplicate's kept results to the target's record
+
+**Decision** — A merge (D31) counts each of the duplicate's kept results like one of its finalised fights: added to the target's record, and its `record_adjustment` row moved to the target. The preview says how many (`kept_results`), and the merge dialog names them. Claude's choice, made while building the box that moves the adjustments.
+**Rejected** — Moving the adjustment rows without adding them to the target's record, which is all the acceptance box asked for.
+**Why** — The duplicate's typed-in record, which holds the kept result, is dropped by a merge (D28). Moving only the row would leave the result out of the target's stored record but in what a recompute rebuilds for it, so the two would disagree and a recompute would change the record. Adding it keeps them equal, as D31 does for finalised fights.
+
+Source: [tasks/kept-result-is-stored.md](../tasks/kept-result-is-stored.md)
+
+## D62 · 2026-11-16 · A kept result names the opponent, and a merge refuses two who met in a kept fight
+
+**Decision** — Each `record_adjustment` row also stores the opponent (`opponent_id`). A merge is refused (`409`, "fought each other") when the duplicate and the target have a kept result between them, as it is refused when they have a bout between them. A merge repoints the duplicate as opponent too. Claude's choice, answering the cold reader's finding below.
+**Rejected** — Leaving the opponent out, so that a merge could add the duplicate's side of a kept fight against the target to the target's record, which already counts the target's own side; skipping such rows in the merge instead of refusing, which would merge two fighters who fought each other.
+**Why** — D31 already holds that two who met are two people. A deleted fight whose result was kept still happened, and the record still counts it, so the same rule applies. Without the opponent the merge cannot tell which kept results are against the target.
+
+Source: [tasks/kept-result-is-stored.md](../tasks/kept-result-is-stored.md)

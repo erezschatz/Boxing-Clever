@@ -56,7 +56,7 @@ Out-of-order work that a decision placed in the sequence, as it stood on
 - [contracted-weight-and-missed-weight](../tasks/contracted-weight-and-missed-weight.md) — Contracted weight and missed weight · done
 - [delete-finalised-bout](../tasks/delete-finalised-bout.md) — Deleting a finalised bout · done
 - [guarded-bout-delete](../tasks/guarded-bout-delete.md) — Guarded bout delete · done
-- [kept-result-is-stored](../tasks/kept-result-is-stored.md) — A kept result is stored, so a recompute keeps it
+- [kept-result-is-stored](../tasks/kept-result-is-stored.md) — A kept result is stored, so a recompute keeps it · done
 - [merge-asks-before-records-move](../tasks/merge-asks-before-records-move.md) — Merge asks before records move · done
 - [questions-2026-11-03](../tasks/questions-2026-11-03.md) — Open questions, 2026-11-03 · done
 - [quiet-missed-weight](../tasks/quiet-missed-weight.md) — A missed weight is noted quietly · done
