@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Erez Schatz, https://github.com/erezschatz/unities. SPDX-License-Identifier: MIT
 // Run with: node --test .claude/hooks/check-unit.test.mjs
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -136,6 +137,23 @@ test("a pull request into a target that has not adopted the hook is not checked"
   write(SHARED, "hand edit\n");
   commit("edit");
   assert.equal(run(dir, ["--pr", "main"]).status, 0);
+});
+
+test("a target the checkout does not know is an error, not a target that has not adopted", () => {
+  const { dir, git, write, commit } = repo();
+  git("checkout -q -b feature");
+  write(SOURCE, "changed\n");
+  commit("wip");
+  const result = run(dir, ["--pr", "origin/mian"]);
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /origin\/mian is not a commit this checkout knows/);
+  // A commit id the checkout never fetched, and a name that is not a commit, are refused too.
+  const unfetched = "1234567890123456789012345678901234567890";
+  for (const name of [unfetched, `main:${SOURCE}`]) {
+    const other = run(dir, ["--pr", name]);
+    assert.equal(other.status, 2, name);
+    assert.match(other.stderr, /is not a commit this checkout knows/);
+  }
 });
 
 test("on a CI merge commit, HEAD^1 is the target and only the PR's changes count", () => {
@@ -399,6 +417,39 @@ test("adapted: a pull request that touches the compiled record is refused, by ha
   const result = run(dir, ["--pr", "main"]);
   assert.equal(result.status, 1);
   assert.match(result.stderr, /compiled record edited in this scene: docs\/PLAN\.md/);
+});
+
+test("what the target did after the branch forked is not the pull request's doing", () => {
+  const { dir, git, write, commit, compile } = repo();
+  git("checkout -q -b feature");
+  write(SOURCE, "changed\n");
+  complete(write);
+  commit("feature");
+  git("checkout -q main");
+  write("tasks/2-u.md", taskWith(decision("2026-11-19", "Decided on the target")));
+  compile();   // the merge man recompiled the record on the target; the branch is now behind
+  commit("main");
+  git("checkout -q feature");
+  const ok = run(dir, ["--pr", "main"]);
+  assert.equal(ok.status, 0, ok.stderr);
+  // A caller that still passes the fork point itself gets the same answer.
+  assert.equal(run(dir, ["--pr", git("merge-base main HEAD").trim()]).status, 0);
+  // And the branch's own edit to the compiled record is still refused.
+  write(DECISIONS, "by hand\n");
+  commit("by-hand");
+  const own = run(dir, ["--pr", "main"]);
+  assert.equal(own.status, 1);
+  assert.match(own.stderr, /compiled record edited in this scene: docs\/DECISIONS\.md/);
+});
+
+test("a pull request with no history in common with its target stops with an error", () => {
+  const { dir, git, write, commit } = repo();
+  git("checkout -q --orphan elsewhere");
+  write(SOURCE, "changed\n");
+  commit("elsewhere");
+  const result = run(dir, ["--pr", "main"]);
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /no merge base between main and HEAD/);
 });
 
 test("the compiled record does not count as the doc change", () => {

@@ -1126,3 +1126,13 @@ Source: [tasks/sheet-deduction-colours.md](../tasks/sheet-deduction-colours.md)
 Supersedes: D54
 
 Source: [tasks/sheet-deduction-colours.md](../tasks/sheet-deduction-colours.md)
+
+## D66 · 2026-11-19 · The compilers in scripts/ do not take the runbook's licence line yet
+
+**Decision** — The 0.5.5 licence comment goes into the two hook files only. `scripts/compile-record.mjs` and `scripts/compile-changelog.mjs` stay as they were. That comment is the only change 0.5.5 makes to them, and they will take it the next time a scene changes them for a reason a test can show.
+
+**Rejected** — Adding the line now together with a `tests/` change made only to satisfy the gate, which would be a test of nothing. Widening the `test` role so the change passes, which would loosen the gate for every later scene to fit one comment.
+
+**Why** — The gate counts `scripts/` as source and wants a test with any source change (D50 put the compiler's test under `tests/`). A comment changes no behaviour, so nothing honest can test it. The comment is the author's own licence notice on code he wrote, so leaving it out loses nothing.
+
+Source: [tasks/00-skeleton.md](../tasks/00-skeleton.md)

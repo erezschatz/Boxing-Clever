@@ -127,6 +127,14 @@ Not in scope: Phase 2 is not planned here.
 **Rejected** — Installing 4.10 in advance (moving `CLAUDE.md` to `AGENTS.md`, adding `.codex/hooks.json` and the reader agent), since it would be a binding nobody runs and so could never be verified (Phase 6, step 8). Leaving the `--codex` code and its tests out of the script.
 **Why** — Erez answered the runbook's agent question, which repos adopted before 0.5.0 were never asked, on 2026-11-15: Claude Code only. Keeping the script equal to Appendix A, plus this repo's block and D51, keeps the next upgrade a diff against the master and not a merge. If someone starts working here with Codex, that is a new decision superseding this one, and a re-run installs 4.10.
 
+### 2026-11-19 · The compilers in scripts/ do not take the runbook's licence line yet
+
+**Decision** — The 0.5.5 licence comment goes into the two hook files only. `scripts/compile-record.mjs` and `scripts/compile-changelog.mjs` stay as they were. That comment is the only change 0.5.5 makes to them, and they will take it the next time a scene changes them for a reason a test can show.
+
+**Rejected** — Adding the line now together with a `tests/` change made only to satisfy the gate, which would be a test of nothing. Widening the `test` role so the change passes, which would loosen the gate for every later scene to fit one comment.
+
+**Why** — The gate counts `scripts/` as source and wants a test with any source change (D50 put the compiler's test under `tests/`). A comment changes no behaviour, so nothing honest can test it. The comment is the author's own licence notice on code he wrote, so leaving it out loses nothing.
+
 ## What was done
 
 2026-11-14. The Unities runbook upgraded to the master copy dated 2026-11-11 (0.4.0) and carried out again; the staging stays strict. `docs/UNITIES.md` is replaced byte for byte; the old copy had no date line.
@@ -177,3 +185,35 @@ Reviewed by: a read-only Explore subagent, cold, against the staged diff and `do
 - [x] `CLAUDE.md` → its Unities paragraph is Appendix E strict, with only `deno task` for `npm run` and Erez for `<who>`, as staged
 
 **Not asked** — The adapted-only wording of 4.8; the Codex sentence in 4.8 item 2; any change to D52.
+
+## What was done
+
+2026-11-19. The Unities runbook upgraded to the master copy dated 2026-11-19 (0.5.5) and carried out again. The staging stays strict (D12) and Claude Code is still the only agent (D52); nothing was asked again.
+
+- `docs/UNITIES.md` is replaced byte for byte (was 2026-11-15 · 0.5.1).
+- `.claude/hooks/check-unit.mjs`: `--pr` now takes the target, not a base. It refuses a target the checkout does not know (exit 2) instead of skipping it as one that has not adopted, finds the merge base of target and `HEAD` itself, and stops with an error when there is none. `--pr` no longer reads stdin, so a caller that leaves a pipe open does not hang it. The per-repo block and the D51 deviation are unchanged. Nothing here calls `--pr` (no CI), so the changed argument breaks no caller.
+- `.claude/hooks/check-unit.test.mjs`: Appendix J's three new tests, appended unchanged: an unknown target is an error; what the target did after the branch forked is not the PR's doing; a PR with no common history stops.
+- The licence line (MIT, unities) is added as the second line of `check-unit.mjs` and `check-unit.test.mjs`; the runbook now counts it as part of the fixed text. It is not added to `scripts/compile-record.mjs` or `scripts/compile-changelog.mjs`, whose only change in 0.5.5 it is (D66).
+
+Each hook file was brought up by applying the difference between the 0.5.1 and 0.5.5 copies of its appendix as a patch to the installed file, so this repo's adaptations stay as they were; both applied cleanly.
+
+Not installed: the runbook's new 4.11 installs nothing (it is what each binding enforces and the limits), and its CI change concerns the adapted staging's pipeline, which this repo does not have. `scripts/`, `CLAUDE.md`, `docs/reviewer.md`, `.claude/settings.json`, `.githooks/pre-commit` and `docs/PLAN.md` are unchanged; Appendices E and G did not change. `docs/DECISIONS.md` is recompiled for D66.
+
+Verified in Claude's workspace: `node --test .claude/hooks/check-unit.test.mjs` 39/39; `deno task test` 198/198; `deno task check` clean; `compile-record --check` exits 0. Nothing in the app changed, so there is nothing for Erez to run in the browser.
+
+Reviewed by: a read-only Explore subagent, cold, against the staged diff and `docs/reviewer.md`, re-read after the scripts went back to HEAD and D66 was added. It found one item, recorded below and fixed in this change. It confirmed `docs/UNITIES.md` is identical to the master, that the hook changes are exactly the 0.5.1 → 0.5.5 change to Appendices A and J, that Appendices F and K change only by the licence line, that the `docs/DECISIONS.md` diff is D66 alone, and that nothing calls `--pr`.
+
+## Review · 2026-11-19
+
+### The record cites D1 for the strict staging; D1 is the Atrium chamber
+
+**Found** — The 2026-11-19 record's first paragraph said "The staging stays strict and Claude Code is still the only agent (D1, D52)". D1 is "An Atrium chamber, not a standalone server"; the strict staging is D12.
+
+**Done when**
+
+- [x] The 2026-11-19 record's reference for "the staging stays strict" → names D12
+- [x] The same record's reference for "Claude Code is still the only agent" → still names D52
+- [x] The record's D66 reference (licence line kept out of `scripts/`) → still names D66
+- [x] The 2026-11-14 and 2026-11-15 records → unchanged
+
+**Not asked** — Any change to D1, D12, D52 or D66, or to the earlier records.

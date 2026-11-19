@@ -1,4 +1,4 @@
-<!-- UNITIES.md 2026-11-15 · 0.5.1. Master copy: the unities-project skill folder (plugin `unities`). -->
+<!-- UNITIES.md 2026-11-19 · 0.5.5. Master copy: the unities-project skill folder (plugin `unities`). -->
 
 # UNITIES.md — adopting the Unities in a repository
 
@@ -377,8 +377,14 @@ adoption — retired TODO files and all — is not held to it.
 If pull requests are merged by a tool through the CI service's API rather than by its
 merge button, run the check in that tool, before it merges, instead of as a CI job. A
 required CI policy applies to the tool's API merges too, so the two gates would collide.
-Run in a checkout, the base is the merge base of source and target, with the source tip
-checked out: `check-unit.mjs --pr $(git merge-base <target> HEAD)`.
+Run in a checkout, with the source tip checked out: `check-unit.mjs --pr <target>`. The
+script measures the scene from the merge base of target and `HEAD`, not from the target's
+tip, so a target that has moved on since the branch forked does not charge the branch
+with the target's commits. The checkout therefore needs the history back to the fork
+point; without it the script stops with an error instead of guessing. It stops the same
+way when the checkout does not know the target's name at all — a typo, or a branch that
+was never fetched — because only a target that exists and has no `check-unit.mjs` counts
+as one that has not adopted yet.
 
 **Shared files.** Three kinds are never edited by hand. `CHANGELOG.md` is *compiled* at
 release: the compiler is its only writer, and deleting it is refused like editing it.
@@ -585,6 +591,80 @@ procedure is carried out, install the files, say in the adoption task that the C
 binding is unverified and name the developer who will verify it; do not report it as
 working.
 
+### 4.11 What each binding enforces, and what none of them can
+
+Nothing here is installed. It is what the person adopting should know about the bindings
+above. It was carried over from the essay *The Unities* (14 October 2026) when the
+essay's second part was cut as an older copy of this file; the statements about Claude
+Code's behaviour are as they stood then.
+
+Each binding enforces a different unity (S = strict, A = adapted). The table describes
+the Claude Code bindings; under Codex an adapted `Stop` continues the turn once instead
+(§1, 4.10):
+
+| Binding | Fires when | What it does | Unity |
+| --- | --- | --- | --- |
+| `Stop` hook | the agent finishes a turn | S: refuses to end on a half-recorded change, sends the agent back once, then lets go and tells the person. A: tells the agent once, in its own context, what the PR will still fail on | time |
+| `PreToolUse` on `git commit` (S) | the agent is about to commit | refuses a commit that is not a complete scene | time |
+| `pre-commit` | a person commits | S: refuses. A: warns | time, place |
+| CI check on the PR (A; backstop in S) | a pull request is opened or updated | refuses the merge of an incomplete scene; the one gate with teeth in the adapted staging | time |
+| `shared` rule in the script | any mode | refuses a direct edit to `CHANGELOG.md` or a retired `TODO.md`; a release PR passes only if its changelog equals the compiler's output | action |
+| `onFailure: "block"` (S) | the script is missing or crashes | blocks the commit; a policy that fails open is not a policy | time |
+
+In strict, a clean tree passes at the commit and at the end of a turn, so reverting is
+always a way out. `--pr`, and `--branch` in adapted, read the commits since the fork, so
+there a clean tree says nothing.
+
+`check-unit.mjs` is the rule, in code. The essay said of a repository's own skill, if it
+has one, that it "holds procedure only: how task files are named here, what the 'what was
+done' heading is. The skill says how; the hooks make sure." Here that procedure is
+`tasks/README.md` (4.4, Appendix D), and the sentence holds of it: the instructions say
+how, the hooks make sure.
+
+The fresh-session test is the plainest statement of unity of place; the decisions file is
+unity of action applied to choices rather than changes.
+
+With squash-merge the adapted staging's history reads as strict: one commit per scene,
+each complete, even though the branch was free. The branch is the rehearsal; `main` is
+the performance.
+
+A hook can test presence but not truth, and can gate a change but not build a release.
+The point of the changelog compiler is its shape: it is the compile step from sources to
+blob, it runs once per release, and nobody edits its output. It reads the record out of
+git history, not out of the tree, so archiving or deleting a finished task file cannot
+lose its changelog entries. That holds for the changelog only. The record compiler reads
+the work tree (4.5): deleting a task file drops its step from `docs/PLAN.md`, and if the
+file carries a compiled decision the compiler refuses, and so does the gate (4.7). The
+release tag is the one thing in the system that is not a file, and it is the right thing
+not to be.
+
+**Limits.**
+
+- Presence is not truth. The gate is deliberately a presence test: a file in each role,
+  nothing about whether `tests/parser.test.ts` really exercises `parser.ts`. Presence
+  already catches the failure this discipline exists for, the record not being written
+  at all. The reviewer covers truth; nothing covers it for free.
+- A touched task file is not a recorded scene. The gate asks that a task file changed,
+  and checks the `## What was done` sections a scene adds; it does not require that one
+  be added. The essay named that as a later tightening, and it has not been made.
+- The `Stop` hook judges one session's tree or branch. Two sessions in one repository
+  each see only their own. The commit gate (strict) or the PR gate (adapted) is what
+  holds across sessions.
+- `onFailure: "block"` has no effect on `Stop` hooks, so a missing script silently lets
+  turns end; the next gate catches the change. Keep the script in the repository and the
+  path in `settings.json` correct.
+- Hooks in `.claude/settings.json` run only after the person has trusted the folder, and
+  cloud sessions do not read a machine's user settings. Committing the project settings
+  is what makes the staging travel with the repository.
+- The PR gate's being required lives outside the repository (a branch policy, or the
+  merging tool's step). It is the one part of the staging that `git diff` cannot see, and
+  the first thing to check when the gate seems to have stopped working.
+- The discard is not automated anywhere. The form says an interrupted scene is abandoned;
+  the strict staging says so, loudly, and leaves the `git checkout` to a person.
+- Claude Code can also start the reader of Appendix G from a hook (an agent-type `Stop`
+  hook), but that feature was marked experimental; an explicitly invoked subagent is the
+  stable form.
+
 ---
 
 ## 5. Migrate the record
@@ -690,7 +770,7 @@ to adapted, unmarked to both.
 7. (A) Confirm the 4.7 gate exists, and say whether whatever makes it required — a branch
    policy, or the merging tool's step — is in place; it usually lives outside the
    repository. Confirm the release check: on a throwaway branch, run the compiler for a
-   fake version, commit only its output and the version bump, and run `--pr <base>` →
+   fake version, commit only its output and the version bump, and run `--pr <target>` →
    must pass; then hand-edit one changelog line → must fail with a diff. Confirm the
    merge man: name what runs the record compiler after a merge and under which identity
    it commits; if that lives outside the repository and is not in place yet, say so —
@@ -732,15 +812,16 @@ sentences as the adoption task's record. Then tell the person:
 
 ## Appendix A — `.claude/hooks/check-unit.mjs`
 
-Fill the per-repo block from Phase 3. Everything else is fixed.
+Fill the per-repo block from Phase 3. Everything else is fixed, the licence line included.
 
 ```js
 #!/usr/bin/env node
+// Copyright (c) 2026 Erez Schatz, https://github.com/erezschatz/unities. SPDX-License-Identifier: MIT
 // A scene is complete or it is nothing. SCENE says how long a scene is:
 //   "commit" (strict)  : every commit; --staged and --branch refuse.
 //   "pr"     (adapted) : the pull request; --pr refuses, --staged and --branch warn.
 //
-//   --pr <base>     : what the PR changes against its target     (gate; always enforces)
+//   --pr <target>   : what the PR changed since it forked from its target (gate; always enforces)
 //   --staged        : what `git commit` is about to record       (pre-commit, PreToolUse)
 //   --branch [base] : the scene so far, committed or not         (Stop)
 //
@@ -785,7 +866,8 @@ const strict = SCENE === "commit";
 const codex = process.argv.includes("--codex");
 const argv = process.argv.slice(2).filter(a => a !== "--codex");
 const mode = argv[0] ?? "--branch";
-const input = process.stdin.isTTY ? {} : JSON.parse((await readStdin()) || "{}");
+// Only the hook modes are handed JSON on stdin; --pr must not wait on a pipe its caller left open.
+const input = mode === "--pr" || process.stdin.isTTY ? {} : JSON.parse((await readStdin()) || "{}");
 const cwd = input.cwd ?? process.cwd();
 const lines = s => s.split("\n").map(l => l.trim()).filter(Boolean);
 
@@ -795,9 +877,17 @@ if (input.hook_event_name === "PreToolUse" &&
 
 let files, base, deleted;   // deleting a tombstone is not editing it
 if (mode === "--pr") {
-  base = argv[1];
-  if (!base) fail("usage: check-unit.mjs --pr <base>");
-  if (!adopted(base)) skip(`${base} has no ${SELF}; the record is not required until the target adopts it.`);
+  const target = argv[1];
+  if (!target) fail("usage: check-unit.mjs --pr <target>");
+  // A name git does not know is not a target that has yet to adopt: refuse, do not skip.
+  if (!gitOk(`cat-file commit ${target}`))
+    fail(`${target} is not a commit this checkout knows; check the name, or fetch the branch (a single-branch or shallow clone may not have it).`);
+  if (!adopted(target)) skip(`${target} has no ${SELF}; the record is not required until the target adopts it.`);
+  // The PR's own change, measured from where it forked. The target's tip may have
+  // moved on since, and its new commits are not this PR's.
+  if (!gitOk(`merge-base ${target} HEAD`))
+    fail(`no merge base between ${target} and HEAD; the checkout needs the history back to where the branch forked (a shallow clone may not have it).`);
+  base = git(`merge-base ${target} HEAD`).trim();
   files = lines(git(`diff --name-only ${base} HEAD`));
   deleted = lines(git(`diff --name-only --diff-filter=D ${base} HEAD`));
 } else if (mode === "--staged") {
@@ -1252,6 +1342,7 @@ no timestamps finer than the date, no environment-dependent ordering.
 
 ```js
 #!/usr/bin/env node
+// Copyright (c) 2026 Erez Schatz, https://github.com/erezschatz/unities. SPDX-License-Identifier: MIT
 // compile-changelog <version> [--since <ref>] [--dry-run]
 // The only writer CHANGELOG.md has. Reads "## What was done" sections added to tasks/
 // since the last release and prepends them under a version heading.
@@ -1508,8 +1599,9 @@ steps:
   # A PR build checks out the merge of the PR into its target: HEAD^1 is the target,
   # so HEAD^1..HEAD is exactly what the PR would change. Depth 2 reaches it.
   # This relies on the policy's default merge-commit checkout. If the policy is ever
-  # switched to a rebase or squash build, HEAD^1 is no longer the target; use the
-  # merge-base form from 4.7 instead.
+  # switched to a rebase or squash build, HEAD^1 is no longer the target; pass the
+  # target branch instead (`--pr origin/<target>`) with `fetchDepth: 0`, so the script
+  # can find where the branch forked (4.7).
   - checkout: self
     fetchDepth: 2
     clean: true
@@ -1572,7 +1664,8 @@ Fill the per-repo paths with one file in each role that `RULES` matches. The tes
 throwaway repositories, so they need git and nothing else. They pin the behaviour the
 practice depended on: the gate at the pull request, free commits in adapted, refused
 commits in strict, merges that do not re-check the other branch's scenes, a target that
-has not adopted yet, tombstones that may be deleted but not edited, the release check,
+has not adopted yet, a target that moved on after the branch forked, tombstones that may
+be deleted but not edited, the release check,
 review rounds whose items must name their cases and be closed before merge,
 and the compiled record: numbers that never change, a pull request that may not touch
 `docs/DECISIONS.md` or `docs/PLAN.md`, the compile that may, and the strict commit that
@@ -1581,6 +1674,7 @@ must carry them up to date; and that the same script called from Codex's hooks
 reaches the agent.
 
 ```js
+// Copyright (c) 2026 Erez Schatz, https://github.com/erezschatz/unities. SPDX-License-Identifier: MIT
 // Run with: node --test .claude/hooks/check-unit.test.mjs
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -1740,6 +1834,23 @@ test("a pull request into a target that has not adopted the hook is not checked"
   write(SHARED, "hand edit\n");
   commit("edit");
   assert.equal(run(dir, ["--pr", "main"]).status, 0);
+});
+
+test("a target the checkout does not know is an error, not a target that has not adopted", () => {
+  const { dir, git, write, commit } = repo();
+  git("checkout -q -b feature");
+  write(SOURCE, "changed\n");
+  commit("wip");
+  const result = run(dir, ["--pr", "origin/mian"]);
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /origin\/mian is not a commit this checkout knows/);
+  // A commit id the checkout never fetched, and a name that is not a commit, are refused too.
+  const unfetched = "1234567890123456789012345678901234567890";
+  for (const name of [unfetched, `main:${SOURCE}`]) {
+    const other = run(dir, ["--pr", name]);
+    assert.equal(other.status, 2, name);
+    assert.match(other.stderr, /is not a commit this checkout knows/);
+  }
 });
 
 test("on a CI merge commit, HEAD^1 is the target and only the PR's changes count", () => {
@@ -2043,6 +2154,39 @@ test("adapted: a pull request that touches the compiled record is refused, by ha
   assert.match(result.stderr, /compiled record edited in this scene: docs\/PLAN\.md/);
 });
 
+test("what the target did after the branch forked is not the pull request's doing", () => {
+  const { dir, git, write, commit, compile } = repo();
+  git("checkout -q -b feature");
+  write(SOURCE, "changed\n");
+  complete(write);
+  commit("feature");
+  git("checkout -q main");
+  write("tasks/2-u.md", taskWith(decision("2026-11-19", "Decided on the target")));
+  compile();   // the merge man recompiled the record on the target; the branch is now behind
+  commit("main");
+  git("checkout -q feature");
+  const ok = run(dir, ["--pr", "main"]);
+  assert.equal(ok.status, 0, ok.stderr);
+  // A caller that still passes the fork point itself gets the same answer.
+  assert.equal(run(dir, ["--pr", git("merge-base main HEAD").trim()]).status, 0);
+  // And the branch's own edit to the compiled record is still refused.
+  write(DECISIONS, "by hand\n");
+  commit("by-hand");
+  const own = run(dir, ["--pr", "main"]);
+  assert.equal(own.status, 1);
+  assert.match(own.stderr, /compiled record edited in this scene: docs\/DECISIONS\.md/);
+});
+
+test("a pull request with no history in common with its target stops with an error", () => {
+  const { dir, git, write, commit } = repo();
+  git("checkout -q --orphan elsewhere");
+  write(SOURCE, "changed\n");
+  commit("elsewhere");
+  const result = run(dir, ["--pr", "main"]);
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /no merge base between main and HEAD/);
+});
+
 test("the compiled record does not count as the doc change", () => {
   const { dir, git, write, commit, compile } = repo();
   write(SOURCE, "changed\n");
@@ -2189,6 +2333,7 @@ function of the work tree: the gate runs it with `--check` and compares.
 
 ```js
 #!/usr/bin/env node
+// Copyright (c) 2026 Erez Schatz, https://github.com/erezschatz/unities. SPDX-License-Identifier: MIT
 // compile-record [--check]
 // The only writer docs/DECISIONS.md and docs/PLAN.md have. Both are compiled from the
 // task files: decisions from their `## Decisions` sections, the plan's steps from the

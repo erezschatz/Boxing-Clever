@@ -1,9 +1,10 @@
 #!/usr/bin/env node
+// Copyright (c) 2026 Erez Schatz, https://github.com/erezschatz/unities. SPDX-License-Identifier: MIT
 // A scene is complete or it is nothing. SCENE says how long a scene is:
 //   "commit" (strict)  : every commit; --staged and --branch refuse.
 //   "pr"     (adapted) : the pull request; --pr refuses, --staged and --branch warn.
 //
-//   --pr <base>     : what the PR changes against its target     (gate; always enforces)
+//   --pr <target>   : what the PR changed since it forked from its target (gate; always enforces)
 //   --staged        : what `git commit` is about to record       (pre-commit, PreToolUse)
 //   --branch [base] : the scene so far, committed or not         (Stop)
 //
@@ -50,7 +51,8 @@ const strict = SCENE === "commit";
 const codex = process.argv.includes("--codex");
 const argv = process.argv.slice(2).filter(a => a !== "--codex");
 const mode = argv[0] ?? "--branch";
-const input = process.stdin.isTTY ? {} : JSON.parse((await readStdin()) || "{}");
+// Only the hook modes are handed JSON on stdin; --pr must not wait on a pipe its caller left open.
+const input = mode === "--pr" || process.stdin.isTTY ? {} : JSON.parse((await readStdin()) || "{}");
 const cwd = input.cwd ?? process.cwd();
 const lines = s => s.split("\n").map(l => l.trim()).filter(Boolean);
 
@@ -60,9 +62,17 @@ if (input.hook_event_name === "PreToolUse" &&
 
 let files, base, deleted;   // deleting a tombstone is not editing it
 if (mode === "--pr") {
-  base = argv[1];
-  if (!base) fail("usage: check-unit.mjs --pr <base>");
-  if (!adopted(base)) skip(`${base} has no ${SELF}; the record is not required until the target adopts it.`);
+  const target = argv[1];
+  if (!target) fail("usage: check-unit.mjs --pr <target>");
+  // A name git does not know is not a target that has yet to adopt: refuse, do not skip.
+  if (!gitOk(`cat-file commit ${target}`))
+    fail(`${target} is not a commit this checkout knows; check the name, or fetch the branch (a single-branch or shallow clone may not have it).`);
+  if (!adopted(target)) skip(`${target} has no ${SELF}; the record is not required until the target adopts it.`);
+  // The PR's own change, measured from where it forked. The target's tip may have
+  // moved on since, and its new commits are not this PR's.
+  if (!gitOk(`merge-base ${target} HEAD`))
+    fail(`no merge base between ${target} and HEAD; the checkout needs the history back to where the branch forked (a shallow clone may not have it).`);
+  base = git(`merge-base ${target} HEAD`).trim();
   files = lines(git(`diff --name-only ${base} HEAD`));
   deleted = lines(git(`diff --name-only --diff-filter=D ${base} HEAD`));
 } else if (mode === "--staged") {
