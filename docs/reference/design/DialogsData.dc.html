@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Bout, fighter and event dialogs</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F0EEE9}
+.dlg{background:#FFFFFF;border:2px solid #111111;box-sizing:border-box;display:flex;flex-direction:column}
+.dh{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:28px 32px 20px;border-bottom:1px solid #E6E3DC}
+.dt{margin:0;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:34px;line-height:1;text-transform:uppercase}
+.ds{margin:6px 0 0;font-size:14px;color:#6A6760}
+.db{padding:24px 32px;display:flex;flex-direction:column;gap:22px}
+.df{display:flex;justify-content:flex-end;align-items:center;gap:12px;padding:20px 32px;border-top:1px solid #E6E3DC}
+.x{width:44px;height:44px;display:flex;align-items:center;justify-content:center;background:transparent;border:0;cursor:pointer;margin:-8px -12px 0 0}
+.lbl{display:block;font-size:12px;font-weight:600;letter-spacing:0.12em;color:#6A6760;text-transform:uppercase;margin-bottom:8px}
+.in{width:100%;box-sizing:border-box;height:48px;border:1.5px solid #CFCBC2;padding:0 12px;font-family:'Inter',sans-serif;font-size:16px;color:#111111;background:#FFFFFF;outline:none;border-radius:0}
+.in.focus{border:2px solid #111111}
+.num{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:24px;text-align:center;font-variant-numeric:tabular-nums}
+.solid{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#FFFFFF;background:#111111;border:0;height:48px;padding:0 26px;cursor:pointer}
+.ghost{font-family:'Inter',sans-serif;font-size:14px;font-weight:500;color:#111111;background:#FFFFFF;border:1.5px solid #CFCBC2;height:44px;padding:0 16px;cursor:pointer}
+.quiet{font-family:'Inter',sans-serif;font-size:14px;font-weight:500;color:#6A6760;background:transparent;border:0;min-height:44px;padding:0 10px;cursor:pointer}
+.seg{display:flex}
+.seg button{height:44px;min-width:52px;padding:0 14px;border:1.5px solid #CFCBC2;margin-left:-1.5px;background:#FFFFFF;font-family:'Inter',sans-serif;font-size:14px;color:#111111;cursor:pointer;display:inline-flex;align-items:center;gap:8px;justify-content:center}
+.seg button:first-child{margin-left:0}
+.seg button.on{background:#111111;border-color:#111111;color:#FFFFFF;position:relative}
+.chk{display:inline-flex;align-items:center;gap:10px;min-height:44px;font-size:15px;cursor:pointer}
+.chk input{width:20px;height:20px;accent-color:#111111;margin:0}
+</style>
+</helmet>
+<div style="width: 1440px; min-height: 1420px; box-sizing: border-box; padding: 64px 72px; background: #F0EEE9; color: #111111; font-family: 'Inter', sans-serif; display: flex; flex-direction: column; gap: 40px">
+
+<div style="display: flex; align-items: baseline; justify-content: space-between">
+<h1 style="margin: 0; font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 44px; text-transform: uppercase">Dialogs · bout, fighter, event</h1>
+<p style="margin: 0; font-size: 14px; color: #6A6760">Typed before the bell; Escape asks before it throws anything away.</p>
+</div>
+
+<div style="display: flex; gap: 56px; align-items: flex-start">
+
+<section class="dlg" style="width: 680px" aria-label="Bout dialog">
+<div class="dh">
+<div>
+<h2 class="dt">Add bout</h2>
+<p class="ds">Riyadh · 14 Nov 2026 · bout 11</p>
+</div>
+<button class="x" type="button" aria-label="Close"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#111111" stroke-width="2.2"><path d="M4 4l12 12M16 4L4 16"></path></svg></button>
+</div>
+<div class="db">
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px">
+<div>
+<span class="lbl">Fighter A</span>
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 48px; border-bottom: 2px solid #111111">
+<span style="display: flex; flex-direction: column"><span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 24px; text-transform: uppercase; line-height: 1.1">Teófilo Arce</span><span style="font-size: 13px; color: #6A6760">22-1-0 (16 KOs)</span></span>
+<button class="quiet" type="button">Change</button>
+</div>
+</div>
+<div style="position: relative">
+<label class="lbl" for="b-fb">Fighter B</label>
+<input id="b-fb" class="in focus" value="Oka" placeholder="Type a name, then Enter">
+<ul style="list-style: none; margin: 0; padding: 0; border: 2px solid #111111; border-top: 0; background: #FFFFFF">
+<li style="display: flex; justify-content: space-between; align-items: center; min-height: 48px; padding: 0 12px; background: #111111; color: #FFFFFF; font-size: 15px"><span>Daniel “The Surgeon” Okafor</span><span style="font-size: 13px; color: #D9D6CF">19-0-1 (11 KOs)</span></li>
+<li style="display: flex; justify-content: space-between; align-items: center; min-height: 48px; padding: 0 12px; font-size: 15px"><span>Kenji Okamoto</span><span style="font-size: 13px; color: #6A6760">8-3-0 (2 KOs)</span></li>
+<li style="display: flex; align-items: center; min-height: 48px; padding: 0 12px; font-size: 14px; color: #6A6760; border-top: 1px solid #E6E3DC">New fighter: “Oka”</li>
+</ul>
+</div>
+</div>
+
+<div style="display: flex; gap: 32px; flex-wrap: wrap">
+<div>
+<span class="lbl">Corner of fighter A</span>
+<div class="seg" role="group" aria-label="Corner of fighter A">
+<button class="on" type="button" aria-pressed="true"><span style="width: 12px; height: 12px; background: #C8102E; border: 1.5px solid #FFFFFF"></span>Red</button>
+<button type="button" aria-pressed="false"><span style="width: 12px; height: 12px; background: #1554B8; border: 1.5px solid #111111"></span>Blue</button>
+<button type="button" aria-pressed="false">Not recorded</button>
+</div>
+</div>
+<div>
+<span class="lbl">Scheduled rounds</span>
+<div class="seg" role="group" aria-label="Scheduled rounds">
+<button type="button" aria-pressed="false">4</button>
+<button type="button" aria-pressed="false">6</button>
+<button type="button" aria-pressed="false">8</button>
+<button type="button" aria-pressed="false">10</button>
+<button class="on" type="button" aria-pressed="true">12</button>
+</div>
+</div>
+</div>
+
+<div>
+<label class="lbl" for="b-w">Weight</label>
+<select id="b-w" class="in" style="appearance: auto">
+<option>Super bantamweight (122 lbs / 55.338 kg)</option>
+<option>Contracted weight (no class)</option>
+</select>
+<div style="display: flex; align-items: center; gap: 20px; margin-top: 10px; flex-wrap: wrap">
+<span style="font-size: 14px; color: #6A6760">Missed weight:</span>
+<label class="chk"><input type="checkbox">Arce</label>
+<label class="chk"><input type="checkbox">Okafor</label>
+</div>
+</div>
+
+<div>
+<span class="lbl">Titles on the line</span>
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) auto 44px; gap: 12px; align-items: center; border-top: 1px solid #111111; border-bottom: 1px solid #E6E3DC; padding: 10px 0">
+<select class="in" style="appearance: auto" aria-label="Title"><option>WBC World</option></select>
+<div class="seg" role="group" aria-label="Brought in by">
+<button class="on" type="button" aria-pressed="true">Arce</button>
+<button type="button" aria-pressed="false">Okafor</button>
+<button type="button" aria-pressed="false">Vacant</button>
+</div>
+<button class="x" type="button" aria-label="Remove title" style="margin: 0"><svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="#6A6760" stroke-width="2"><path d="M4 4l12 12M16 4L4 16"></path></svg></button>
+</div>
+<button class="ghost" type="button" style="margin-top: 12px">Add a title</button>
+</div>
+</div>
+<div class="df">
+<button class="quiet" type="button">Cancel</button>
+<button class="solid" type="button">Save bout</button>
+</div>
+</section>
+
+<div style="display: flex; flex-direction: column; gap: 40px; width: 560px">
+
+<section class="dlg" aria-label="Fighter dialog">
+<div class="dh">
+<div>
+<h2 class="dt">Fighter</h2>
+<p class="ds">Found in your list. Their record stays; tonight's details are taken.</p>
+</div>
+<button class="x" type="button" aria-label="Close"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#111111" stroke-width="2.2"><path d="M4 4l12 12M16 4L4 16"></path></svg></button>
+</div>
+<div class="db">
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+<div><label class="lbl" for="f-first">First name</label><input id="f-first" class="in" value="Teófilo"></div>
+<div><label class="lbl" for="f-last">Last name</label><input id="f-last" class="in" value="Arce"></div>
+<div><label class="lbl" for="f-nick">Nickname</label><input id="f-nick" class="in" value="El Relámpago"></div>
+</div>
+<p style="margin: 0; font-size: 14px; color: #6A6760; display: flex; justify-content: space-between; align-items: center; gap: 12px">In your list, <strong style="color: #111111">22-1-0 (16 KOs)</strong>. Save updates them. <button class="quiet" type="button" style="margin-left: auto">Not them</button></p>
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: end">
+<div><label class="lbl" for="f-w">Weight tonight</label><input id="f-w" class="in num" value="121.6"></div>
+<div class="seg" role="group" aria-label="Unit">
+<button class="on" type="button" aria-pressed="true">lbs</button>
+<button type="button" aria-pressed="false">kg</button>
+<button type="button" aria-pressed="false">st</button>
+</div>
+</div>
+<div><label class="lbl" for="f-col">Colours</label><input id="f-col" class="in" value="white and gold"></div>
+<fieldset style="border: 0; margin: 0; padding: 0">
+<legend class="lbl">Record</legend>
+<div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px">
+<div><label style="font-size: 13px; color: #6A6760" for="r-w">Won</label><input id="r-w" class="in num" value="22"></div>
+<div><label style="font-size: 13px; color: #6A6760" for="r-l">Lost</label><input id="r-l" class="in num" value="1"></div>
+<div><label style="font-size: 13px; color: #6A6760" for="r-d">Drawn</label><input id="r-d" class="in num" value="0"></div>
+<div><label style="font-size: 13px; color: #6A6760" for="r-nc">NC</label><input id="r-nc" class="in num" value="0"></div>
+<div><label style="font-size: 13px; color: #6A6760" for="r-ko">KOs</label><input id="r-ko" class="in num" value="16"></div>
+</div>
+<p style="margin: 10px 0 0; font-size: 14px; color: #6A6760; display: flex; align-items: center; gap: 8px">You typed 22-1-0 (17 KOs). <button class="quiet" type="button" style="color: #111111; text-decoration: underline; padding: 0 4px">Use it</button></p>
+</fieldset>
+</div>
+<div class="df">
+<button class="quiet" type="button">Cancel</button>
+<button class="solid" type="button">Save</button>
+</div>
+</section>
+
+<section class="dlg" aria-label="Event dialog">
+<div class="dh">
+<h2 class="dt">New event</h2>
+<button class="x" type="button" aria-label="Close"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#111111" stroke-width="2.2"><path d="M4 4l12 12M16 4L4 16"></path></svg></button>
+</div>
+<div class="db" style="display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 16px">
+<div><label class="lbl" for="e-date">Date</label><input id="e-date" class="in" type="date" value="2026-11-14"></div>
+<div><label class="lbl" for="e-loc">Location</label><input id="e-loc" class="in" value="Riyadh, Kingdom Arena"></div>
+</div>
+<div class="df">
+<button class="quiet" type="button">Cancel</button>
+<button class="solid" type="button">Save</button>
+</div>
+</section>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1420}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

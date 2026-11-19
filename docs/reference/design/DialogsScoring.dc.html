@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Scoring dialogs</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F0EEE9}
+.dlg{background:#FFFFFF;border:2px solid #111111;box-sizing:border-box;display:flex;flex-direction:column}
+.dh{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:28px 32px 20px;border-bottom:1px solid #E6E3DC}
+.dt{margin:0;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:34px;line-height:1;text-transform:uppercase}
+.ds{margin:6px 0 0;font-size:14px;color:#6A6760}
+.db{padding:24px 32px;display:flex;flex-direction:column;gap:22px}
+.df{display:flex;justify-content:flex-end;align-items:center;gap:12px;padding:20px 32px;border-top:1px solid #E6E3DC}
+.x{width:44px;height:44px;display:flex;align-items:center;justify-content:center;background:transparent;border:0;cursor:pointer;margin:-8px -12px 0 0}
+.lbl{display:block;font-size:12px;font-weight:600;letter-spacing:0.12em;color:#6A6760;text-transform:uppercase;margin-bottom:8px}
+.in{width:100%;box-sizing:border-box;height:48px;border:1.5px solid #CFCBC2;padding:0 12px;font-family:'Inter',sans-serif;font-size:16px;color:#111111;background:#FFFFFF;outline:none}
+.in:focus{border-color:#111111}
+.num{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:26px;text-align:center;font-variant-numeric:tabular-nums}
+.solid{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#FFFFFF;background:#111111;border:0;height:48px;padding:0 26px;cursor:pointer}
+.ghost{font-family:'Inter',sans-serif;font-size:14px;font-weight:500;color:#111111;background:#FFFFFF;border:1.5px solid #CFCBC2;height:48px;padding:0 18px;cursor:pointer}
+.quiet{font-family:'Inter',sans-serif;font-size:14px;font-weight:500;color:#6A6760;background:transparent;border:0;min-height:44px;padding:0 10px;cursor:pointer}
+.pill{display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 14px;border:1.5px solid #CFCBC2;background:#FFFFFF;font-family:'Inter',sans-serif;font-size:14px;color:#111111;cursor:pointer}
+.pill.on{border:2px solid #111111;font-weight:600}
+.tile{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;min-height:64px;padding:8px 12px;border:1.5px solid #CFCBC2;background:#FFFFFF;cursor:pointer;text-align:left}
+.tile.on{background:#111111;border-color:#111111}
+.tile .c{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:24px;line-height:1;color:#111111}
+.tile .l{font-family:'Inter',sans-serif;font-size:11px;color:#6A6760}
+.tile.on .c{color:#FFFFFF}
+.tile.on .l{color:#D9D6CF}
+</style>
+</helmet>
+<div style="width: 1440px; min-height: 1240px; box-sizing: border-box; padding: 64px 72px; background: #F0EEE9; color: #111111; font-family: 'Inter', sans-serif; display: flex; flex-direction: column; gap: 40px">
+
+<div style="display: flex; align-items: baseline; justify-content: space-between">
+<h1 style="margin: 0; font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 44px; text-transform: uppercase">Dialogs · while scoring</h1>
+<p style="margin: 0; font-size: 14px; color: #6A6760">They open over the scorecard; the page behind fades to this paper grey.</p>
+</div>
+
+<div style="display: flex; gap: 56px; align-items: flex-start">
+
+<section class="dlg" style="width: 500px" aria-label="Deduction dialog">
+<div class="dh">
+<div>
+<h2 class="dt">Deduction · Round 4</h2>
+<p class="ds" style="display: flex; align-items: center; gap: 8px"><span style="width: 12px; height: 12px; background: #1554B8; border: 1.5px solid #111111"></span>Daniel Okafor</p>
+</div>
+<button class="x" type="button" aria-label="Close"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#111111" stroke-width="2.2"><path d="M4 4l12 12M16 4L4 16"></path></svg></button>
+</div>
+<div class="db">
+<div>
+<span class="lbl">This round</span>
+<div style="display: flex; align-items: center; gap: 14px; border-top: 1px solid #111111; border-bottom: 1px solid #E6E3DC; min-height: 56px">
+<span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 28px">−1</span>
+<span style="font-size: 12px; font-weight: 600; letter-spacing: 0.08em; color: #1554B8">KD</span>
+<span style="font-size: 15px">knockdown</span>
+<button class="quiet" type="button" style="margin-left: auto">Remove</button>
+</div>
+</div>
+
+<div style="display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 16px">
+<div>
+<label class="lbl" for="d-pts">Points</label>
+<input id="d-pts" class="in num" inputmode="numeric" value="1">
+</div>
+<fieldset style="border: 0; margin: 0; padding: 0; min-width: 0">
+<legend class="lbl">Reason</legend>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<button class="pill" type="button" aria-pressed="false"><span style="width: 10px; height: 10px; background: #1554B8"></span>knockdown</button>
+<button class="pill on" type="button" aria-pressed="true"><span style="width: 10px; height: 10px; background: #C8102E"></span>low blow</button>
+<button class="pill" type="button" aria-pressed="false"><span style="width: 10px; height: 10px; background: #C8102E"></span>holding</button>
+<button class="pill" type="button" aria-pressed="false"><span style="width: 10px; height: 10px; background: #C8102E"></span>headbutt</button>
+<button class="pill" type="button" aria-pressed="false"><span style="width: 10px; height: 10px; background: #C8102E"></span>other</button>
+</div>
+</fieldset>
+</div>
+<div>
+<label class="lbl" for="d-note">Note</label>
+<input id="d-note" class="in" placeholder="Optional" value="second warning">
+</div>
+<div><button class="ghost" type="button">Add deduction</button></div>
+</div>
+<div class="df">
+<button class="solid" type="button">Done</button>
+</div>
+</section>
+
+<section class="dlg" style="width: 760px" aria-label="Decision dialog">
+<div class="dh">
+<div>
+<h2 class="dt">End bout</h2>
+<p class="ds">Teófilo Arce vs Daniel Okafor · 12 rounds</p>
+</div>
+<button class="x" type="button" aria-label="Close"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#111111" stroke-width="2.2"><path d="M4 4l12 12M16 4L4 16"></path></svg></button>
+</div>
+<div class="db">
+<fieldset style="border: 0; margin: 0; padding: 0">
+<legend class="lbl">Decision</legend>
+<div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px">
+<button class="tile on" type="button" aria-pressed="true"><span class="c">UD</span><span class="l">Unanimous</span></button>
+<button class="tile" type="button" aria-pressed="false"><span class="c">MD</span><span class="l">Majority</span></button>
+<button class="tile" type="button" aria-pressed="false"><span class="c">SD</span><span class="l">Split</span></button>
+<button class="tile" type="button" aria-pressed="false"><span class="c">DEC</span><span class="l">Decision</span></button>
+<button class="tile" type="button" aria-pressed="false"><span class="c">KO</span><span class="l">Knockout</span></button>
+<button class="tile" type="button" aria-pressed="false"><span class="c">TKO</span><span class="l">Technical KO</span></button>
+<button class="tile" type="button" aria-pressed="false"><span class="c">TD</span><span class="l">Technical dec.</span></button>
+<button class="tile" type="button" aria-pressed="false"><span class="c">DQ</span><span class="l">Disqualification</span></button>
+<button class="tile" type="button" aria-pressed="false"><span class="c">MT</span><span class="l">Majority draw</span></button>
+<button class="tile" type="button" aria-pressed="false"><span class="c">T</span><span class="l">Technical draw</span></button>
+<button class="tile" type="button" aria-pressed="false"><span class="c">D</span><span class="l">Draw</span></button>
+<button class="tile" type="button" aria-pressed="false"><span class="c">NC</span><span class="l">No contest</span></button>
+</div>
+<p style="margin: 10px 0 0; font-size: 14px; color: #6A6760">From the cards: Arce by unanimous decision.</p>
+</fieldset>
+
+<fieldset style="border: 0; margin: 0; padding: 0">
+<legend class="lbl">Winner</legend>
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 140px; gap: 8px">
+<button class="pill on" type="button" aria-pressed="true" style="height: 56px; font-size: 16px"><span style="width: 14px; height: 14px; background: #C8102E; border: 1.5px solid #111111"></span>Teófilo Arce</button>
+<button class="pill" type="button" aria-pressed="false" style="height: 56px; font-size: 16px"><span style="width: 14px; height: 14px; background: #1554B8; border: 1.5px solid #111111"></span>Daniel Okafor</button>
+<button class="pill" type="button" aria-pressed="false" style="height: 56px; font-size: 16px; justify-content: center">Draw</button>
+</div>
+</fieldset>
+
+<div style="display: grid; grid-template-columns: 120px 140px minmax(0, 1fr); gap: 16px; align-items: end">
+<div>
+<label class="lbl" for="r-rd">Round</label>
+<input id="r-rd" class="in num" value="12">
+</div>
+<div>
+<label class="lbl" for="r-time">Time <span style="text-transform: none; letter-spacing: 0; font-weight: 400">(m:ss)</span></label>
+<input id="r-time" class="in num" placeholder="—">
+</div>
+<p style="margin: 0 0 12px; font-size: 13px; color: #6A6760">A points decision goes the distance. With a TKO, a corner retirement after round X is round X at 3:00, scored.</p>
+</div>
+
+<fieldset style="border: 0; margin: 0; padding: 0">
+<legend class="lbl">Judges' cards</legend>
+<div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 13px; color: #6A6760">Judge 1</span>
+<div style="display: grid; grid-template-columns: 1fr 16px 1fr; align-items: center"><input class="in num" value="116" aria-label="Judge 1, Arce"><span style="text-align: center; color: #6A6760">–</span><input class="in num" value="112" aria-label="Judge 1, Okafor"></div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 13px; color: #6A6760">Judge 2</span>
+<div style="display: grid; grid-template-columns: 1fr 16px 1fr; align-items: center"><input class="in num" value="115" aria-label="Judge 2, Arce"><span style="text-align: center; color: #6A6760">–</span><input class="in num" value="113" aria-label="Judge 2, Okafor"></div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 13px; color: #6A6760">Judge 3</span>
+<div style="display: grid; grid-template-columns: 1fr 16px 1fr; align-items: center"><input class="in num" value="117" aria-label="Judge 3, Arce"><span style="text-align: center; color: #6A6760">–</span><input class="in num" value="111" aria-label="Judge 3, Okafor"></div>
+</div>
+</div>
+<p style="margin: 10px 0 0; font-size: 13px; color: #6A6760">Arce's score first, then Okafor's, as on the card.</p>
+</fieldset>
+</div>
+<div class="df">
+<button class="quiet" type="button">Cancel</button>
+<button class="solid" type="button">Save result</button>
+</div>
+</section>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1240}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

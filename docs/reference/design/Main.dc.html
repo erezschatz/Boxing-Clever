@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Scorecard, scoring live</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#FFFFFF}
+a{color:#111111}a:hover{color:#C8102E}
+.cell{width:100%;height:100%;box-sizing:border-box;border:0;background:transparent;text-align:center;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:44px;color:#111111;font-variant-numeric:tabular-nums;padding:0;border-radius:0;outline:none;caret-color:#C8102E}
+.cell::placeholder{color:#D9D6CF}
+.cell:focus{box-shadow:inset 0 0 0 3px #111111;background:#FFFFFF}
+.cell.next{box-shadow:inset 0 0 0 3px #111111;background:#FFFFFF}
+.row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,0.8fr) minmax(0,1.3fr) 112px minmax(0,1.3fr) minmax(0,0.8fr) minmax(0,1fr);height:64px;border-bottom:1px solid #E6E3DC}
+.row.current{background:#F5F3EE}
+.row.empty .rd{color:#A19D94}
+.rd{display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:24px;color:#111111;border-left:2px solid #111111;border-right:2px solid #111111}
+.row.current .rd span{background:#111111;color:#FFFFFF;width:40px;height:40px;display:flex;align-items:center;justify-content:center}
+.pts{border-left:1px solid #E6E3DC;border-right:1px solid #E6E3DC}
+.tot{display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-weight:500;font-size:28px;color:#6A6760;font-variant-numeric:tabular-nums}
+.ded{display:flex;align-items:center;justify-content:center;gap:8px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:28px;font-variant-numeric:tabular-nums}
+.ghost{font-family:'Inter',sans-serif;font-size:14px;font-weight:500;color:#111111;background:#FFFFFF;border:1px solid #CFCBC2;height:44px;padding:0 18px;cursor:pointer}
+.ghost:hover{border-color:#111111}
+.solid{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#FFFFFF;background:#111111;border:0;height:44px;padding:0 24px;cursor:pointer}
+.solid:hover{background:#C8102E}
+</style>
+</helmet>
+<div style="min-height: 100vh; background: #FFFFFF; color: #111111; font-family: 'Inter', sans-serif">
+
+<header style="border-bottom: 1px solid #E6E3DC">
+<div style="max-width: 1280px; margin: 0 auto; padding: 0 32px; height: 64px; display: flex; align-items: center; gap: 28px; flex-wrap: wrap">
+<a href="#" style="display: flex; align-items: center; gap: 12px; text-decoration: none">
+<svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true">
+<g fill="none" stroke="#111111" stroke-width="1.4">
+<rect x="1" y="1" width="5" height="5" fill="#C8102E"></rect><rect x="7.5" y="1" width="5" height="5"></rect><rect x="14" y="1" width="5" height="5"></rect><rect x="20.5" y="1" width="5" height="5"></rect>
+<rect x="1" y="7.5" width="5" height="5"></rect><rect x="7.5" y="7.5" width="5" height="5" fill="#C8102E"></rect><rect x="14" y="7.5" width="5" height="5"></rect><rect x="20.5" y="7.5" width="5" height="5"></rect>
+<rect x="1" y="14" width="5" height="5"></rect><rect x="7.5" y="14" width="5" height="5"></rect><rect x="14" y="14" width="5" height="5"></rect><rect x="20.5" y="14" width="5" height="5"></rect>
+<rect x="1" y="20.5" width="5" height="5"></rect><rect x="7.5" y="20.5" width="5" height="5"></rect><rect x="14" y="20.5" width="5" height="5" fill="#1554B8"></rect><rect x="20.5" y="20.5" width="5" height="5"></rect>
+</g>
+</svg>
+<span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 22px; letter-spacing: 0.04em; color: #111111">BOXING CLEVER</span>
+</a>
+<nav style="display: flex; align-items: center; gap: 10px; font-size: 14px; color: #6A6760; flex: 1 1 auto; min-width: 0">
+<a href="#" style="color: #6A6760; text-decoration: none">Events</a>
+<span aria-hidden="true">/</span>
+<a href="#" style="color: #6A6760; text-decoration: none">[EVENT NAME] · 14 Nov 2026</a>
+<span aria-hidden="true">/</span>
+<span style="color: #111111">Bout 9</span>
+</nav>
+<span style="font-size: 13px; color: #6A6760">Saved 21:42 · not final</span>
+<button class="ghost" type="button">Save progress</button>
+<button class="solid" type="button">End bout</button>
+</div>
+</header>
+
+<main style="max-width: 1280px; margin: 0 auto; padding: 36px 32px 64px">
+
+<div style="text-align: center; display: flex; flex-direction: column; gap: 6px; margin-bottom: 28px">
+<div style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 20px; letter-spacing: 0.14em; text-transform: uppercase">Super bantamweight · 122 lbs</div>
+<div style="font-size: 14px; color: #6A6760">12 rounds · WBC super bantamweight title</div>
+</div>
+
+<section aria-label="Fighters" style="display: grid; grid-template-columns: minmax(0, 1fr) 112px minmax(0, 1fr); align-items: stretch; margin-bottom: 40px">
+
+<article style="display: flex; flex-direction: column; gap: 14px; padding: 0 8px 0 0">
+<div style="display: flex; align-items: center; gap: 10px">
+<span style="width: 18px; height: 18px; background: #C8102E; outline: 2px solid #111111; outline-offset: 2px"></span>
+<span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 15px; letter-spacing: 0.16em; color: #C8102E">RED CORNER</span>
+<span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 15px; letter-spacing: 0.12em; color: #111111; border: 1.5px solid #111111; padding: 2px 8px">CHAMPION · WBC</span>
+</div>
+<h1 style="margin: 0; font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 76px; line-height: 0.9; letter-spacing: 0.005em; text-transform: uppercase">Teófilo Arce</h1>
+<div style="font-size: 17px; font-style: italic; color: #6A6760">“El Relámpago”</div>
+<dl style="margin: 6px 0 0; display: flex; gap: 32px; flex-wrap: wrap">
+<div><dt style="font-size: 12px; font-weight: 600; letter-spacing: 0.1em; color: #6A6760; text-transform: uppercase">Record</dt><dd style="margin: 4px 0 0; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 30px">22-1-0 <span style="font-weight: 500; color: #6A6760; font-size: 22px">16 KO</span></dd></div>
+<div><dt style="font-size: 12px; font-weight: 600; letter-spacing: 0.1em; color: #6A6760; text-transform: uppercase">TBRB</dt><dd style="margin: 4px 0 0; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 30px">No. 2</dd></div>
+<div><dt style="font-size: 12px; font-weight: 600; letter-spacing: 0.1em; color: #6A6760; text-transform: uppercase">Weight</dt><dd style="margin: 4px 0 0; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 30px">121.6</dd></div>
+<div><dt style="font-size: 12px; font-weight: 600; letter-spacing: 0.1em; color: #6A6760; text-transform: uppercase">Trunks</dt><dd style="margin: 10px 0 0; display: flex; gap: 6px"><span style="width: 22px; height: 22px; background: #FFFFFF; border: 1.5px solid #111111"></span><span style="width: 22px; height: 22px; background: #D4A017; border: 1.5px solid #111111"></span></dd></div>
+</dl>
+</article>
+
+<div style="display: flex; align-items: center; justify-content: center; font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 44px; color: #111111">VS</div>
+
+<article style="display: flex; flex-direction: column; align-items: flex-end; text-align: right; gap: 14px; padding: 0 0 0 8px">
+<div style="display: flex; align-items: center; gap: 10px">
+<span style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 15px; letter-spacing: 0.16em; color: #1554B8">BLUE CORNER</span>
+<span style="width: 18px; height: 18px; background: #1554B8; outline: 2px solid #111111; outline-offset: 2px"></span>
+</div>
+<h2 style="margin: 0; font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 76px; line-height: 0.9; letter-spacing: 0.005em; text-transform: uppercase">Daniel Okafor</h2>
+<div style="font-size: 17px; font-style: italic; color: #6A6760">“The Surgeon”</div>
+<dl style="margin: 6px 0 0; display: flex; gap: 32px; flex-wrap: wrap; justify-content: flex-end">
+<div><dt style="font-size: 12px; font-weight: 600; letter-spacing: 0.1em; color: #6A6760; text-transform: uppercase">Trunks</dt><dd style="margin: 10px 0 0; display: flex; gap: 6px; justify-content: flex-end"><span style="width: 22px; height: 22px; background: #111111; border: 1.5px solid #111111"></span><span style="width: 22px; height: 22px; background: #2E8B57; border: 1.5px solid #111111"></span></dd></div>
+<div><dt style="font-size: 12px; font-weight: 600; letter-spacing: 0.1em; color: #6A6760; text-transform: uppercase">Weight</dt><dd style="margin: 4px 0 0; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 30px">121.8</dd></div>
+<div><dt style="font-size: 12px; font-weight: 600; letter-spacing: 0.1em; color: #6A6760; text-transform: uppercase">TBRB</dt><dd style="margin: 4px 0 0; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 30px">No. 5</dd></div>
+<div><dt style="font-size: 12px; font-weight: 600; letter-spacing: 0.1em; color: #6A6760; text-transform: uppercase">Record</dt><dd style="margin: 4px 0 0; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 30px">19-0-1 <span style="font-weight: 500; color: #6A6760; font-size: 22px">11 KO</span></dd></div>
+</dl>
+</article>
+</section>
+
+<div style="overflow-x: auto">
+<section aria-label="Scorecard" style="min-width: 900px; border-top: 3px solid #111111; border-bottom: 3px solid #111111">
+
+<div class="row" style="height: 52px; border-bottom: 2px solid #111111; font-size: 12px; font-weight: 600; letter-spacing: 0.12em; color: #6A6760">
+<div style="display: flex; align-items: center; justify-content: center; border-top: 6px solid #C8102E">TOTAL</div>
+<div style="display: flex; align-items: center; justify-content: center; border-top: 6px solid #C8102E">DED</div>
+<div style="display: flex; align-items: center; justify-content: center; border-top: 6px solid #C8102E; color: #111111">POINTS</div>
+<div style="display: flex; align-items: center; justify-content: center; border-left: 2px solid #111111; border-right: 2px solid #111111; color: #111111">ROUND</div>
+<div style="display: flex; align-items: center; justify-content: center; border-top: 6px solid #1554B8; color: #111111">POINTS</div>
+<div style="display: flex; align-items: center; justify-content: center; border-top: 6px solid #1554B8">DED</div>
+<div style="display: flex; align-items: center; justify-content: center; border-top: 6px solid #1554B8">TOTAL</div>
+</div>
+
+<sc-for list="{{rows}}" as="row" hint-placeholder-count="12">
+<div class="{{row.cls}}">
+<div class="tot">{{row.aTotal}}</div>
+<div class="ded">
+<sc-if value="{{row.aHasDed}}" hint-placeholder-val="{{false}}">
+<span style="color: #111111">−{{row.ad}}</span><span style="{{row.aTagStyle}}">{{row.aTag}}</span>
+</sc-if>
+</div>
+<div class="pts"><input class="{{row.aCls}}" inputmode="numeric" maxlength="2" placeholder="·" value="{{row.a}}" onInput="{{row.setA}}" aria-label="{{row.aLabel}}"></div>
+<div class="rd"><span>{{row.no}}</span></div>
+<div class="pts"><input class="{{row.bCls}}" inputmode="numeric" maxlength="2" placeholder="·" value="{{row.b}}" onInput="{{row.setB}}" aria-label="{{row.bLabel}}"></div>
+<div class="ded">
+<sc-if value="{{row.bHasDed}}" hint-placeholder-val="{{false}}">
+<span style="color: #111111">−{{row.bd}}</span><span style="{{row.bTagStyle}}">{{row.bTag}}</span>
+</sc-if>
+</div>
+<div class="tot">{{row.bTotal}}</div>
+</div>
+</sc-for>
+
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 0.8fr) minmax(0, 1.3fr) 112px minmax(0, 1.3fr) minmax(0, 0.8fr) minmax(0, 1fr); height: 104px; border-top: 2px solid #111111">
+<div style="display: flex; align-items: center; justify-content: center; font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 64px; font-variant-numeric: tabular-nums">{{totalA}}</div>
+<div style="grid-column: span 2; display: flex; align-items: center; justify-content: flex-end; padding-right: 24px; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 20px; letter-spacing: 0.14em">TOTAL</div>
+<div style="border-left: 2px solid #111111; border-right: 2px solid #111111"></div>
+<div style="grid-column: span 2; display: flex; align-items: center; justify-content: flex-start; padding-left: 24px; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 20px; letter-spacing: 0.14em">TOTAL</div>
+<div style="display: flex; align-items: center; justify-content: center; font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 64px; font-variant-numeric: tabular-nums">{{totalB}}</div>
+</div>
+</section>
+</div>
+
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) 112px minmax(0, 1fr); margin-top: 20px; align-items: center">
+<div style="display: flex; gap: 12px">
+<button class="ghost" type="button">Deduction</button>
+</div>
+<div></div>
+<div style="display: flex; gap: 12px; justify-content: flex-end">
+<button class="ghost" type="button">Deduction</button>
+</div>
+</div>
+
+<p style="margin: 40px 0 0; text-align: center; font-size: 13px; color: #6A6760">Type a score: focus crosses to the other corner, then down to the next round. <span style="color: #C8102E; font-weight: 600">FOUL</span> and <span style="color: #1554B8; font-weight: 600">KD</span> mark why a point came off.</p>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"blindTotals":{"editor":"boolean","default":false,"section":"Scoring"},"rounds":{"editor":"enum","options":["4","6","8","10","12"],"default":"12","section":"Scoring"},"$preview":{"width":1440,"height":1420}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    var seed = [
+      { a: '10', b: '9', ad: 0, bd: 0 },
+      { a: '9', b: '10', ad: 0, bd: 0 },
+      { a: '10', b: '9', ad: 0, bd: 0 },
+      { a: '10', b: '9', ad: 0, bd: 1, bk: 'kd' },
+      { a: '9', b: '10', ad: 0, bd: 0 },
+      { a: '10', b: '9', ad: 1, ak: 'foul', bd: 0 },
+      { a: '10', b: '', ad: 0, bd: 0 }
+    ];
+    var cells = [];
+    for (var i = 0; i < 12; i++) cells.push(seed[i] || { a: '', b: '', ad: 0, bd: 0 });
+    this.state = { cells: cells };
+  }
+  setCell(i, side, raw) {
+    var v = String(raw).replace(/[^0-9]/g, '').slice(0, 2);
+    var cells = this.state.cells.slice();
+    var c = Object.assign({}, cells[i]);
+    c[side] = v;
+    cells[i] = c;
+    this.setState({ cells: cells });
+  }
+  renderVals() {
+    var self = this;
+    var blind = this.props.blindTotals ?? false;
+    var count = parseInt(this.props.rounds ?? '12', 10);
+    var cells = this.state.cells.slice(0, count);
+    var cur = -1;
+    for (var k = 0; k < cells.length; k++) { if (cells[k].a === '' || cells[k].b === '') { cur = k; break; } }
+    var ta = 0, tb = 0;
+    var tag = function (kind) {
+      return kind === 'foul'
+        ? 'font-size: 13px; font-family: Inter, sans-serif; font-weight: 600; letter-spacing: 0.08em; color: #C8102E'
+        : 'font-size: 13px; font-family: Inter, sans-serif; font-weight: 600; letter-spacing: 0.08em; color: #1554B8';
+    };
+    var rows = cells.map(function (c, i) {
+      var a = parseInt(c.a, 10), b = parseInt(c.b, 10);
+      if (!isNaN(a)) ta += a - c.ad;
+      if (!isNaN(b)) tb += b - c.bd;
+      var state = i === cur ? 'current' : (i > cur && cur !== -1 ? 'empty' : 'scored');
+      var nextSide = i === cur ? (c.a === '' ? 'a' : 'b') : '';
+      return {
+        no: i + 1,
+        a: c.a, b: c.b, ad: c.ad, bd: c.bd,
+        aHasDed: c.ad > 0, bHasDed: c.bd > 0,
+        aTag: c.ak === 'foul' ? 'FOUL' : 'KD', bTag: c.bk === 'foul' ? 'FOUL' : 'KD',
+        aTagStyle: tag(c.ak), bTagStyle: tag(c.bk),
+        aTotal: blind || isNaN(a) ? '' : ta,
+        bTotal: blind || isNaN(b) ? '' : tb,
+        cls: 'row ' + state,
+        aCls: nextSide === 'a' ? 'cell next' : 'cell',
+        bCls: nextSide === 'b' ? 'cell next' : 'cell',
+        aLabel: 'Round ' + (i + 1) + ', Teófilo Arce, points',
+        bLabel: 'Round ' + (i + 1) + ', Daniel Okafor, points',
+        setA: function (e) { self.setCell(i, 'a', e.target.value); },
+        setB: function (e) { self.setCell(i, 'b', e.target.value); }
+      };
+    });
+    return { rows: rows, totalA: blind ? '—' : ta, totalB: blind ? '—' : tb };
+  }
+}
+</script>
+</body>
+</html>

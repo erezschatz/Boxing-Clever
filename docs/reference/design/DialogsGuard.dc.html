@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Delete and merge dialogs</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F0EEE9}
+.dlg{background:#FFFFFF;border:2px solid #111111;box-sizing:border-box;display:flex;flex-direction:column}
+.dh{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:28px 28px 18px;border-bottom:1px solid #E6E3DC}
+.dt{margin:0;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:32px;line-height:1;text-transform:uppercase}
+.step{font-size:12px;font-weight:600;letter-spacing:0.12em;color:#6A6760;margin:0 0 8px}
+.db{padding:22px 28px;display:flex;flex-direction:column;gap:18px;font-size:15px;line-height:1.5}
+.db p{margin:0}
+.df{display:flex;flex-direction:column;align-items:stretch;gap:8px;padding:18px 28px 24px;border-top:1px solid #E6E3DC}
+.dfr{display:flex;justify-content:flex-end;align-items:center;gap:12px;padding:18px 28px;border-top:1px solid #E6E3DC}
+.x{width:44px;height:44px;display:flex;align-items:center;justify-content:center;background:transparent;border:0;cursor:pointer;margin:-8px -12px 0 0}
+.solid{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#FFFFFF;background:#111111;border:0;height:48px;padding:0 22px;cursor:pointer}
+.danger{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#FFFFFF;background:#A50D25;border:0;height:48px;padding:0 22px;cursor:pointer}
+.dangerline{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#A50D25;background:#FFFFFF;border:2px solid #A50D25;height:48px;padding:0 22px;cursor:pointer}
+.quiet{font-family:'Inter',sans-serif;font-size:14px;font-weight:500;color:#6A6760;background:transparent;border:0;min-height:44px;padding:0 10px;cursor:pointer}
+.rec{width:100%;border-collapse:collapse;font-size:14px}
+.rec th{font-size:11px;font-weight:600;letter-spacing:0.12em;color:#6A6760;text-align:left;padding:0 0 8px;border-bottom:1px solid #111111}
+.rec td{padding:10px 0;border-bottom:1px solid #E6E3DC;vertical-align:baseline}
+.rec .n{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:20px;font-variant-numeric:tabular-nums;white-space:nowrap}
+</style>
+</helmet>
+<div style="width: 1440px; min-height: 1080px; box-sizing: border-box; padding: 64px 72px; background: #F0EEE9; color: #111111; font-family: 'Inter', sans-serif; display: flex; flex-direction: column; gap: 40px">
+
+<div style="display: flex; align-items: baseline; justify-content: space-between">
+<h1 style="margin: 0; font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 44px; text-transform: uppercase">Dialogs · delete and merge</h1>
+<p style="margin: 0; font-size: 14px; color: #6A6760">Nothing is lost by accident: each says what will happen before it happens.</p>
+</div>
+
+<div style="display: flex; gap: 28px; align-items: flex-start">
+
+<section class="dlg" style="width: 360px" aria-label="Delete a finalised bout, first question">
+<div class="dh">
+<div>
+<p class="step">DELETE · 1 OF 2</p>
+<h2 class="dt">A finalised fight</h2>
+</div>
+<button class="x" type="button" aria-label="Close"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#111111" stroke-width="2.2"><path d="M4 4l12 12M16 4L4 16"></path></svg></button>
+</div>
+<div class="db">
+<p><strong>Kenji Hara v Felipe Rojas</strong> is finalised. Its card and result go with it.</p>
+<p>Are you sure?</p>
+</div>
+<div class="dfr">
+<button class="quiet" type="button">Cancel</button>
+<button class="dangerline" type="button">Delete</button>
+</div>
+</section>
+
+<section class="dlg" style="width: 480px" aria-label="Delete a finalised bout, the records">
+<div class="dh">
+<div>
+<p class="step">DELETE · 2 OF 2</p>
+<h2 class="dt">What about the records?</h2>
+</div>
+<button class="x" type="button" aria-label="Close"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#111111" stroke-width="2.2"><path d="M4 4l12 12M16 4L4 16"></path></svg></button>
+</div>
+<div class="db">
+<p>This fight's result is in both records. Resetting takes it out.</p>
+<table class="rec">
+<thead><tr><th>Fighter</th><th>Now</th><th>If reset</th></tr></thead>
+<tbody>
+<tr><td>Kenji Hara</td><td class="n">17-1-0 (9 KOs)</td><td class="n">16-1-0 (9 KOs)</td></tr>
+<tr><td>Felipe Rojas</td><td class="n">18-3-1 (12 KOs)</td><td class="n">18-2-1 (12 KOs)</td></tr>
+</tbody>
+</table>
+</div>
+<div class="df">
+<button class="danger" type="button">Delete and reset the records</button>
+<button class="dangerline" type="button">Delete and keep the records</button>
+<button class="quiet" type="button">Cancel, back to the fight</button>
+</div>
+</section>
+
+<section class="dlg" style="width: 400px" aria-label="Merge fighters">
+<div class="dh">
+<div>
+<p class="step">MERGE</p>
+<h2 class="dt">Merge into Daniel Okafor</h2>
+</div>
+<button class="x" type="button" aria-label="Close"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#111111" stroke-width="2.2"><path d="M4 4l12 12M16 4L4 16"></path></svg></button>
+</div>
+<div class="db">
+<p><strong>Dan Okafor</strong> is a duplicate of <strong>Daniel Okafor</strong>. Nothing changes until you approve.</p>
+<table class="rec">
+<thead><tr><th></th><th>Before</th><th>After</th></tr></thead>
+<tbody>
+<tr><td>Okafor's record</td><td class="n">19-1-1</td><td class="n">20-1-1</td></tr>
+<tr><td style="color: #6A6760">Dan's typed record</td><td class="n" style="color: #6A6760">6-0-0</td><td style="color: #6A6760">dropped</td></tr>
+</tbody>
+</table>
+<ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; font-size: 14px">
+<li><strong>Moving:</strong> 1 finalised fight, 1 name, 3 TBRB rows</li>
+<li style="color: #6A6760">The result of Dan's one fight is added to Okafor's record.</li>
+</ul>
+</div>
+<div class="dfr">
+<button class="quiet" type="button">Pick another</button>
+<button class="solid" type="button">Merge and add the results</button>
+</div>
+</section>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>
