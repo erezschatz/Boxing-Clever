@@ -9,11 +9,15 @@ import {
   classText,
   dateText,
   fighterName,
+  howItEnded,
   initialOf,
   missedWeight,
   missedWeightNote,
+  myCardFor,
+  outcomeFor,
   recordText,
   resultText,
+  sideOf,
   titleText,
 } from '../../front/format.ts';
 import type { BoutView, WeightClass } from '../../front/api.ts';
@@ -138,4 +142,37 @@ Deno.test('a side that missed weight gets a quiet note after its name, the other
   const marks = { missed_weight_a: 1, missed_weight_b: 0 } as const;
   assertEquals(missedWeightNote(marks, 'A'), '(missed weight)');
   assertEquals(missedWeightNote(marks, 'B'), '');
+});
+
+Deno.test("the fighter card reads each bout from that fighter's side: W, L, D or NC, and my card with theirs first", () => {
+  const bout = (
+    result: BoutView['card']['result'],
+    totals = { a: 0, b: 0 },
+    scored = true,
+  ) =>
+    ({
+      fighter_a_id: 1,
+      fighter_b_id: 2,
+      card: { result, is_draft: false, rounds: scored ? [{}] : [], totals },
+    }) as unknown as BoutView;
+  const ud = { decision_type: 'UD', winner: 'A', round: null, time: null } as const;
+  assertEquals(sideOf(bout(ud), 1), 'A');
+  assertEquals(sideOf(bout(ud), 2), 'B');
+  assertEquals(outcomeFor(bout(ud), 'A'), 'W');
+  assertEquals(outcomeFor(bout(ud), 'B'), 'L');
+  const draw = { decision_type: 'MT', winner: 'draw', round: null, time: null } as const;
+  assertEquals(outcomeFor(bout(draw), 'A'), 'D');
+  assertEquals(outcomeFor(bout(draw), 'B'), 'D');
+  const nc = { decision_type: 'NC', winner: 'none', round: 3, time: null } as const;
+  assertEquals(outcomeFor(bout(nc), 'B'), 'NC');
+  assertEquals(outcomeFor(bout(null), 'A'), ''); // not scored yet
+  // My card, that fighter's total first; nothing when no round was scored.
+  assertEquals(myCardFor(bout(ud, { a: 115, b: 111 }), 'A'), '115–111');
+  assertEquals(myCardFor(bout(ud, { a: 115, b: 111 }), 'B'), '111–115');
+  assertEquals(myCardFor(bout(ud, { a: 0, b: 0 }, false), 'A'), '');
+  // How it ended, the same words as the event card's result.
+  const ko = { decision_type: 'KO', winner: 'B', round: 7, time: '2:14' } as const;
+  assertEquals(howItEnded(bout(ko)), 'KO 7 (2:14)');
+  assertEquals(howItEnded(bout(ud)), 'UD');
+  assertEquals(howItEnded(bout(null)), '');
 });

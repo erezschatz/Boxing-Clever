@@ -1,7 +1,10 @@
 // Tier 2: /api/fighters over HTTP (SPEC API). Merge's all-or-nothing is
 // tier 3, in tests/api/merge.test.ts.
 import { deepStrictEqual, strictEqual as assertEquals } from 'node:assert/strict';
-import { fury, testApi, usyk, usykFury } from '../helpers/api.ts';
+import { finalise, fury, HEAVYWEIGHT, testApi, usyk, usykFury } from '../helpers/api.ts';
+import { insertTbrbRow } from '../../server/db/tbrb-snapshot.ts';
+
+const CRUISERWEIGHT = 17;
 
 Deno.test('POST /api/fighters creates a fighter with the record they arrive with', async () => {
   const { status, json } = await testApi().call('POST', '/api/fighters', usyk);
@@ -174,4 +177,140 @@ Deno.test('merge: 404 for either missing fighter, 400 into itself, 409 when they
   assertEquals((await api.call('POST', `/api/fighters/${aId}/merge/${aId}`)).status, 400);
   assertEquals((await api.call('POST', `/api/fighters/${bId}/merge/${aId}`)).status, 409);
   assertEquals((await api.call('GET', `/api/fighters/${bId}`)).status, 200);
+});
+
+// GET /api/fighters/:id/standing: where the fighter stands now, for the
+// fighter card (task fighter-card): titles held as witnessed (SPEC Scoring
+// §8) and the rank on each class's latest TBRB list that names them (D25).
+
+Deno.test('GET /api/fighters/:id/standing: nothing held and no list for a new fighter; 404 for none', async () => {
+  const api = testApi();
+  const { json: f } = await api.call('POST', '/api/fighters', usyk);
+  const { status, json } = await api.call('GET', `/api/fighters/${f.id}/standing`);
+  assertEquals(status, 200);
+  deepStrictEqual(json, { titles: [], tbrb: [] });
+  assertEquals((await api.call('GET', '/api/fighters/999/standing')).status, 404);
+  assertEquals((await api.call('GET', '/api/fighters/abc/standing')).status, 404);
+});
+
+Deno.test('standing: a title goes with the last finalised bout for it, in fight order, whoever fought', async () => {
+  const api = testApi();
+  const { aId: usykId, bId: furyId, boutId } = await usykFury(api); // 2024-05-18
+  const { json: wbc } = await api.call('POST', '/api/titles', {
+    sanctioning_body: 'WBC',
+    area: 'World',
+    weight_class_id: HEAVYWEIGHT,
+  });
+  const { json: joshua } = await api.call('POST', '/api/fighters', {
+    first_name: 'Anthony',
+    last_name: 'Joshua',
+  });
+  const titles = (fighterId: number) => api.call('GET', `/api/fighters/${fighterId}/standing`);
+  const bout = async (date: string, a: number, b: number, holder: string) => {
+    const { json: event } = await api.call('POST', '/api/events', { date, location: 'London' });
+    const { json } = await api.call('POST', '/api/bouts', {
+      event_id: event.id,
+      weight_class_id: HEAVYWEIGHT,
+      scheduled_rounds: 12,
+      fighter_a_id: a,
+      fighter_b_id: b,
+      titles: [{ title_id: wbc.id, holder_side: holder }],
+    });
+    return json.id as number;
+  };
+
+  // Usyk brings the WBC in and loses it to Fury.
+  await api.call('PATCH', `/api/bouts/${boutId}`, {
+    titles: [{ title_id: wbc.id, holder_side: 'A' }],
+  });
+  // Not final yet: a result the user has not finalised moves nothing.
+  await api.call('PUT', `/api/bouts/${boutId}/card`, {
+    rounds: [],
+    result: { decision_type: 'UD', winner: 'B', round: null, time: null },
+    is_draft: true,
+  });
+  deepStrictEqual((await titles(usykId)).json.titles, []);
+  deepStrictEqual((await titles(furyId)).json.titles, []);
+  await finalise(api, boutId, { decision_type: 'UD', winner: 'B' });
+  deepStrictEqual((await titles(usykId)).json.titles, []);
+  deepStrictEqual((await titles(furyId)).json.titles, [wbc.id]);
+
+  // Entered later, but fought earlier: Joshua won it vacant in 2023. Fight
+  // order decides, not the order things were typed in.
+  await finalise(api, await bout('2023-01-01', joshua.id, usykId, 'vacant'), {
+    decision_type: 'KO',
+    winner: 'A',
+  });
+  deepStrictEqual((await titles(furyId)).json.titles, [wbc.id]);
+  deepStrictEqual((await titles(joshua.id)).json.titles, []);
+
+  // A draw leaves it with Fury, who brought it in.
+  await finalise(api, await bout('2025-07-19', joshua.id, furyId, 'B'), {
+    decision_type: 'D',
+    winner: 'draw',
+  });
+  deepStrictEqual((await titles(furyId)).json.titles, [wbc.id]);
+
+  // Then Joshua takes it, in a fight Usyk was not in.
+  await finalise(api, await bout('2025-12-20', furyId, joshua.id, 'A'), {
+    decision_type: 'SD',
+    winner: 'B',
+  });
+  deepStrictEqual((await titles(furyId)).json.titles, []);
+  deepStrictEqual((await titles(joshua.id)).json.titles, [wbc.id]);
+});
+
+Deno.test('standing: a winner who missed weight does not take the title; it goes vacant (§8)', async () => {
+  const api = testApi();
+  const { aId: usykId, bId: furyId, boutId } = await usykFury(api);
+  const { json: wbc } = await api.call('POST', '/api/titles', {
+    sanctioning_body: 'WBC',
+    area: 'World',
+    weight_class_id: HEAVYWEIGHT,
+  });
+  // Usyk brings the WBC in; Fury came in heavy and wins.
+  await api.call('PATCH', `/api/bouts/${boutId}`, {
+    titles: [{ title_id: wbc.id, holder_side: 'A' }],
+    missed_weight_b: true,
+  });
+  await finalise(api, boutId, { decision_type: 'UD', winner: 'B' });
+  for (const id of [usykId, furyId]) {
+    deepStrictEqual(
+      (await api.call('GET', `/api/fighters/${id}/standing`)).json.titles,
+      [],
+      `${id}`,
+    );
+  }
+});
+
+Deno.test("standing: the rank on each class's latest list that names them, with its date (D25)", async () => {
+  const api = testApi();
+  const { aId: usykId, bId: furyId } = await usykFury(api);
+  const row = (snapshot_date: string, weight_class_id: number, rank: number, id: number | null) =>
+    insertTbrbRow(api.db, {
+      snapshot_date,
+      weight_class_id,
+      rank,
+      fighter_name: id === usykId ? 'Usyk' : id === furyId ? 'Fury' : `name ${rank}`,
+      fighter_id: id,
+    });
+  // Heavyweight: third, then first on the latest list.
+  row('2024-01-01', HEAVYWEIGHT, 3, usykId);
+  row('2024-06-01', HEAVYWEIGHT, 1, usykId);
+  row('2024-06-01', HEAVYWEIGHT, 0, furyId);
+  // Cruiserweight: champion once, but the latest list leaves him off, so he
+  // is unranked there now and the class is not in the answer.
+  row('2020-01-01', CRUISERWEIGHT, 0, usykId);
+  row('2024-06-01', CRUISERWEIGHT, 0, null);
+
+  const { status, json } = await api.call('GET', `/api/fighters/${usykId}/standing`);
+  assertEquals(status, 200);
+  deepStrictEqual(json.tbrb, [{
+    weight_class_id: HEAVYWEIGHT,
+    rank: 1,
+    snapshot_date: '2024-06-01',
+  }]);
+  deepStrictEqual((await api.call('GET', `/api/fighters/${furyId}/standing`)).json.tbrb, [
+    { weight_class_id: HEAVYWEIGHT, rank: 0, snapshot_date: '2024-06-01' },
+  ]);
 });

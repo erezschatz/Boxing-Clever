@@ -1148,3 +1148,67 @@ Source: [tasks/00-skeleton.md](../tasks/00-skeleton.md)
 Supersedes: D66
 
 Source: [tasks/00-skeleton.md](../tasks/00-skeleton.md)
+
+## D68 · 2026-11-19 · The fighter card is its own task file, under 09
+
+**Decision** — The card is built and recorded in `tasks/fighter-card.md`. Task 09 keeps its four acceptance boxes, and its second one is ticked when 09 closes.
+**Rejected** — Appending a `## What was done` to `tasks/09-design-pass.md` for the card alone.
+**Why** — A task file with a *What was done* section is done (tasks/README.md), so the plan would call 09 done while the restyle of the other pages and Erez's check in the browser are still open.
+
+Source: [tasks/fighter-card.md](../tasks/fighter-card.md)
+
+## D69 · 2026-11-19 · Titles held are worked out from the bouts watched
+
+**Decision** — A fighter holds a title when the last finalised bout that had it on the line left it with them. The winner of a finalised bout takes every title on the line. A draw or a no contest leaves each title with the side that brought it in, and a vacant title stays vacant. Bouts are taken in fight order: event date, then card order. Every finalised bout with that title counts, whoever fought in it. It is a pure rule, `titlesHeld` in `server/rules/titles.ts` (SPEC Scoring §8).
+**Rejected** — A stored current holder per title, which nothing writes and the import could not fill. Reading only the fighter's own bouts, which would still show a belt they had lost in a fight between two others, or vacated before one.
+**Why** — The app knows titles only through the fights watched. The card says "as witnessed", as the fight list does. A title lost or vacated off-screen still shows until a bout with that title is watched.
+
+Source: [tasks/fighter-card.md](../tasks/fighter-card.md)
+
+## D70 · 2026-11-19 · One read endpoint for where a fighter stands
+
+**Decision** — `GET /api/fighters/:id/standing` answers `{titles: [title_id], tbrb: [{weight_class_id, rank, snapshot_date}]}`: the titles held (above), and the fighter's rank on each class's latest TBRB list that names them. A class whose latest list does not name them is left out, which is unranked (D25).
+**Rejected** — Building `GET /api/tbrb/fighters/:id` (the rank history, task 12–13's) early for the card. Adding the standing to `GET /api/fighters/:id`, whose shape the fighters page, the forms and the merge read.
+**Why** — The card needs the current standing, not the history. The other endpoints stay as they are. Before task 12 there are no lists, so `tbrb` is empty and the card says so.
+
+Source: [tasks/fighter-card.md](../tasks/fighter-card.md)
+
+## D71 · 2026-11-19 · The card reads the event dates from the events list
+
+**Decision** — The card loads `GET /api/events` and joins each bout to its event's date, as a page joins ids to names from the reference lists (D34).
+**Rejected** — Adding the event date to `GET /api/fighters/:id/bouts`.
+**Why** — The data is already served, and the bout's wire shape is shared by every page.
+
+Source: [tasks/fighter-card.md](../tasks/fighter-card.md)
+
+## D72 · 2026-11-19 · No webfont yet; the card's styles are its own
+
+**Decision** — The card's display type is a system condensed stack (`Avenir Next Condensed`, `Helvetica Neue` condensed, `Arial Narrow`), and its colours are custom properties scoped to `.fighter-card` in `front/style.css`. The other pages do not change.
+**Rejected** — Loading Barlow Condensed and Inter from Google Fonts, as the design reference does. Changing the `:root` properties now.
+**Why** — A webfont is a new dependency, and needs a row in SPEC's Stack table. Whether to add one is the restyle's call, for every page at once. Until then, scoping keeps the restyle's "no behaviour change" box about the other pages true.
+
+Source: [tasks/fighter-card.md](../tasks/fighter-card.md)
+
+## D73 · 2026-11-19 · From the design, what the card leaves out
+
+**Decision** — Colours are shown as the words typed, not as swatches. A title held has no "won on" date or count of defences. Wins and losses are squares in the "As witnessed" row: filled for a win, open for a loss, grey for a draw, dashed for a no contest.
+**Rejected** — Parsing the colour words into swatches. Counting defences from the bouts watched.
+**Why** — `colors` is free text ("Blue/Yellow"). A count of defences from the fights watched would be wrong whenever one was missed, and the design's README already lists both as open.
+
+Source: [tasks/fighter-card.md](../tasks/fighter-card.md)
+
+## D74 · 2026-11-19 · "Champion" above the name means a title held as witnessed
+
+**Decision** — The card puts a "Champion" chip above the name when the fighter holds at least one title as witnessed (§8), whatever the belt, interim included. A TBRB champion (rank 0) shows as "Champion" in the TBRB panel, and does not get the chip on its own.
+**Rejected** — Showing the chip for a TBRB rank 0 as well. Showing it only for a regular belt.
+**Why** — The chip follows the titles panel under it, so the two always agree. TBRB's champion is a ranking, and the panel already says it. Which belts count as "real" is not something the app records.
+
+Source: [tasks/fighter-card.md](../tasks/fighter-card.md)
+
+## D75 · 2026-11-19 · A side that missed weight can neither take nor keep a title
+
+**Decision** — In §8, where a bout would leave a title with a side marked as having missed weight, the title goes vacant instead. That covers a heavy winner, and a heavy holder who wins, draws or ends in a no contest. A heavy holder who loses loses the belt to a challenger who made weight. `holderAfter` reads `missed_weight_a/b` from the bout.
+**Rejected** — Ignoring missed weight, so the winner always takes the belt and the holder keeps it on a draw.
+**Why** — Erez, 2026-11-19, asked when the cold review of tasks/fighter-card.md found the gap: "No, it goes vacant". A fighter who misses weight is not eligible for the belt. The mark is the user's, never computed (D26), so the rule reads only what was ticked.
+
+Source: [tasks/fighter-card.md](../tasks/fighter-card.md)

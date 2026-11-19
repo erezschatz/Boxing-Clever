@@ -9,7 +9,10 @@ filled by hand from archive.org captures, once the tooling exists.
 
 What the app wants from this: for every bout, each fighter's TBRB standing
 *on the date of the fight* (champion / rank N / unranked), and on the
-fighter card, their standing now and over time.
+fighter card, their standing now and over time. "Now" is their rank on
+each class's latest list that names them, with that list's date
+(`currentRanks`, `GET /api/fighters/:id/standing`); a class whose latest
+list leaves them off is unranked, and is not shown.
 
 ## Model
 

@@ -14,7 +14,15 @@ import {
 } from '../db/fighter.ts';
 import { listAliases, repointAliases } from '../db/fighter-alias.ts';
 import { countBoutsBetween, listBoutsForFighter, repointBoutFighter } from '../db/bout.ts';
-import { listTbrbRowsForFighter, repointTbrbRows } from '../db/tbrb-snapshot.ts';
+import {
+  type CurrentRank,
+  currentRanks,
+  listTbrbRowsForFighter,
+  repointTbrbRows,
+} from '../db/tbrb-snapshot.ts';
+import { listTitleLinesForFighter } from '../db/bout-title.ts';
+import type { Database } from '../db/connection.ts';
+import { titlesHeld } from '../rules/titles.ts';
 import {
   countAdjustmentsBetween,
   listAdjustments,
@@ -167,6 +175,16 @@ function mergePlan(c: Context, db: GetDb): MergePlan {
   return { ok: true, preview, dupId, targetId };
 }
 
+// GET /fighters/:id/standing's answer (front/api.ts imports it as a type).
+export type Standing = { titles: number[]; tbrb: CurrentRank[] };
+
+function standingOf(db: Database, id: number): Standing {
+  return {
+    titles: titlesHeld(id, listTitleLinesForFighter(db, id)),
+    tbrb: currentRanks(db, id),
+  };
+}
+
 export function fighterRoutes(db: GetDb): Hono {
   const routes = new Hono();
 
@@ -205,6 +223,15 @@ export function fighterRoutes(db: GetDb): Hono {
     const id = pathId(c);
     if (!id || !getFighter(db(), id)) return notFound(c, 'fighter');
     return c.json(listBoutsForFighter(db(), id).map((b) => boutView(db(), b.id)));
+  });
+
+  // Where the fighter stands now, for the fighter card: the titles they hold
+  // as witnessed (SPEC Scoring §8) and their rank on each class's latest
+  // TBRB list that names them (D25).
+  routes.get('/:id/standing', (c) => {
+    const id = pathId(c);
+    if (!id || !getFighter(db(), id)) return notFound(c, 'fighter');
+    return c.json(standingOf(db(), id));
   });
 
   // :id is the duplicate, :targetId the fighter it duplicates. GET says what

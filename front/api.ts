@@ -8,7 +8,7 @@ import type { WeightClass } from '../server/db/weight-class.ts';
 import type { Title } from '../server/db/title.ts';
 import type { BoutView } from '../server/api/card.ts';
 import type { DeleteDone, DeletePreview } from '../server/api/bouts.ts';
-import type { MergePreview } from '../server/api/fighters.ts';
+import type { MergePreview, Standing } from '../server/api/fighters.ts';
 
 export type {
   BoutView,
@@ -17,6 +17,7 @@ export type {
   Event,
   Fighter,
   MergePreview,
+  Standing,
   Title,
   WeightClass,
 };

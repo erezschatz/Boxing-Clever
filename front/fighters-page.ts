@@ -1,6 +1,6 @@
 // `/fighters`: everyone watched, filed by the initial of the last name, with
 // the record as W-L-D (N KOs) (SPEC Front end; v1's FighterList). Add, edit
-// and merge open dialogs; the fighter card behind each name is task 09.
+// and merge open dialogs; each name opens the fighter card (fighter-page.ts).
 import { api, type Fighter } from './api.ts';
 import { Component, html } from './component.ts';
 import { FighterForm } from './fighter-form.ts';
@@ -78,7 +78,7 @@ export class FightersPage extends Component<State> {
           ${fighters.map((fighter) =>
             html`
               <tr>
-                <td>${fighterName(fighter)}</td>
+                <td><a href="/fighters/${fighter.id}">${fighterName(fighter)}</a></td>
                 <td class="record">${recordText(fighter)}</td>
                 <td class="row-actions">
                   <button type="button" class="quiet" @click=${() =>

@@ -56,11 +56,42 @@ export function titleText(t: Title): string {
 export function resultText(bout: BoutView, nameA: string, nameB: string): string {
   const { result } = bout.card;
   if (!result) return '';
-  const when = result.round ? ` ${result.round}${result.time ? ` (${result.time})` : ''}` : '';
   const who = result.winner === 'A' ? nameA : result.winner === 'B' ? nameB : '';
-  const how = `${result.decision_type}${when}`;
+  const how = howItEnded(bout);
   const text = who ? `${who} · ${how}` : how;
   return bout.card.is_draft ? `${text} · not final` : text;
+}
+
+// The code with the round and time of a stoppage: "KO 7 (2:14)", "UD".
+export function howItEnded(bout: BoutView): string {
+  const { result } = bout.card;
+  if (!result) return '';
+  const when = result.round ? ` ${result.round}${result.time ? ` (${result.time})` : ''}` : '';
+  return `${result.decision_type}${when}`;
+}
+
+// The fighter card reads every bout from one fighter's side (task
+// fighter-card): which side they were, how it went for them, and my card
+// with their total first.
+export function sideOf(bout: BoutView, fighterId: number): 'A' | 'B' {
+  return bout.fighter_a_id === fighterId ? 'A' : 'B';
+}
+
+// W, L, D or NC for that side; '' while the bout has no result.
+export function outcomeFor(bout: BoutView, side: 'A' | 'B'): 'W' | 'L' | 'D' | 'NC' | '' {
+  const result = bout.card.result;
+  if (!result) return '';
+  if (result.winner === 'draw') return 'D';
+  if (result.winner === 'none') return 'NC';
+  return result.winner === side ? 'W' : 'L';
+}
+
+// "115–111" with that side's total first, or '' when no round was scored
+// (a fight watched, not scored, is valid: SPEC Scoring §5).
+export function myCardFor(bout: BoutView, side: 'A' | 'B'): string {
+  const { totals, rounds } = bout.card;
+  if (rounds.length === 0) return '';
+  return side === 'A' ? `${totals.a}–${totals.b}` : `${totals.b}–${totals.a}`;
 }
 
 export function resultLabel(bout: BoutView): string {

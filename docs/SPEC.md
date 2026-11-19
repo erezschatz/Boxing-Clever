@@ -208,6 +208,17 @@ origin; the three stoppage defects there are fixed by construction here.
    from the bout's own class only, the last list on or before the fight
    day (D32, D58, D59); a bout at a contracted weight has no class, so its
    rank is null (D45, D59).
+8. **Titles held, as witnessed.** The app knows a belt only through the
+   bouts watched with it on the line, so the last finalised one decides,
+   taken in fight order (event date, then card order), whoever fought in
+   it. Its winner takes every title on the line; a draw or a no contest
+   leaves each with the side that brought it in, and a vacant one stays
+   vacant. A side marked as having missed weight (D26) can neither take a
+   title nor keep it: where the belt would go to them, it goes vacant. A
+   holder who missed weight and lost loses it to a challenger who made
+   weight. A bout not yet final counts for nothing. A belt lost or vacated
+   off-screen still shows until a bout with it is watched
+   (`titlesHeld`, task fighter-card).
 
 ## API
 
@@ -230,6 +241,7 @@ did, and its `409` carries a `preview` of what each choice would do (D31).
 | GET | `/api/fighters/:id/merge/:targetId` | the merge's preview: the target's record before and after, the duplicate's record that is dropped, and how many bouts (finalised among them), aliases, TBRB rows and kept results (`kept_results`) move (D31, D57) |
 | POST | `/api/fighters/:id/merge/:targetId` | `:id` is the duplicate. Its bouts, aliases, TBRB rows and record adjustments move to the target and it is deleted, in one transaction. The results of its finalised fights and its kept results are added to the target's record (D61). Every merge needs `?records=add`, else `409` with the preview (D31). The duplicate's typed-in record is dropped (D28). `409` if the two fought each other, in a bout or in a deleted one whose result was kept (D62); GET answers the same `409`. Answers the preview, carried out |
 | GET | `/api/fighters/:id/bouts` | history as witnessed, oldest first, each bout as `GET /api/bouts/:id` answers it (snapshot, `titles`, `card`; D34) |
+| GET | `/api/fighters/:id/standing` | where the fighter stands now, for the fighter card: `{titles: [title_id], tbrb: [{weight_class_id, rank, snapshot_date}]}`, the titles held as witnessed (Scoring §8) and their rank on each class's latest TBRB list that names them; a class whose latest list leaves them off is not there, which is unranked (D25) |
 | GET/POST | `/api/events` | |
 | GET/PATCH/DELETE | `/api/events/:id` | delete refuses (`409`) if any bout is finalised; otherwise its bouts go with it |
 | GET | `/api/events/:id/bouts` | ordered by card_order, each bout as `GET /api/bouts/:id` answers it (D34) |
@@ -286,7 +298,18 @@ reference lists, every fighter, class and title (D34). Pages:
   list of their fights as witnessed with the as-of record beside each,
   the contracted weight where there was one and a missed weight noted as
   the scorecard notes it (D26, D47; `boutWeightText` and `missedWeightNote` in
-  `format.ts`).
+  `format.ts`). Built to `docs/reference/design/Fighter.dc.html`
+  (`fighter-page.ts`): the record large beside the name, with a "Champion"
+  chip over the name when any title is held as witnessed (Scoring §8; a
+  TBRB rank 0 alone does not show it); TBRB now, titles
+  held and "As witnessed": a row of squares, one per finalised fight
+  (filled a win, open a loss, grey a draw, dashed a no contest), the number
+  of fights watched with how many were won and lost (drawn and no contest
+  only when there is one), and "First seen" with the first fight's date; then the
+  fights newest first, each row opening its scorecard, with the result
+  from this fighter's side, the rank that night and my card with their
+  total first. The colours are the words typed. A name on `/fighters`
+  opens the card.
 
 No CSS framework. One stylesheet, custom properties, light theme only.
 Native `<dialog>` for modals (v1 already did this): each form is a

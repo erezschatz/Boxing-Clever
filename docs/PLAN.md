@@ -55,6 +55,7 @@ Out-of-order work that a decision placed in the sequence, as it stood on
 - [class-limits-in-dropdown](../tasks/class-limits-in-dropdown.md) — The class dropdown shows each limit · done
 - [contracted-weight-and-missed-weight](../tasks/contracted-weight-and-missed-weight.md) — Contracted weight and missed weight · done
 - [delete-finalised-bout](../tasks/delete-finalised-bout.md) — Deleting a finalised bout · done
+- [fighter-card](../tasks/fighter-card.md) — The fighter card · done
 - [guarded-bout-delete](../tasks/guarded-bout-delete.md) — Guarded bout delete · done
 - [kept-result-is-stored](../tasks/kept-result-is-stored.md) — A kept result is stored, so a recompute keeps it · done
 - [merge-asks-before-records-move](../tasks/merge-asks-before-records-move.md) — Merge asks before records move · done

@@ -44,6 +44,23 @@ export function listTbrbRowsForFighter(db: Database, fighterId: number): TbrbSna
   ).all(fighterId) as TbrbSnapshot[];
 }
 
+// A fighter's standing now, for the fighter card: their rank on each class's
+// latest list that names them, with that list's date. A class whose latest
+// list leaves them off is not here: they are unranked in it (D25).
+export type CurrentRank = { weight_class_id: number; rank: number; snapshot_date: string };
+
+export function currentRanks(db: Database, fighterId: number): CurrentRank[] {
+  return db.prepare(
+    `SELECT s.weight_class_id, s.rank, s.snapshot_date FROM tbrb_snapshot s
+     JOIN (
+       SELECT weight_class_id, MAX(snapshot_date) AS latest FROM tbrb_snapshot
+       GROUP BY weight_class_id
+     ) l ON l.weight_class_id = s.weight_class_id AND l.latest = s.snapshot_date
+     WHERE s.fighter_id = ?
+     ORDER BY s.weight_class_id`,
+  ).all(fighterId) as CurrentRank[];
+}
+
 // A fighter's standing in one class as of a date: their rank on that class's
 // last list on or before it (0 champion), or null when not on it, or when
 // no list is that old (D25, D58: a list dated that day counts; no age limit).
