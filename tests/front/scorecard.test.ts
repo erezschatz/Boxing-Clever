@@ -5,6 +5,7 @@
 import { deepStrictEqual, ok, strictEqual as assertEquals } from 'node:assert/strict';
 import {
   beltsOf,
+  deductionKinds,
   draftToSave,
   entriesOf,
   type Entry,
@@ -269,4 +270,14 @@ Deno.test('the header: belts a side brought make it champion; TBRB rank once the
   assertEquals(rankOf(after, 'A'), null); // unranked
   assertEquals(rankText(0), 'TBRB champion');
   assertEquals(rankText(4), 'TBRB #4');
+});
+
+Deno.test('a deduction box says why: KD for a knockdown, FOUL for any other reason, both when mixed (D63)', () => {
+  const d = (reason: string) => ({ reason });
+  deepStrictEqual(deductionKinds([]), { kd: false, foul: false });
+  deepStrictEqual(deductionKinds([d('knockdown')]), { kd: true, foul: false });
+  for (const foul of ['low blow', 'holding', 'headbutt', 'other']) {
+    deepStrictEqual(deductionKinds([d(foul)]), { kd: false, foul: true }, foul);
+  }
+  deepStrictEqual(deductionKinds([d('knockdown'), d('holding')]), { kd: true, foul: true });
 });

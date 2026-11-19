@@ -273,8 +273,17 @@ reference lists, every fighter, class and title (D34). Pages:
   (D23): "this is a finalised fight, are you sure?", then one showing what
   both fighters' records will become, with *delete and reset the records*,
   *delete and keep the records*, and *cancel* (back to the fight).
-- `/bouts/:id` **the scorecard** — the heart of the app. Two columns
-  (A left, B right), per round: points · deductions · total; grand totals;
+- `/bouts/:id` **the scorecard** — the heart of the app, built to
+  `docs/reference/design/Main.dc.html` (task restyle-scorecard). Two
+  halves (A left, B right) mirrored around the round number: A reads
+  total · deductions · points, B points · deductions · total, so a round's
+  two points boxes sit side by side; grand totals at the outer edges; a
+  deduction box shows `−N` with KD (a knockdown) or FOUL (any other
+  reason, D63); each side's marquee above its half gives the corner, a
+  "Champion" chip with the belts brought in, name and nickname, and the
+  record, TBRB rank, weight and colours on the night; the crumb, the save
+  line and the page's buttons sit in a bar at the top; once final, a band
+  under the marquees gives the result, the judges' cards and mine;
   focus moves across to the other fighter, or on to the next round when
   that box is scored (D39); deductions open a small
   dialog; "End bout" opens the decision dialog (type, winner, round, time,

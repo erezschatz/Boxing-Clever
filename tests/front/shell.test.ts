@@ -19,6 +19,7 @@ import {
   resultText,
   sideOf,
   titleText,
+  weightOnTheNight,
 } from '../../front/format.ts';
 import type { BoutView, WeightClass } from '../../front/api.ts';
 
@@ -175,4 +176,13 @@ Deno.test("the fighter card reads each bout from that fighter's side: W, L, D or
   assertEquals(howItEnded(bout(ko)), 'KO 7 (2:14)');
   assertEquals(howItEnded(bout(ud)), 'UD');
   assertEquals(howItEnded(bout(null)), '');
+});
+
+Deno.test('the marquee says a weight in the unit it was typed in (D36), stone as st and lb', () => {
+  assertEquals(weightOnTheNight(121.6, 'lbs'), '121.6 lbs');
+  assertEquals(weightOnTheNight(121.6, 'kg'), '55.16 kg');
+  assertEquals(weightOnTheNight(122, 'st'), '8 st 10 lb');
+  assertEquals(weightOnTheNight(122.25, 'st'), '8 st 10 lb 4 oz');
+  assertEquals(weightOnTheNight(null, 'lbs'), ''); // no weight taken
+  assertEquals(weightOnTheNight(121.6, null), '');
 });

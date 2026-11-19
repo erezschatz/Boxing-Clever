@@ -28,6 +28,16 @@ export function isAssumed(d: { note?: string | null }): boolean {
   return d.note === ASSUMED_NOTE;
 }
 
+// What a spot's deductions were for, as the card marks them: a knockdown
+// (KD) or a foul (any other reason), as the Numbers sheet coloured them
+// (D63; task restyle-scorecard).
+export function deductionKinds(deductions: { reason: string }[]): { kd: boolean; foul: boolean } {
+  return {
+    kd: deductions.some((d) => d.reason === 'knockdown'),
+    foul: deductions.some((d) => d.reason !== 'knockdown'),
+  };
+}
+
 // One row per scheduled round, filled from the saved card (a reload).
 export function entriesOf(bout: BoutView): Entry[] {
   const entries: Entry[] = Array.from({ length: bout.scheduled_rounds }, () => ({

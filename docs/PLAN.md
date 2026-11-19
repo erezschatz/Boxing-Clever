@@ -61,6 +61,7 @@ Out-of-order work that a decision placed in the sequence, as it stood on
 - [merge-asks-before-records-move](../tasks/merge-asks-before-records-move.md) — Merge asks before records move · done
 - [questions-2026-11-03](../tasks/questions-2026-11-03.md) — Open questions, 2026-11-03 · done
 - [quiet-missed-weight](../tasks/quiet-missed-weight.md) — A missed weight is noted quietly · done
+- [restyle-scorecard](../tasks/restyle-scorecard.md) — The scorecard, restyled · done
 - [retirement-is-a-tko](../tasks/retirement-is-a-tko.md) — A retirement is a TKO at 3:00, with its round scored · done
 - [sheet-deduction-colours](../tasks/sheet-deduction-colours.md) — The sheet's colours: knockdown or foul · done
 - [tbrb-rank-across-classes](../tasks/tbrb-rank-across-classes.md) — Which TBRB list counts for a bout

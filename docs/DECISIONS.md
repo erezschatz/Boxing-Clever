@@ -1212,3 +1212,59 @@ Source: [tasks/fighter-card.md](../tasks/fighter-card.md)
 **Why** — Erez, 2026-11-19, asked when the cold review of tasks/fighter-card.md found the gap: "No, it goes vacant". A fighter who misses weight is not eligible for the belt. The mark is the user's, never computed (D26), so the rule reads only what was ticked.
 
 Source: [tasks/fighter-card.md](../tasks/fighter-card.md)
+
+## D76 · 2026-11-19 · The scorecard's columns are mirrored around the round
+
+**Decision** — Side A reads total · ded · points, the round number sits in the middle, and side B reads points · ded · total. The two points boxes of a round sit side by side. Focus still moves across, then down, by `nextBox` (D39), which looks boxes up by round and side, not by position.
+**Rejected** — v1's order, points · ded · total on both sides, with the round number first.
+**Why** — Erez, 2026-11-19, on the design canvas: "Keep it mirrored". A round's 10 and 9 read next to each other. One thing does move: Tab from side A's points box now reaches side B's points box first, because A's deduction button comes before its points box.
+
+Source: [tasks/restyle-scorecard.md](../tasks/restyle-scorecard.md)
+
+## D77 · 2026-11-19 · The fighters' headers become marquees above the card
+
+**Decision** — Each side's header leaves the table and becomes a marquee above it. The corner, with a "Champion" chip when the side brought a belt in, comes first. Then the name and nickname, the belts by name, and a missed weight noted quietly (D47). Then the record (`recordText`'s "22-1-0 (16 KOs)") and TBRB rank (`rankText`) on the night, and the weight and colours from the snapshot. The corner colour stays on each side's column header, as a bar over its three columns.
+**Rejected** — The design's "16 KO" and "No. 2". Keeping the header inside the table.
+**Why** — The app says a record and a rank one way everywhere (`format.ts`), and the fighter card already does. The weight and colours are in the snapshot, and Erez describes the marquees as where the fighters' stats at the start of the fight sit. The record, rank, weight and colours appear only once the first save has taken the snapshot, as before.
+
+Source: [tasks/restyle-scorecard.md](../tasks/restyle-scorecard.md)
+
+## D78 · 2026-11-19 · The page's actions move to a bar at the top
+
+**Decision** — The crumb back to the event, then "Save progress", "End bout" and the save line (or "Change decision" and "Reopen scoring" once final) sit in one bar above the marquees. The buttons, their words and their order, and so the Tab order, are unchanged. A finalised card adds a "Final" label before its buttons. The page's `h1`, both names, becomes visually hidden, because the marquees show the names large; screen readers still get it.
+**Rejected** — Leaving them under the card.
+**Why** — With twelve 64px rows the card is taller than the window. A button under it would be off-screen while scoring.
+
+Source: [tasks/restyle-scorecard.md](../tasks/restyle-scorecard.md)
+
+## D79 · 2026-11-19 · A deduction says why, in words as well as colour
+
+**Decision** — A deduction box shows `−N`, then "KD" in blue when any of that spot's deductions is a knockdown, and "FOUL" in red when any is another reason. The "?" of a reason assumed on import stays. `deductionKinds` in `front/scorecard.ts` says which.
+**Rejected** — Colour alone. The reason's full name.
+**Why** — It matches the Numbers sheet (D63) and the design, and the words carry it without the colour. The full reason is in the dialog the box opens.
+
+Source: [tasks/restyle-scorecard.md](../tasks/restyle-scorecard.md)
+
+## D80 · 2026-11-19 · A finalised card shows the judges
+
+**Decision** — Once final, a black band under the marquees gives the result (`resultText`, with `resultLabel` as its tooltip), each judge's card that was typed, and my card from the running totals when a round was scored.
+**Rejected** — The result in the subtitle only, as before.
+**Why** — The judges' cards are kept with the result (D41), and the page never showed them. Seeing mine beside theirs is the point of the finished card.
+
+Source: [tasks/restyle-scorecard.md](../tasks/restyle-scorecard.md)
+
+## D81 · 2026-11-19 · The design's look is shared, scoped by page
+
+**Decision** — The design's colours move from `.fighter-card` into one set of custom properties (`--ds-*`), given to `.fighter-card` and `.bout-page`. Each restyled page adds its class to that rule. The scorecard's old rules in `front/style.css` give way to rules scoped to `.bout-page`. `main` widens to 80rem only when it holds a `.bout-page`. There is still no webfont (D72).
+**Rejected** — Changing `:root` and `main` for every page now. A second copy of the colours.
+**Why** — The events and fighters pages are not restyled yet and must not change. One set of properties keeps the restyled pages in step.
+
+Source: [tasks/restyle-scorecard.md](../tasks/restyle-scorecard.md)
+
+## D82 · 2026-11-19 · Not in this restyle: blind scoring
+
+**Decision** — The design's option to hide every total until the end is not built.
+**Rejected** — Building it with the restyle.
+**Why** — It is new behaviour, and the restyle is to change none. It stays an open choice in `docs/reference/design/README.md`.
+
+Source: [tasks/restyle-scorecard.md](../tasks/restyle-scorecard.md)

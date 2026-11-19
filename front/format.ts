@@ -3,6 +3,12 @@
 // saying it (BOXING-CLEVER-V1.md), that way is kept.
 import { decisionLabel } from '../server/rules/decisions.ts';
 import type { FightRecord } from '../server/rules/records.ts';
+import {
+  convertFromPounds,
+  formatWeight,
+  poundsToStoneLbsOz,
+  type WeightUnit,
+} from '../server/rules/weight.ts';
 import type { BoutView, Title, WeightClass } from './api.ts';
 
 type Named = { first_name: string; last_name: string; nickname: string | null };
@@ -68,6 +74,16 @@ export function howItEnded(bout: BoutView): string {
   if (!result) return '';
   const when = result.round ? ` ${result.round}${result.time ? ` (${result.time})` : ''}` : '';
   return `${result.decision_type}${when}`;
+}
+
+// A weight as the marquee says it, in the unit it was typed in (D36):
+// "121.6 lbs", "55.15 kg", "8 st 10 lb" (and the ounces when there are any).
+// Nothing when no weight was taken.
+export function weightOnTheNight(pounds: number | null, unit: WeightUnit | null): string {
+  if (pounds === null || unit === null) return '';
+  if (unit !== 'st') return formatWeight(convertFromPounds(pounds, unit), unit);
+  const [st, lb, oz] = poundsToStoneLbsOz(pounds).split(' ');
+  return `${st} st ${lb} lb${oz === '0' ? '' : ` ${oz} oz`}`;
 }
 
 // The fighter card reads every bout from one fighter's side (task

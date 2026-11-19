@@ -1,18 +1,29 @@
-// A side's column header on the scorecard (task 07).
-import type { BoutView, Title } from './api.ts';
+// What sits around the scorecard's table (task 07; restyled in task
+// restyle-scorecard to docs/reference/design/): each side's marquee above
+// it, and once final, the result band.
+import type { BoutView, Fighter, Title } from './api.ts';
 import { html, nothing } from './component.ts';
-import { missedWeightNote, rankText, recordOnTheNight, titleText } from './format.ts';
+import {
+  missedWeightNote,
+  rankText,
+  recordOnTheNight,
+  resultLabel,
+  resultText,
+  titleText,
+  weightOnTheNight,
+} from './format.ts';
 import { beltsOf, rankOf } from './scorecard.ts';
 import type { Side } from '../server/rules/decisions.ts';
 
-// A side's column header (SPEC Front end): corner colour, name with
-// nickname, (c) and the belts brought in, the record on the night and the
-// TBRB rank once the snapshot is taken, and a missed weight, noted
-// quietly (D26, D47).
+// A side's marquee (SPEC Front end): corner, a "Champion" chip and the belts
+// brought in, the name and nickname, a missed weight noted quietly (D26,
+// D47), and, once the first save has taken the snapshot (§7), the record,
+// TBRB rank, weight and colours on the night.
 export function sideHead(
   bout: BoutView,
   titles: Map<number, Title>,
   side: Side,
+  fighter: Fighter | undefined,
   name: string,
   corner: string | null,
 ) {
@@ -20,25 +31,84 @@ export function sideHead(
     const title = titles.get(id);
     return title ? titleText(title) : `title ${id}`;
   });
-  const record = recordOnTheNight(bout, side === 'A' ? 'a' : 'b');
+  const s = side === 'A' ? 'a' : 'b';
+  const record = recordOnTheNight(bout, s);
   const rank = rankOf(bout, side);
+  const weight = side === 'A'
+    ? weightOnTheNight(bout.a_weight, bout.a_weight_unit)
+    : weightOnTheNight(bout.b_weight, bout.b_weight_unit);
+  const colours = side === 'A' ? bout.a_colors : bout.b_colors;
   const note = missedWeightNote(bout, side);
+  const stat = (label: string, value: string) =>
+    html`
+      <div>
+        <dt>${label}</dt>
+        <dd>${value}</dd>
+      </div>
+    `;
   return html`
-    <th colspan="3" class="side-head ${corner ?? ''}">
-      <div class="name">
-        ${corner ? html`<span class="corner ${corner}" title="${corner} corner"></span>` : nothing}
-        ${name}${belts.length > 0
+    <article class="bp-marquee side-${s}" aria-label=${name}>
+      <div class="bp-corner">
+        ${corner
           ? html`
-            <span class="champion" title="champion">(c)</span>
+            <span class="bp-square ${corner}"></span><span
+              class="bp-corner-name ${corner}">${corner} corner</span>
           `
           : nothing}
+        ${belts.length > 0 ? html`<span class="bp-chip" title="champion">Champion</span>` : nothing}
       </div>
-      ${belts.length > 0 ? html`<div class="belts">${belts.join(' · ')}</div>` : nothing}
-      <div class="meta">
-        ${record ? html`<span class="record">${record}</span>` : nothing}
-        ${rank !== null ? html`<span class="rank">${rankText(rank)}</span>` : nothing}
-        ${note ? html`<span class="missed">${note}</span>` : nothing}
+      <h2 class="bp-name">${fighter
+        ? html`<span>${fighter.first_name}</span> <span>${fighter.last_name}</span>`
+        : name}</h2>
+      ${fighter?.nickname ? html`<p class="bp-nick">“${fighter.nickname}”</p>` : nothing}
+      ${belts.length > 0 ? html`<p class="bp-belts">${belts.join(' · ')}</p>` : nothing}
+      ${note ? html`<p class="missed">${note}</p>` : nothing}
+      <dl class="bp-stats">
+        ${record ? stat('Record', record) : nothing}
+        ${rank !== null ? stat('TBRB', rankText(rank)) : nothing}
+        ${weight ? stat('Weight', weight) : nothing}
+        ${colours ? stat('Colours', colours) : nothing}
+      </dl>
+    </article>
+  `;
+}
+
+// Once final: the result, the judges' cards that were typed, and mine from
+// the running totals when a round was scored (D41; task restyle-scorecard).
+export function resultBand(
+  bout: BoutView,
+  nameA: string,
+  nameB: string,
+  totals: { a: number; b: number },
+  scored: boolean,
+) {
+  const judges = bout.card.judges
+    .map((j, i) => ({ ...j, n: i + 1 }))
+    .filter((j) => j.a !== null && j.b !== null);
+  return html`
+    <section class="bp-result" aria-label="Result">
+      <div>
+        <p class="bp-result-label">Result</p>
+        <p class="bp-result-text" title=${resultLabel(bout)}>${resultText(bout, nameA, nameB)}</p>
       </div>
-    </th>
+      <dl class="bp-cards">
+        ${judges.map((j) =>
+          html`
+            <div>
+              <dt>Judge ${j.n}</dt>
+              <dd>${j.a}–${j.b}</dd>
+            </div>
+          `
+        )}
+        ${scored
+          ? html`
+            <div class="mine">
+              <dt>My card</dt>
+              <dd>${totals.a}–${totals.b}</dd>
+            </div>
+          `
+          : nothing}
+      </dl>
+    </section>
   `;
 }

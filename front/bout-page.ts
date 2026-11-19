@@ -7,15 +7,16 @@
 // its decision can be changed, or it can be reopened for scoring (D37).
 import { api, type BoutView, type Event, references } from './api.ts';
 import { inTurn, putCard, saves } from './card-saves.ts';
-import { sideHead } from './side-head.ts';
+import { resultBand, sideHead } from './side-head.ts';
 import { Component, html, nothing } from './component.ts';
 import { DeductionForm } from './deduction-form.ts';
 import { DecisionForm } from './decision-form.ts';
 import { Confirm } from './dialog.ts';
-import { boutWeightText, dateText, fighterName, resultLabel, resultText } from './format.ts';
+import { boutWeightText, dateText, fighterName } from './format.ts';
 import {
   afterDecision,
   type Deduction,
+  deductionKinds,
   draftToSave,
   entriesOf,
   type Entry,
@@ -323,82 +324,97 @@ export class BoutPage extends Component<State> {
     const totals = runningTotals(this.state.entries, this.state.deductions);
     // The class, or the contracted weight (D26, D45).
     const weightClass = boutWeightText(bout, refs.classes);
+    // A side's three column heads, mirrored: A reads total · ded · points,
+    // B points · ded · total, so a round's two points boxes sit side by side
+    // (task restyle-scorecard). The corner colour is the bar over them.
+    const heads = (side: Side, whose: string, name: string, corner: string | null) => {
+      const cls = `side-${side.toLowerCase()} ${corner ?? ''}`;
+      const cells = [
+        html`<th class=${cls}>Total</th>`,
+        html`<th class=${cls}>Ded</th>`,
+        html`<th class="whose ${cls}" title="${name}, points">${whose}</th>`,
+      ];
+      return side === 'A' ? cells : cells.reverse();
+    };
     return html`
-      <p class="crumb">
-        <a href="/events/${event.id}">${event.location}</a>
-        <span class="muted">· ${dateText(event.date)}</span>
-      </p>
-      <h1>${nameA} <span class="muted">v</span> ${nameB}</h1>
-      <p class="subtitle">${weightClass} · ${bout.scheduled_rounds} rounds${this.finalised
-        ? html`
-          · <span title=${resultLabel(bout)}>${resultText(bout, nameA, nameB)}</span>
-        `
-        : nothing}</p>
-      <table class="scorecard">
-        <colgroup>
-          <col class="round-no">
-          <col>
-          <col>
-          <col>
-          <col class="gap">
-          <col>
-          <col>
-          <col>
-        </colgroup>
-        <thead>
-          <tr class="sides">
-            <th></th>
-            ${sideHead(bout, refs.titles, 'A', nameA, bout.corner_a)}
-            <th></th>
-            ${sideHead(bout, refs.titles, 'B', nameB, cornerB)}
-          </tr>
-          <tr class="columns">
-            <th>Rd</th>
-            <th class="whose" title="${nameA}, points">${pointsA}</th>
-            <th>Ded</th>
-            <th>Total</th>
-            <th></th>
-            <th class="whose" title="${nameB}, points">${pointsB}</th>
-            <th>Ded</th>
-            <th>Total</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${this.state.entries.map((entry, i) => this.roundRow(i + 1, entry, totals.rounds[i]))}
-        </tbody>
-        <tfoot>
-          <tr>
-            <th></th>
-            <td colspan="2"></td>
-            <td class="total">${totals.a}</td>
-            <td></td>
-            <td colspan="2"></td>
-            <td class="total">${totals.b}</td>
-          </tr>
-        </tfoot>
-      </table>
-      ${this.finalised
-        ? html`
-          <p class="actions">
-            <button type="button" @click=${() => this.decide({ A: nameA, B: nameB })}>
-              Change decision
-            </button>
-            <button type="button" class="quiet" @click=${() => this.reopen()}>
-              Reopen scoring
-            </button>
+      <div class="bout-page">
+        <div class="bp-bar">
+          <p class="crumb">
+            <a href="/events/${event.id}">${event.location}</a>
+            <span class="muted">· ${dateText(event.date)}</span>
           </p>
-        `
-        : html`
-          <p class="actions">
-            <button type="button" ?disabled=${this.state.saving} @click=${() => this.save()}>
-              ${this.state.saving ? 'Saving…' : 'Save progress'}
-            </button>
-            <button type="button" @click=${() => this.decide({ A: nameA, B: nameB })}>
-              End bout
-            </button>
-            <span class=${this.unsavable() ? 'error' : 'muted'}>${this.status()}</span>
-          </p>
-        `}
+          ${this.finalised
+            ? html`
+              <p class="actions">
+                <span class="bp-final">Final</span>
+                <button type="button" @click=${() => this.decide({ A: nameA, B: nameB })}>
+                  Change decision
+                </button>
+                <button type="button" class="quiet" @click=${() => this.reopen()}>
+                  Reopen scoring
+                </button>
+              </p>
+            `
+            : html`
+              <p class="actions">
+                <button type="button" ?disabled=${this.state.saving} @click=${() => this.save()}>
+                  ${this.state.saving ? 'Saving…' : 'Save progress'}
+                </button>
+                <button type="button" class="bp-end" @click=${() =>
+                  this.decide({ A: nameA, B: nameB })}>
+                  End bout
+                </button>
+                <span class=${this.unsavable() ? 'error' : 'muted'}>${this.status()}</span>
+              </p>
+            `}
+        </div>
+        <h1 class="visually-hidden">${nameA} v ${nameB}</h1>
+        <p class="bp-class">${weightClass} · ${bout.scheduled_rounds} rounds</p>
+        <section class="bp-marquees" aria-label="The fighters">
+          ${sideHead(
+            bout,
+            refs.titles,
+            'A',
+            refs.fighters.get(bout.fighter_a_id),
+            nameA,
+            bout.corner_a,
+          )}
+          <span class="bp-vs" aria-hidden="true">vs</span>
+          ${sideHead(bout, refs.titles, 'B', refs.fighters.get(bout.fighter_b_id), nameB, cornerB)}
+        </section>
+        ${this.finalised
+          ? resultBand(
+            bout,
+            nameA,
+            nameB,
+            totals,
+            this.state.entries.some((e) => e.a !== null || e.b !== null),
+          )
+          : nothing}
+        <div class="bp-scroll">
+          <table class="scorecard">
+            <thead>
+              <tr class="columns">
+                ${heads('A', pointsA, nameA, bout.corner_a)}
+                <th class="round-no">Rd</th>
+                ${heads('B', pointsB, nameB, cornerB)}
+              </tr>
+            </thead>
+            <tbody>
+              ${this.state.entries.map((entry, i) => this.roundRow(i + 1, entry, totals.rounds[i]))}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td class="total">${totals.a}</td>
+                <th colspan="2" class="bp-total-a">Total</th>
+                <td class="round-no"></td>
+                <th colspan="2" class="bp-total-b">Total</th>
+                <td class="total">${totals.b}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
     `;
   }
 
@@ -426,49 +442,60 @@ export class BoutPage extends Component<State> {
       : '';
     return html`
       <tr class=${mark}>
-        <th class="round-no">${round}</th>
         ${this.sideCells(round, 'A', entry.a, total.a)}
-        <td></td>
+        <th class="round-no"><span>${round}</span></th>
         ${this.sideCells(round, 'B', entry.b, total.b)}
       </tr>
     `;
   }
 
+  // A side's three cells, mirrored as the heads are: A total · ded ·
+  // points, B points · ded · total.
   sideCells(round: number, side: Side, points: number | null, total: number | null) {
     const deductions = this.state.deductions.filter((d) => d.round_no === round && d.side === side);
     const deducted = deductions.reduce((sum, d) => sum + d.points, 0);
     const assumed = deductions.some(isAssumed);
-    return html`
-      <td>
-        <input
-          class="points"
-          inputmode="numeric"
-          maxlength="2"
-          autocomplete="off"
-          aria-label="Round ${round}, side ${side}, points"
-          data-round=${round}
-          data-side=${side}
-          .value=${points === null ? '' : String(points)}
-          ?readonly=${this.finalised}
-          @input=${(e: InputEvent) => this.typed(e, round, side)}
-          @keydown=${(e: KeyboardEvent) => this.keydown(e, round, side)}
-          @focus=${(e: FocusEvent) => {
-            (e.target as HTMLInputElement).select();
-            this.set({ focus: { round, side } });
-          }}
-          @click=${(e: MouseEvent) => (e.target as HTMLInputElement).select()}
-          @blur=${() => this.set({ focus: null })}
-        >
-      </td>
-      <td>
-        <button
-          type="button"
-          class="deduction ${assumed ? 'assumed' : ''}"
-          title=${assumed ? 'reason assumed on import' : 'deductions'}
-          @click=${() => this.editDeductions(round, side, this.names()[side])}
-        >${deducted > 0 ? `−${deducted}` : '·'}${assumed ? html`<sup>?</sup>` : nothing}</button>
-      </td>
-      <td class="total">${total ?? ''}</td>
-    `;
+    const kinds = deductionKinds(deductions);
+    const cells = [
+      html`<td class="total">${total ?? ''}</td>`,
+      html`
+        <td class="ded">
+          <button
+            type="button"
+            class="deduction ${assumed ? 'assumed' : ''}"
+            title=${assumed ? 'reason assumed on import' : 'deductions'}
+            @click=${() => this.editDeductions(round, side, this.names()[side])}
+          >${deducted > 0 ? `−${deducted}` : '·'}${kinds.kd
+            ? html`<span class="kind kd">KD</span>`
+            : nothing}${kinds.foul ? html`<span class="kind foul">FOUL</span>` : nothing}${assumed
+            ? html`<sup>?</sup>`
+            : nothing}</button>
+        </td>
+      `,
+      html`
+        <td class="pts">
+          <input
+            class="points"
+            inputmode="numeric"
+            maxlength="2"
+            autocomplete="off"
+            aria-label="Round ${round}, side ${side}, points"
+            data-round=${round}
+            data-side=${side}
+            .value=${points === null ? '' : String(points)}
+            ?readonly=${this.finalised}
+            @input=${(e: InputEvent) => this.typed(e, round, side)}
+            @keydown=${(e: KeyboardEvent) => this.keydown(e, round, side)}
+            @focus=${(e: FocusEvent) => {
+              (e.target as HTMLInputElement).select();
+              this.set({ focus: { round, side } });
+            }}
+            @click=${(e: MouseEvent) => (e.target as HTMLInputElement).select()}
+            @blur=${() => this.set({ focus: null })}
+          >
+        </td>
+      `,
+    ];
+    return side === 'A' ? cells : cells.reverse();
   }
 }
