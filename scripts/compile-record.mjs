@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// Copyright (c) 2026 Erez Schatz, https://github.com/erezschatz/unities. SPDX-License-Identifier: MIT
 // compile-record [--check]
 // The only writer docs/DECISIONS.md and docs/PLAN.md have. Both are compiled from the
 // task files: decisions from their `## Decisions` sections, the plan's steps from the

@@ -1136,3 +1136,15 @@ Source: [tasks/sheet-deduction-colours.md](../tasks/sheet-deduction-colours.md)
 **Why** — The gate counts `scripts/` as source and wants a test with any source change (D50 put the compiler's test under `tests/`). A comment changes no behaviour, so nothing honest can test it. The comment is the author's own licence notice on code he wrote, so leaving it out loses nothing.
 
 Source: [tasks/00-skeleton.md](../tasks/00-skeleton.md)
+
+## D67 · 2026-11-19 · The compilers take the licence line, and this one commit goes past the gate
+
+**Decision** — `scripts/compile-record.mjs` and `scripts/compile-changelog.mjs` take the runbook's licence line as their second line, as the hook files did. The change has no test and no doc line. Erez commits it himself with `--no-verify`, once. The gate itself is unchanged.
+
+**Rejected** — Keeping D66, which held the line back for want of a test that a comment cannot have. Teaching the gate that a comment-only diff is not a source change, which would add a local deviation to the gate for one comment.
+
+**Why** — A licence comment changes no behaviour, so a test of it would test nothing, and no doc describes it. The gate wants both with any `scripts/` change, and the compiled `docs/DECISIONS.md` does not count as a doc. Bypassing the gate once, by Erez's own hand, costs less than changing the gate for every later scene.
+
+Supersedes: D66
+
+Source: [tasks/00-skeleton.md](../tasks/00-skeleton.md)

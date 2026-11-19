@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// Copyright (c) 2026 Erez Schatz, https://github.com/erezschatz/unities. SPDX-License-Identifier: MIT
 // compile-changelog <version> [--since <ref>] [--dry-run]
 // The only writer CHANGELOG.md has. Reads "## What was done" sections added to tasks/
 // since the last release and prepends them under a version heading.

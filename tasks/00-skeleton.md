@@ -135,6 +135,16 @@ Not in scope: Phase 2 is not planned here.
 
 **Why** — The gate counts `scripts/` as source and wants a test with any source change (D50 put the compiler's test under `tests/`). A comment changes no behaviour, so nothing honest can test it. The comment is the author's own licence notice on code he wrote, so leaving it out loses nothing.
 
+### 2026-11-19 · The compilers take the licence line, and this one commit goes past the gate
+
+**Decision** — `scripts/compile-record.mjs` and `scripts/compile-changelog.mjs` take the runbook's licence line as their second line, as the hook files did. The change has no test and no doc line. Erez commits it himself with `--no-verify`, once. The gate itself is unchanged.
+
+**Rejected** — Keeping D66, which held the line back for want of a test that a comment cannot have. Teaching the gate that a comment-only diff is not a source change, which would add a local deviation to the gate for one comment.
+
+**Why** — A licence comment changes no behaviour, so a test of it would test nothing, and no doc describes it. The gate wants both with any `scripts/` change, and the compiled `docs/DECISIONS.md` does not count as a doc. Bypassing the gate once, by Erez's own hand, costs less than changing the gate for every later scene.
+
+Supersedes: D66
+
 ## What was done
 
 2026-11-14. The Unities runbook upgraded to the master copy dated 2026-11-11 (0.4.0) and carried out again; the staging stays strict. `docs/UNITIES.md` is replaced byte for byte; the old copy had no date line.
@@ -217,3 +227,11 @@ Reviewed by: a read-only Explore subagent, cold, against the staged diff and `do
 - [x] The 2026-11-14 and 2026-11-15 records → unchanged
 
 **Not asked** — Any change to D1, D12, D52 or D66, or to the earlier records.
+
+## What was done
+
+2026-11-19. The licence line from the 0.5.5 runbook is the second line of `scripts/compile-record.mjs` and `scripts/compile-changelog.mjs`. With it, both files equal Appendices F and K once this repo's own adaptations are set aside. Nothing else in them changed, and there is no test, because a comment has no behaviour to test. Erez commits this with `--no-verify`, since the gate wants a `tests/` change and a doc change with any `scripts/` change, and gets neither here. That is the decision above, which supersedes D66; `docs/DECISIONS.md` is recompiled and gains it as D67, whose `Supersedes: D66` line is the link; D66's own entry is unchanged.
+
+Verified in Claude's workspace: `deno task record` then `compile-record --check` exits 0; `deno task test` 198/198; `deno task check` clean; `node --test .claude/hooks/check-unit.test.mjs` 39/39. Nothing in the app changed.
+
+Reviewed by: a read-only Explore subagent, cold, against the staged diff and `docs/reviewer.md`, re-read after D67 gained the doc line. No findings: the licence line equals line 2 of Appendices F and K, D67 sits under `## Decisions` with `Supersedes: D66` and D66 unchanged, and `compile-record --check` exits 0.
