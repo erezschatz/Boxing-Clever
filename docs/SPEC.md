@@ -306,8 +306,10 @@ reference lists, every fighter, class and title (D34). Pages:
   focus moves across to the other fighter, or on to the next round when
   that box is scored (D39); deductions open a small
   dialog; "End bout" opens the decision dialog (type, winner, round, time,
-  three judges; with a TKO it says that a corner retirement after round X
-  is round X at 3:00, scored, D55) and, once it has saved, goes back to the
+  three judges; a stoppage is offered the round after the last one scored,
+  or the round already under way, and a TD or T the last round on the card;
+  with a TKO it says that a corner
+  retirement after round X is round X at 3:00, scored, D55) and, once it has saved, goes back to the
   card; "Change
   decision" stays. The class or the contracted weight under the title;
   champion marker and belt list under each name; a missed weight noted

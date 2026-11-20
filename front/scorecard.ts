@@ -171,11 +171,25 @@ export function draftToSave(
   return { body, unsaved };
 }
 
-// The highest round with anything in it, points or a deduction: where a
-// stopped bout most likely ended, so the decision dialog offers it.
+// The highest round with anything in it, points or a deduction: whether
+// anything is typed (finalCard), and the round a TD or T is offered, its
+// last round being on the cards (D22).
 export function lastTyped(entries: Entry[], deductions: Deduction[] = []): number {
   const typed = entries.reduce((last, e, i) => (e.a !== null || e.b !== null ? i + 1 : last), 0);
   return Math.max(typed, ...deductions.map((d) => d.round_no));
+}
+
+// The round a stopped bout most likely ended in, which the decision dialog
+// offers for a stoppage (task stoppage-round): the round after the last one
+// scored on both sides, since a stopped round is not scored (D20), unless a
+// later round already holds something (a side typed, or a knockdown logged
+// as it happened), which is then the one. Never past the scheduled rounds;
+// round 1 when nothing is typed. Erez, 2026-11-20: "it's usually a TKO/KO
+// in the round"; a corner retirement after round X he changes to X (D55).
+export function stoppedRound(entries: Entry[], deductions: Deduction[], scheduled: number): number {
+  const scored = entries.reduce((last, e, i) => (e.a !== null && e.b !== null ? i + 1 : last), 0);
+  const round = Math.max(scored + 1, lastTyped(entries, deductions));
+  return Math.max(1, Math.min(round, scheduled));
 }
 
 export type FinalBody = Omit<DraftBody, 'is_draft' | 'result'> & {

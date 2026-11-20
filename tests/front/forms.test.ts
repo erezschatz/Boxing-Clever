@@ -37,8 +37,10 @@ import {
   finalCard,
   lastTyped,
   reopenBody,
+  stoppedRound,
 } from '../../front/scorecard.ts';
 import { choiceRow } from '../../front/dialog.ts';
+import { DecisionForm } from '../../front/decision-form.ts';
 import type { BoutView, Fighter, Title } from '../../front/api.ts';
 import { type Api, recordOf, testApi, usykFury } from '../helpers/api.ts';
 
@@ -642,4 +644,64 @@ Deno.test('a choice of two or three is a row of buttons: the chosen one pressed,
   deepStrictEqual(buttons.map((b) => b.values[3]), ['lbs', 'kg', 'st']);
   for (const b of buttons) (b.values[1] as () => void)();
   deepStrictEqual(picked, ['kg', 'st']); // as a dropdown fires no change on its own option
+});
+
+Deno.test('End bout offers a stoppage the round after the last one scored, or the round already under way', () => {
+  const blank = (n: number) => Array.from({ length: n }, () => e(null, null));
+  const kd = (round_no: number) => ({
+    round_no,
+    side: 'B' as const,
+    points: 1,
+    reason: 'knockdown' as const,
+  });
+
+  // Round 1 scored, then stopped: round 2, not round 1 (Erez, 2026-11-20).
+  const one = blank(8);
+  one[0] = e(10, 9);
+  assertEquals(stoppedRound(one, [], 8), 2);
+
+  // Nothing typed: round 1; a knockdown logged in round 1 keeps it there.
+  assertEquals(stoppedRound(blank(8), [], 8), 1);
+  assertEquals(stoppedRound(blank(8), [kd(1)], 8), 1);
+
+  // A knockdown logged in round 2 as it happened: still round 2.
+  assertEquals(stoppedRound(one, [kd(2)], 8), 2);
+
+  // A round half typed when the stoppage came is the round.
+  const half = blank(8);
+  half[0] = e(10, 9);
+  half[1] = e(10, 9);
+  half[2] = e(10, null);
+  assertEquals(stoppedRound(half, [], 8), 3);
+
+  // Every round scored: never past the scheduled rounds.
+  const all = Array.from({ length: 4 }, () => e(10, 9));
+  assertEquals(stoppedRound(all, [], 4), 4);
+});
+
+Deno.test('End bout offers each ending its round: a stoppage the round it was stopped in, a TD or T the last round on the card', () => {
+  const blank = { a: null, b: null };
+  // Rounds 1 and 2 scored on an eight-rounder: stopped in round 3, round 2 the last typed.
+  const form = new DecisionForm(
+    { A: 'Usyk', B: 'Fury' },
+    8,
+    { stopped: 3, typed: 2 },
+    { result: null, judges: [blank, blank, blank] },
+    false,
+    () => Promise.reject(new Error('not saved in this test')),
+  );
+  for (const code of ['KO', 'TKO', 'DQ'] as const) {
+    form.set({ code });
+    assertEquals(form.roundShown(), '3', code);
+  }
+  for (const code of ['TD', 'T'] as const) {
+    form.set({ code });
+    assertEquals(form.roundShown(), '2', code); // its last round is scored (D22)
+  }
+  form.set({ code: 'UD' });
+  assertEquals(form.roundShown(), '8');
+  form.set({ code: 'NC' });
+  assertEquals(form.roundShown(), '');
+  form.set({ code: 'KO', round: '5' });
+  assertEquals(form.roundShown(), '5'); // a typed round comes first
 });

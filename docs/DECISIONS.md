@@ -1496,3 +1496,11 @@ Source: [tasks/sticky-header.md](../tasks/sticky-header.md)
 **Why** — The first words say where the card stands, which is what a glance while scoring needs. What follows says which rounds wait or why a save failed, which is wanted only when something is wrong, and the tooltip keeps it one hover away.
 
 Source: [tasks/short-save-line.md](../tasks/short-save-line.md)
+
+## D111 · 2026-11-20 · A stoppage is offered the round after the last one scored, or the round under way
+
+**Decision** — `stoppedRound` in `front/scorecard.ts` gives the round a stoppage is offered: the round after the last one scored on both sides, unless a later round already holds something (one side typed, or a deduction such as a knockdown logged in it), which is then the round; at least 1, at most the scheduled rounds. The bout page passes it to the decision dialog in place of `lastTyped`'s highest typed round. A TD or T keeps `lastTyped`'s round, the last round on the card: its ending is the cards, and that round is scored (D22). `lastTyped` is unchanged.
+**Rejected** — The highest round with anything typed (what it was) for a stoppage. The new round for a TD or T, which would be a round with nothing on the card and refused as missing. The last round scored plus one alone, which would pass a knockdown logged in the stopped round and offer the round after it.
+**Why** — Erez, 2026-11-20: "it's usually a TKO/KO in the round". A round is scored when it ends and a stopped round is not scored (D20), so the stoppage is in the round after the last scored. A knockdown is logged as it happens, so it marks the round under way. A corner retirement after round X is entered as round X at 3:00 (D55), and Erez types that over.
+
+Source: [tasks/stoppage-round.md](../tasks/stoppage-round.md)

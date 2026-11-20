@@ -28,6 +28,7 @@ import {
   readPoints,
   reopenBody,
   runningTotals,
+  stoppedRound,
 } from './scorecard.ts';
 import { messageOf, navigate } from './router.ts';
 import type { Side } from '../server/rules/decisions.ts';
@@ -222,11 +223,15 @@ export class BoutPage extends Component<State> {
   async decide(names: { A: string; B: string }) {
     const bout = this.state.bout!;
     const wasFinalised = this.finalised;
-    const lastScored = lastTyped(this.state.entries, this.state.deductions);
+    const { entries, deductions } = this.state;
+    const offered = {
+      stopped: stoppedRound(entries, deductions, bout.scheduled_rounds),
+      typed: lastTyped(entries, deductions),
+    };
     const saved = await new DecisionForm(
       names,
       bout.scheduled_rounds,
-      lastScored,
+      offered,
       { result: bout.card.result, judges: bout.card.judges },
       this.finalised,
       (result, judges) => this.finalise(result, judges),

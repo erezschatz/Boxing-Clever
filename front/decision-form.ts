@@ -9,6 +9,7 @@ import {
   DECISION_TYPES,
   decisionLabel,
   type DecisionType,
+  ending,
   type Winner,
 } from '../server/rules/decisions.ts';
 import type { Result } from '../server/rules/scoring.ts';
@@ -31,7 +32,10 @@ export class DecisionForm extends DialogForm<State, BoutView> {
   constructor(
     readonly names: { A: string; B: string },
     readonly scheduled: number,
-    readonly lastScored: number, // the highest round with points typed
+    // The round each kind of ending is offered: a stoppage the round it was
+    // stopped in (stoppedRound), a technical decision or draw, which goes to
+    // the cards, the last round typed (lastTyped).
+    readonly offered: { stopped: number; typed: number },
     readonly current: { result: Result | null; judges: Judges },
     readonly changingFinal: boolean, // "Change decision" on a finalised bout
     readonly finalise: Finalise,
@@ -53,11 +57,17 @@ export class DecisionForm extends DialogForm<State, BoutView> {
     return this.changingFinal ? 'Change decision' : 'End bout';
   }
 
-  // A stopped bout ends where scoring stopped, unless told otherwise.
+  // A stopped bout is offered the round it most likely ended in, unless
+  // told otherwise: a stoppage the round after the last scored (task
+  // stoppage-round), a TD or T the last round on the card, which is scored
+  // (D22).
   roundShown(): string {
-    const asked = roundAsked(this.state.code);
+    const { code, round } = this.state;
+    const asked = roundAsked(code);
     if (asked === 'last') return String(this.scheduled);
-    return this.state.round || (asked === 'needed' ? String(Math.max(1, this.lastScored)) : '');
+    if (round || asked !== 'needed') return round;
+    const { stopped, typed } = this.offered;
+    return String(ending(code) === 'cards' ? Math.max(1, typed) : stopped);
   }
 
   body() {
