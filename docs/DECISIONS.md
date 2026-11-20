@@ -1488,3 +1488,11 @@ Source: [tasks/header-to-design.md](../tasks/header-to-design.md)
 **Why** — Erez asked for it with the scorecard in front of him. Every page has the same header, and one that stays on some pages and scrolls away on others would be a difference to remember for nothing; at 64 px (D106) it costs little. Sticky keeps the header in the page's flow, so nothing has to be padded to clear it. Without the scroll padding, a box the focus goes back up to (Shift+Tab) or a link scrolls to would stop under the header. The padding is for the header's one row; a header wrapped to two rows is a narrow window, which the app does not lay out for (D9), so the padding is not made to measure it.
 
 Source: [tasks/sticky-header.md](../tasks/sticky-header.md)
+
+## D110 · 2026-11-20 · The save line in the header is its first words, the rest a tooltip
+
+**Decision** — The bar shows `shortStatus(status())`, the line up to its first ";" or ":", one line at 0.8rem; the whole of `status()` is the span's `title`. The red of a card that cannot be saved stays. `status()` and what it says are unchanged.
+**Rejected** — The whole line in the bar, which wraps the header (Erez: "too much info"). The detail on a line of its own under the header, which is a second bar again. The design's "Saved 21:42 · not final", which needs the time of the last save kept, new behaviour. Dropping the detail.
+**Why** — The first words say where the card stands, which is what a glance while scoring needs. What follows says which rounds wait or why a save failed, which is wanted only when something is wrong, and the tooltip keeps it one hover away.
+
+Source: [tasks/short-save-line.md](../tasks/short-save-line.md)

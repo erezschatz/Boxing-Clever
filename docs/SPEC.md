@@ -300,8 +300,8 @@ reference lists, every fighter, class and title (D34). Pages:
   reason, D63); each side's marquee above its half gives the corner, a
   "Champion" chip with the belts brought in, name and nickname, and the
   record, TBRB rank, weight and colours on the night; the crumb, the save
-  line and the page's buttons sit in the header's row, in place of its
-  sections; once final, a band
+  line (its first words, the rest in its tooltip) and the page's buttons
+  sit in the header's row, in place of its sections; once final, a band
   under the marquees gives the result, the judges' cards and mine;
   focus moves across to the other fighter, or on to the next round when
   that box is scored (D39); deductions open a small

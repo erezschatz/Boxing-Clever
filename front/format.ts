@@ -111,6 +111,14 @@ export function fighterCount(n: number): string {
   return n === 1 ? '1 fighter' : `${n} fighters`;
 }
 
+// The scorecard's save line in the header is its first words ("Unsaved
+// changes", "Progress saved", "Not saved", "Cannot be saved"); what
+// follows the first ";" or ":" (which rounds wait, why a save failed) is the
+// line's tooltip (task short-save-line).
+export function shortStatus(full: string): string {
+  return full.split(/[;:]/)[0].trim();
+}
+
 // A name without the nickname, as the event card's rows set it large:
 // "Tyson Fury".
 export function plainName(f: Named): string {

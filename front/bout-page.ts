@@ -13,7 +13,7 @@ import { Component, html, nothing } from './component.ts';
 import { DeductionForm } from './deduction-form.ts';
 import { DecisionForm } from './decision-form.ts';
 import { Confirm } from './dialog.ts';
-import { boutWeightText, dateText, fighterName } from './format.ts';
+import { boutWeightText, dateText, fighterName, shortStatus } from './format.ts';
 import {
   afterDecision,
   type Deduction,
@@ -361,7 +361,10 @@ export class BoutPage extends Component<State> {
                 this.decide({ A: nameA, B: nameB })}>
                 End bout
               </button>
-              <span class=${this.unsavable() ? 'error' : 'muted'}>${this.status()}</span>
+              <span
+                class="bp-status ${this.unsavable() ? 'error' : 'muted'}"
+                title=${this.status()}
+              >${shortStatus(this.status())}</span>
             </p>
           `}
       </div>

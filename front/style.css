@@ -874,6 +874,13 @@ dialog.form {
   color: var(--ds-muted);
 }
 
+/* A word or two, kept on one line so the header stays one row; the whole
+   line is its tooltip (task short-save-line). */
+.bp-bar .bp-status {
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
 .bp-bar .actions {
   display: flex;
   flex-wrap: wrap;

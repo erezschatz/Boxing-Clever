@@ -22,6 +22,7 @@ import {
   plainName,
   recordText,
   resultText,
+  shortStatus,
   sideOf,
   titleText,
   watchedSince,
@@ -289,4 +290,20 @@ Deno.test('the header stays at the top of the window, and what scrolls to a box 
   match(rule('header.top'), /top: 0;/);
   match(rule('header.top'), /background: #fff;/); // the page does not show through it
   match(rule('html'), /scroll-padding-top: \d/);
+});
+
+Deno.test("the scorecard's save line in the header is its first words, the rest left to the tooltip", () => {
+  assertEquals(
+    shortStatus('Unsaved changes; round 1 is saved once both sides are scored'),
+    'Unsaved changes',
+  );
+  assertEquals(shortStatus('Unsaved changes'), 'Unsaved changes');
+  assertEquals(
+    shortStatus('Progress saved; round 3 is saved once both sides are scored'),
+    'Progress saved',
+  );
+  assertEquals(shortStatus('Not saved: the server is not answering'), 'Not saved');
+  assertEquals(shortStatus('Cannot be saved: round 2 is half scored'), 'Cannot be saved');
+  assertEquals(shortStatus('Finalised'), 'Finalised');
+  assertEquals(shortStatus(''), '');
 });
