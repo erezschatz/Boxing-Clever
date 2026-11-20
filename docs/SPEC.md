@@ -311,7 +311,12 @@ reference lists, every fighter, class and title (D34). Pages:
   reopened for scoring to fix a round (D35, D37). The pages say "score",
   "save progress" and "not final", never "draft" (D39). The card a result implies comes from the rules
   (`shapeForResult`, §4), never from the form.
-- `/fighters` grouped by last-name initial, record as W-L-D (N KOs); merge
+- `/fighters` grouped by last-name initial, record as W-L-D (N KOs); merge;
+  built to `docs/reference/design/Fighters.dc.html` (task restyle-fighters):
+  the title with how many fighters, a section per letter with the letter
+  large and its count (a folded letter lists its last names), and the
+  fighters in two columns, last name large, then first name and nickname,
+  the record, Edit and Merge…
 - `/fighters/:id` the **fighter card** (redesigned): name, nickname,
   colors, current record, current TBRB rank per class, titles held, the
   list of their fights as witnessed with the as-of record beside each,

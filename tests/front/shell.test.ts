@@ -10,6 +10,7 @@ import {
   classText,
   dateText,
   dayAndMonth,
+  fighterCount,
   fighterName,
   howItEnded,
   initialOf,
@@ -233,4 +234,9 @@ Deno.test('an event card counts its bouts, those still to score, and those with 
     { bouts: 4, toScore: 2, notFinal: 1 },
   );
   deepStrictEqual(cardCounts([]), { bouts: 0, toScore: 0, notFinal: 0 });
+});
+
+Deno.test('the fighters page counts fighters in words, one or many', () => {
+  assertEquals(fighterCount(1), '1 fighter');
+  assertEquals(fighterCount(48), '48 fighters');
 });

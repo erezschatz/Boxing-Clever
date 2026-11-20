@@ -63,6 +63,7 @@ Out-of-order work that a decision placed in the sequence, as it stood on
 - [quiet-missed-weight](../tasks/quiet-missed-weight.md) — A missed weight is noted quietly · done
 - [restyle-event-card](../tasks/restyle-event-card.md) — The event card, restyled · done
 - [restyle-events](../tasks/restyle-events.md) — The events page, restyled · done
+- [restyle-fighters](../tasks/restyle-fighters.md) — The fighters page, restyled · done
 - [restyle-scorecard](../tasks/restyle-scorecard.md) — The scorecard, restyled · done
 - [retirement-is-a-tko](../tasks/retirement-is-a-tko.md) — A retirement is a TKO at 3:00, with its round scored · done
 - [sheet-deduction-colours](../tasks/sheet-deduction-colours.md) — The sheet's colours: knockdown or foul · done

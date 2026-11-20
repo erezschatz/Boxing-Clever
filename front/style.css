@@ -81,46 +81,6 @@ h1 {
   color: var(--muted);
 }
 
-/* A folded group: a year of events, a letter of fighters. */
-.group {
-  margin-top: 1rem;
-}
-
-.group h2 {
-  margin: 0;
-  font-size: 1rem;
-}
-
-.group h2 button {
-  width: 100%;
-  padding: 0.5rem 0.75rem;
-  border: 0;
-  border-radius: 4px;
-  background: var(--band);
-  color: var(--ink);
-  font: inherit;
-  font-weight: 600;
-  text-align: left;
-  cursor: pointer;
-}
-
-.group h2 button::before {
-  content: '▸';
-  display: inline-block;
-  width: 1.2em;
-  color: var(--muted);
-}
-
-.group h2 button[aria-expanded='true']::before {
-  content: '▾';
-}
-
-.count {
-  margin-left: 0.5em;
-  color: var(--muted);
-  font-weight: 400;
-}
-
 table.list {
   width: 100%;
   border-collapse: collapse;
@@ -214,22 +174,6 @@ button.danger {
   border-color: var(--red);
   color: var(--red);
   background: var(--paper);
-}
-
-.page-head {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.page-head h1 {
-  margin-right: auto;
-}
-
-td.row-actions {
-  width: 1%;
-  white-space: nowrap;
-  text-align: right;
 }
 
 dialog.form {
@@ -483,14 +427,16 @@ button.link {
 
 /* The design's look (docs/reference/design/), for the pages restyled to it
    so far: the fighter card (task fighter-card), the scorecard (task
-   restyle-scorecard), the events page (task restyle-events) and the event
-   card (task restyle-event-card). Scoped by page class so the others keep their look
+   restyle-scorecard), the events page (task restyle-events), the event
+   card (task restyle-event-card) and the fighters page (task
+   restyle-fighters). Scoped by page class so the others keep their look
    until they are restyled (09); no webfont until the Stack table has a row
    for one (D72). */
 .fighter-card,
 .bout-page,
 .events-page,
-.event-page {
+.event-page,
+.fighters-page {
   --ds-ink: #111111;
   --ds-muted: #6a6760;
   --ds-line: #e6e3dc;
@@ -513,7 +459,8 @@ button.link {
 .fighter-card .muted,
 .bout-page .muted,
 .events-page .muted,
-.event-page .muted {
+.event-page .muted,
+.fighters-page .muted {
   color: var(--ds-muted);
 }
 
@@ -842,7 +789,8 @@ button.link {
    v1 did and the next one after it. The largest thing in the app. */
 main:has(> .bout-page),
 main:has(> .events-page),
-main:has(> .event-page) {
+main:has(> .event-page),
+main:has(> .fighters-page) {
   max-width: 80rem;
 }
 
@@ -1817,4 +1765,189 @@ a.ec-score:hover {
   margin: 0;
   font-size: 0.8rem;
   text-align: center;
+}
+
+/* The fighters page (task restyle-fighters), to
+   docs/reference/design/Fighters.dc.html: the title large, a section per
+   letter between heavy rules, the fighters under it in two columns. */
+.fighters-page {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+  padding: 2rem 0 4rem;
+}
+
+.fl-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.5rem;
+}
+
+.fl-head h1 {
+  margin: 0 0 0.6rem;
+  font-family: var(--ds-display);
+  font-size: clamp(4rem, 10vw, 7rem);
+  font-weight: 800;
+  line-height: 0.84;
+  text-transform: uppercase;
+}
+
+.fl-head p {
+  margin: 0;
+}
+
+.fighters-page button.fl-new {
+  min-height: 3rem;
+  padding: 0 1.6rem;
+  border: 0;
+  border-radius: 0;
+  background: var(--ds-ink);
+  color: #fff;
+  font-family: var(--ds-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.fighters-page button.fl-new:hover {
+  background: var(--ds-red);
+}
+
+.fl-letters {
+  border-bottom: 3px solid var(--ds-ink);
+}
+
+.fl-letter {
+  display: grid;
+  grid-template-columns: 8.75rem minmax(0, 1fr);
+  gap: 0 2rem;
+  padding: 1.25rem 0 1.75rem;
+  border-top: 3px solid var(--ds-ink);
+}
+
+.fl-letter h2 {
+  margin: 0;
+  font-size: inherit;
+}
+
+.fighters-page button.fl-lbtn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--ds-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.fl-big {
+  font-family: var(--ds-display);
+  font-size: 5.5rem;
+  font-weight: 800;
+  line-height: 0.8;
+}
+
+.fighters-page button.fl-lbtn:hover .fl-big {
+  color: var(--ds-red);
+}
+
+.fl-count {
+  color: var(--ds-muted);
+  font-size: 0.875rem;
+}
+
+.fl-preview {
+  align-self: center;
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.fl-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fl-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 1rem;
+  min-height: 3.75rem;
+  border-bottom: 1px solid var(--ds-line);
+}
+
+.fl-list a {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.6rem;
+  min-width: 0;
+  color: var(--ds-ink);
+  text-decoration: none;
+}
+
+.fl-last {
+  font-family: var(--ds-display);
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.fl-list a:hover .fl-last {
+  color: var(--ds-red);
+}
+
+.fl-first {
+  font-size: 1rem;
+}
+
+.fl-nick {
+  color: var(--ds-muted);
+  font-size: 0.875rem;
+  font-style: italic;
+}
+
+.fl-record {
+  font-family: var(--ds-display);
+  font-size: 1.25rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.fl-actions {
+  display: flex;
+  white-space: nowrap;
+}
+
+.fighters-page button.fl-quiet {
+  min-height: 2.75rem;
+  padding: 0 0.4rem;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--ds-muted);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.fighters-page button.fl-quiet:hover {
+  color: var(--ds-ink);
+  text-decoration: underline;
 }

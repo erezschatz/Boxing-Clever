@@ -105,6 +105,12 @@ export function cardCounts(
   return { bouts: bouts.length, toScore, notFinal };
 }
 
+// "1 fighter", "48 fighters": the fighters page's count, for the whole list
+// and for each letter (task restyle-fighters).
+export function fighterCount(n: number): string {
+  return n === 1 ? '1 fighter' : `${n} fighters`;
+}
+
 // A name without the nickname, as the event card's rows set it large:
 // "Tyson Fury".
 export function plainName(f: Named): string {
