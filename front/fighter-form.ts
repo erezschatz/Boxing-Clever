@@ -140,7 +140,9 @@ export class FighterForm extends DialogForm<State, Fighter> {
         </div>
         ${text('nickname', 'Nickname', found?.nickname ?? '')}
         ${text('colors', 'Colours', found?.colors ?? '')}
-        <label>Weight ${f.unit === 'st' ? html`<small class="muted">(st lb oz)</small>` : nothing}
+        <label><span class="label">Weight ${f.unit === 'st'
+          ? html`<small class="muted">(st lb oz)</small>`
+          : nothing}</span>
           <input
             .value=${f.weight}
             inputmode="decimal"

@@ -59,6 +59,7 @@ Out-of-order work that a decision placed in the sequence, as it stood on
 - [fighter-card](../tasks/fighter-card.md) — The fighter card · done
 - [guarded-bout-delete](../tasks/guarded-bout-delete.md) — Guarded bout delete · done
 - [header-logo](../tasks/header-logo.md) — The logo in the header · done
+- [header-to-design](../tasks/header-to-design.md) — The header to the design, and the End bout dialog's labels · done
 - [kept-result-is-stored](../tasks/kept-result-is-stored.md) — A kept result is stored, so a recompute keeps it · done
 - [merge-asks-before-records-move](../tasks/merge-asks-before-records-move.md) — Merge asks before records move · done
 - [questions-2026-11-03](../tasks/questions-2026-11-03.md) — Open questions, 2026-11-03 · done

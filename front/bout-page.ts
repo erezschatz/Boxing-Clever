@@ -8,6 +8,7 @@
 import { api, type BoutView, type Event, references } from './api.ts';
 import { inTurn, putCard, saves } from './card-saves.ts';
 import { resultBand, sideHead } from './side-head.ts';
+import { render } from 'lit-html';
 import { Component, html, nothing } from './component.ts';
 import { DeductionForm } from './deduction-form.ts';
 import { DecisionForm } from './decision-form.ts';
@@ -50,6 +51,7 @@ export class BoutPage extends Component<State> {
   // card's, then the last card sent's (D35). A save never cuts below it
   // unless the user cleared both boxes of the rounds at the end.
   #stored = 0;
+  #shown = false; // between mount and unmount: the header's bar is this page's
   // A finalise or a reopen under way: the bout is about to change between
   // draft and final, so no leaving save may be sent across it (D37).
   #changing = false;
@@ -75,6 +77,7 @@ export class BoutPage extends Component<State> {
   }
 
   override async mount(root: HTMLElement) {
+    this.#shown = true;
     addEventListener('pagehide', this.#onPageHide);
     addEventListener('beforeunload', this.#onBeforeUnload);
     await super.mount(root);
@@ -93,6 +96,9 @@ export class BoutPage extends Component<State> {
     removeEventListener('pagehide', this.#onPageHide);
     removeEventListener('beforeunload', this.#onBeforeUnload);
     this.saveOnLeave(true);
+    this.#shown = false;
+    const slot = document.getElementById('page-bar');
+    if (slot) render(nothing, slot);
     super.unmount();
   }
 
@@ -312,6 +318,56 @@ export class BoutPage extends Component<State> {
     return { A: name(bout!.fighter_a_id), B: name(bout!.fighter_b_id) };
   }
 
+  // The page's bar (the crumb, then the actions) sits in the header's row,
+  // as in docs/reference/design/Main.dc.html (task header-to-design): it is
+  // rendered into the header's #page-bar while the page is shown, and the
+  // header's own section links give way to it.
+  override render() {
+    super.render();
+    const slot = document.getElementById('page-bar');
+    if (this.#shown && slot) render(this.bar(), slot);
+  }
+
+  bar() {
+    const { bout, event } = this.state;
+    if (!bout || !event) return nothing;
+    const { A: nameA, B: nameB } = this.names();
+    return html`
+      <div class="bp-bar">
+        <nav class="crumb" aria-label="Where this bout is">
+          <a href="/">Events</a>
+          <span aria-hidden="true">/</span>
+          <a href="/events/${event.id}">${event.location}</a>
+          <span class="muted">· ${dateText(event.date)}</span>
+        </nav>
+        ${this.finalised
+          ? html`
+            <p class="actions">
+              <span class="bp-final">Final</span>
+              <button type="button" @click=${() => this.decide({ A: nameA, B: nameB })}>
+                Change decision
+              </button>
+              <button type="button" class="quiet" @click=${() => this.reopen()}>
+                Reopen scoring
+              </button>
+            </p>
+          `
+          : html`
+            <p class="actions">
+              <button type="button" ?disabled=${this.state.saving} @click=${() => this.save()}>
+                ${this.state.saving ? 'Saving…' : 'Save progress'}
+              </button>
+              <button type="button" class="bp-end" @click=${() =>
+                this.decide({ A: nameA, B: nameB })}>
+                End bout
+              </button>
+              <span class=${this.unsavable() ? 'error' : 'muted'}>${this.status()}</span>
+            </p>
+          `}
+      </div>
+    `;
+  }
+
   view() {
     const { bout, event, refs } = this.state;
     if (!bout || !event || !refs) return html`<p class="muted">Loading…</p>`;
@@ -338,36 +394,6 @@ export class BoutPage extends Component<State> {
     };
     return html`
       <div class="bout-page">
-        <div class="bp-bar">
-          <p class="crumb">
-            <a href="/events/${event.id}">${event.location}</a>
-            <span class="muted">· ${dateText(event.date)}</span>
-          </p>
-          ${this.finalised
-            ? html`
-              <p class="actions">
-                <span class="bp-final">Final</span>
-                <button type="button" @click=${() => this.decide({ A: nameA, B: nameB })}>
-                  Change decision
-                </button>
-                <button type="button" class="quiet" @click=${() => this.reopen()}>
-                  Reopen scoring
-                </button>
-              </p>
-            `
-            : html`
-              <p class="actions">
-                <button type="button" ?disabled=${this.state.saving} @click=${() => this.save()}>
-                  ${this.state.saving ? 'Saving…' : 'Save progress'}
-                </button>
-                <button type="button" class="bp-end" @click=${() =>
-                  this.decide({ A: nameA, B: nameB })}>
-                  End bout
-                </button>
-                <span class=${this.unsavable() ? 'error' : 'muted'}>${this.status()}</span>
-              </p>
-            `}
-        </div>
         <h1 class="visually-hidden">${nameA} v ${nameB}</h1>
         <p class="bp-class">${weightClass} · ${bout.scheduled_rounds} rounds</p>
         <section class="bp-marquees" aria-label="The fighters">

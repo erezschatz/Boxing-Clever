@@ -28,12 +28,13 @@ const routes: Route[] = [
 ];
 
 // The header's link for the section we are in is marked, so the page says
-// where it is without each page repeating the navigation. `/`,
+// where it is without each page repeating the navigation. Only the
+// header's own sections: the scorecard's crumb (D107) is a nav in it too. `/`,
 // `/events/...` and `/bouts/...` are the Events section; `/fighters/...` is Fighters.
 function markNavigation(path: string) {
   const first = path.split('/').filter(Boolean)[0] ?? '';
   const section = ['', 'events', 'bouts'].includes(first) ? '/' : '/' + first;
-  for (const link of document.querySelectorAll<HTMLAnchorElement>('header nav a')) {
+  for (const link of document.querySelectorAll<HTMLAnchorElement>('header.top > nav a')) {
     link.toggleAttribute('aria-current', link.pathname === section);
   }
 }

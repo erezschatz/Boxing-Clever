@@ -1454,3 +1454,29 @@ Source: [tasks/restyle-dialogs.md](../tasks/restyle-dialogs.md)
 **Why** — The layout rules carry decisions of their own (the matches dropping over the row below, D44); laying the look over them changes no layout. One set of colours keeps the dialogs in step with the pages.
 
 Source: [tasks/restyle-dialogs.md](../tasks/restyle-dialogs.md)
+
+## D106 · 2026-11-20 · The header is the design's: the grid mark and the name in type, 64 px high
+
+**Decision** — The header's brand link holds `front/mark.png` (the grid mark, 56 px square for a 26 px box, cut tight around the grid from `docs/reference/brand/mark.png` with `sips`, as the favicon is) with an empty `alt`, then the words "Boxing Clever", set in the display face at 22 px, weight 800, in capitals; the link is named by the words. The header is one row at least 4rem high, wrapping on a narrow window. `front/logo.png` is removed; `docs/reference/brand/logo.png` stays.
+**Rejected** — Erez's stacked logo at 72 px (D100). The same logo shrunk to fit 64 px, whose words blur. Keeping `front/logo.png` unused.
+**Why** — Erez, 2026-11-20: "the top bar is not as designed, and it's causing the scoring screen to be overflowing the screen". The stacked logo made the header 91 px and the design's row is 64 px. The mark beside the name in type is the design's own header, made with Erez's mark, and it reads at that size.
+Supersedes: D100
+
+Source: [tasks/header-to-design.md](../tasks/header-to-design.md)
+
+## D107 · 2026-11-20 · The scorecard's bar goes into the header's row
+
+**Decision** — `front/index.html`'s header has an empty `#page-bar` after the sections. The bout page renders its bar (`bar()` in `front/bout-page.ts`) into it from its `render()` while it is mounted, and clears it in `unmount()`. A header holding a `.bp-bar` hides its own sections, and the crumb starts with "Events /" so that link stays. The rest of D78 stands: the crumb, then "Save progress", "End bout" and the save line, or "Final", "Change decision" and "Reopen scoring", in that order, and the hidden `h1`. The bar's rules are scoped to `.bp-bar` rather than `.bout-page`.
+**Rejected** — The bar under the header, as D78 had it. A bar slot on every page through `Component` (the dialogs are components too, and would clear it). Moving the header into each page. The design's "/ Bout 9" at the crumb's end, and its save line before the buttons (new wording, and an order the scorecard's review kept).
+**Why** — The design puts the crumb and the buttons in the header's row; two bars took about 90 px from the card while scoring. Rendering into the header from the page keeps the header in `index.html` for every other page and the bar's handlers in the bout page.
+Supersedes: D78
+
+Source: [tasks/header-to-design.md](../tasks/header-to-design.md)
+
+## D108 · 2026-11-20 · A label's hint is on the label's line
+
+**Decision** — Where a dialog label carries a hint ("Round (if stopped)", "Time (m:ss)", "Weight (st lb oz)"), its words and the hint are wrapped in one `<span class="label">`, drawn in the dialogs' small capitals with the hint in plain text, so the label is one line over its box.
+**Rejected** — Aligning the dialog grid's items to their foot, which moves every other dialog's rows (the fighter search's matches, D44). Removing the hints.
+**Why** — A label is a column, its words over its box; the hint was a second item in the column, on its own line, so Time's box sat lower than Round's. In the design the hint is in the label's line.
+
+Source: [tasks/header-to-design.md](../tasks/header-to-design.md)

@@ -266,13 +266,15 @@ Deno.test('the page names its icon and manifest, and the chamber serves them as 
   }
 });
 
-Deno.test('the header carries the logo, named for the screen reader, and the chamber serves it', async () => {
+Deno.test('the header carries the grid mark and the name, a slot for a page bar, and the chamber serves the mark', async () => {
   const index = read('front/index.html');
   const header = index.slice(index.indexOf('<header'), index.indexOf('</header>'));
-  match(header, /<a class="brand" href="\/"><img src="\/logo.png" alt="Boxing Clever"/);
+  // The mark is decoration beside the name, which the link is called by.
+  match(header, /<a class="brand" href="\/"><img src="\/mark.png" alt=""[^>]*>Boxing Clever<\/a>/);
   match(header, /<a href="\/">Events<\/a>/); // the sections stay beside it
   match(header, /<a href="\/fighters">Fighters<\/a>/);
-  const res = await chamber.fetch(new Request('http://boxing.test/logo.png'));
+  match(header, /<div id="page-bar"><\/div>/); // where the scorecard puts its bar
+  const res = await chamber.fetch(new Request('http://boxing.test/mark.png'));
   assertEquals(res.headers.get('content-type'), 'image/png');
   await res.body?.cancel();
 });

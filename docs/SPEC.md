@@ -114,9 +114,9 @@ browser (lit-html, fetch)  ──►  /api/*  Hono routes (server/api/)
   (~50 lines: a `schema_version` table, apply in order, each file and its
   version row in one transaction).
 - `front/` is static ESM, flat: `index.html` (the import map that pins
-  lit-html, the header with Erez's logo (`logo.png`, from
-  `docs/reference/brand/logo.png`), the `<main>`, the icon and manifest
-  links),
+  lit-html, the header with the grid mark (`mark.png`) beside the name, the
+  sections and the slot a page's bar goes in, the `<main>`, the icon and
+  manifest links),
   `style.css`, `manifest.json` and the grid mark's icons (`favicon-32.png`,
   `apple-touch-icon.png`, `icon-192.png`, `icon-512.png`, from
   `docs/reference/brand/mark.png`), `app.ts` (the route
@@ -299,7 +299,8 @@ reference lists, every fighter, class and title (D34). Pages:
   reason, D63); each side's marquee above its half gives the corner, a
   "Champion" chip with the belts brought in, name and nickname, and the
   record, TBRB rank, weight and colours on the night; the crumb, the save
-  line and the page's buttons sit in a bar at the top; once final, a band
+  line and the page's buttons sit in the header's row, in place of its
+  sections; once final, a band
   under the marquees gives the result, the judges' cards and mine;
   focus moves across to the other fighter, or on to the next round when
   that box is scored (D39); deductions open a small

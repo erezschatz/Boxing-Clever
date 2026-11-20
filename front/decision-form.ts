@@ -102,9 +102,9 @@ export class DecisionForm extends DialogForm<State, BoutView> {
             </label>`
           )}
         </fieldset>
-        <label>Round ${asked === 'optional'
+        <label><span class="label">Round ${asked === 'optional'
           ? html`<small class="muted">(if stopped)</small>`
-          : nothing}
+          : nothing}</span>
           <input
             inputmode="numeric"
             .value=${this.roundShown()}
@@ -112,7 +112,7 @@ export class DecisionForm extends DialogForm<State, BoutView> {
             @input=${(e: InputEvent) => this.set({ round: (e.target as HTMLInputElement).value })}
           >
         </label>
-        <label>Time <small class="muted">(m:ss)</small>
+        <label><span class="label">Time <small class="muted">(m:ss)</small></span>
           <input
             placeholder=${asked === 'last' ? '3:00' : '2:15'}
             .value=${s.time}
