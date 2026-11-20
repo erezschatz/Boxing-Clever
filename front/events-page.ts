@@ -1,10 +1,11 @@
 // `/`: every event, newest first, folded by year with the newest year open
-// (SPEC Front end; v1's EventList). A new event opens its card.
+// (SPEC Front end; v1's EventList). A new event opens its card. Restyled to
+// docs/reference/design/Events.dc.html (task restyle-events).
 import { api, type Event } from './api.ts';
 import { Component, html } from './component.ts';
 import { EventForm } from './event-form.ts';
 import { navigate } from './router.ts';
-import { dateText, yearOf } from './format.ts';
+import { dateText, dayAndMonth, watchedSince, yearOf } from './format.ts';
 
 type State = { events: Event[] | null; open: Set<string> };
 
@@ -33,50 +34,80 @@ export class EventsPage extends Component<State> {
   view() {
     const { events, open } = this.state;
     if (!events) return html`<p class="muted">Loading…</p>`;
+    const since = watchedSince(events.map((e) => e.date));
     const head = html`
-      <div class="page-head">
-        <h1>Events</h1>
-        <button type="button" @click=${() => this.add()}>New event</button>
+      <div class="ep-head">
+        <div>
+          <h1>Events</h1>
+          ${since ? html`<p class="muted">${since}</p>` : ''}
+        </div>
+        <button type="button" class="ep-new" @click=${() => this.add()}>New event</button>
       </div>
     `;
-    if (events.length === 0) return html`${head}<p class="muted">No events yet.</p>`;
+    if (events.length === 0) {
+      return html`
+        <div class="events-page">${head}<p class="muted">No events yet.</p></div>
+      `;
+    }
     const years = new Map<string, Event[]>();
     for (const event of events) {
       const year = yearOf(event.date);
       years.set(year, [...(years.get(year) ?? []), event]);
     }
     return html`
-      ${head}
-      ${[...years].map(([year, ofYear]) =>
-        html`
-          <section class="group">
-            <h2>
-              <button type="button" aria-expanded=${open.has(year)} @click=${() =>
-                this.toggle(year)}>
-                ${year} <span class="count">${ofYear.length}</span>
-              </button>
-            </h2>
-            ${open.has(year) ? this.table(ofYear) : ''}
-          </section>
-        `
-      )}
+      <div class="events-page">
+        ${head}
+        <div class="ep-years">
+          ${[...years].map(([year, ofYear]) => this.year(year, ofYear, open.has(year)))}
+        </div>
+      </div>
     `;
   }
 
-  table(events: Event[]) {
+  // A year's row: the year, a mark per event, the count, and the chevron.
+  // The marks are a picture of the count, so the screen reader is given the
+  // count alone.
+  year(year: string, events: Event[], isOpen: boolean) {
+    const count = events.length === 1 ? '1 event' : `${events.length} events`;
     return html`
-      <table class="list">
-        <tbody>
-          ${events.map((event) =>
-            html`
-              <tr>
-                <td class="date">${dateText(event.date)}</td>
-                <td><a href="/events/${event.id}">${event.location}</a></td>
-              </tr>
-            `
-          )}
-        </tbody>
-      </table>
+      <section>
+        <h2>
+          <button type="button" class="ep-year" aria-expanded=${isOpen} @click=${() =>
+            this.toggle(year)}>
+            <span class="ep-yr">${year}</span>
+            <span class="ep-ticks" aria-hidden="true">${events.map(() =>
+              html`<span></span>`
+            )}</span>
+            <span class="ep-count">${count}</span>
+            <span class="ep-chev" aria-hidden="true"></span>
+          </button>
+        </h2>
+        ${isOpen ? this.list(events) : ''}
+      </section>
+    `;
+  }
+
+  // Each event is one link to its card; the full date is its title and the
+  // `time` element's, the year being in the row above.
+  list(events: Event[]) {
+    return html`
+      <ol class="ep-events">
+        ${events.map((event) => {
+          const { day, month } = dayAndMonth(event.date);
+          return html`
+            <li>
+              <a href="/events/${event.id}">
+                <time datetime=${event.date} title=${dateText(event.date)}>
+                  <span class="ep-day">${day}</span>
+                  <span class="ep-month">${month}</span>
+                </time>
+                <span class="ep-where">${event.location}</span>
+                <span class="ep-go" aria-hidden="true"></span>
+              </a>
+            </li>
+          `;
+        })}
+      </ol>
     `;
   }
 }

@@ -262,7 +262,12 @@ API; a plain click on a link into the app navigates without a reload, the
 back button and deep links work). A page joins ids to names itself from the
 reference lists, every fighter, class and title (D34). Pages:
 
-- `/` events list (newest first, folded by year with the newest open, as in v1)
+- `/` events list (newest first, folded by year with the newest open, as in
+  v1), built to `docs/reference/design/Events.dc.html` (task
+  restyle-events): the title with how many nights were watched since the
+  first; a row per year with the year large, a mark per event and the count;
+  under an open year, a row per event linking to its card, the day large,
+  the month, and the location as typed
 - `/events/:id` the card: bouts in order with both fighters and their
   record on the night (the snapshot, once taken), a missed weight noted
   quietly beside the fighter who missed it (D47), corners, class or "Contracted at

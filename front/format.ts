@@ -44,6 +44,26 @@ export function dateText(iso: string): string {
   });
 }
 
+// The months by their three letters, fixed here rather than taken from the
+// locale, which gives September as "Sept" in some.
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+// What an events row shows large (task restyle-events): '2024-05-18' is
+// day '18', month 'MAY'. A calendar date, like dateText.
+export function dayAndMonth(iso: string): { day: string; month: string } {
+  const [, month, day] = iso.split('-').map(Number);
+  return { day: String(day), month: MONTHS[month - 1].toUpperCase() };
+}
+
+// The line under the events title: "218 nights watched since Nov 2021",
+// counted from the dates of every event, and '' when there are none.
+export function watchedSince(dates: string[]): string {
+  if (dates.length === 0) return '';
+  const first = dates.reduce((a, b) => (b < a ? b : a));
+  const nights = dates.length === 1 ? '1 night' : `${dates.length} nights`;
+  return `${nights} watched since ${MONTHS[Number(first.slice(5, 7)) - 1]} ${yearOf(first)}`;
+}
+
 export function yearOf(iso: string): string {
   return iso.slice(0, 4);
 }

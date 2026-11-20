@@ -1268,3 +1268,43 @@ Source: [tasks/restyle-scorecard.md](../tasks/restyle-scorecard.md)
 **Why** — It is new behaviour, and the restyle is to change none. It stays an open choice in `docs/reference/design/README.md`.
 
 Source: [tasks/restyle-scorecard.md](../tasks/restyle-scorecard.md)
+
+## D83 · 2026-11-20 · An events row shows the date and the location, not the main event or the bout counts
+
+**Decision** — Each event's row gives the day, the month and the location. The design's main event ("Arce vs Okafor"), the number of bouts and how many are not final are not shown.
+**Rejected** — Adding the main event and the counts to `GET /api/events` with this restyle.
+**Why** — `/api/events` returns a date and a location, and this restyle is to change no behaviour (09). The design README leaves those columns as an open choice; they would be a change to the API with its own tests, a task of its own if Erez wants them.
+
+Source: [tasks/restyle-events.md](../tasks/restyle-events.md)
+
+## D84 · 2026-11-20 · The location is shown as typed, not split into city and venue
+
+**Decision** — The location is one line, as it was typed, in the design's city style.
+**Rejected** — The design's city over venue, split at a comma.
+**Why** — Locations are not typed one way: the Numbers sheet has venue first and city second, split by `.` or `,` (IMPORT.md, `Date/Location`), so a split would put the venue where the city goes.
+
+Source: [tasks/restyle-events.md](../tasks/restyle-events.md)
+
+## D85 · 2026-11-20 · Each event is one link, the whole row
+
+**Decision** — An event row is a single link to its card, holding the day and month (in a `time` element whose title is the full date) and the location; the list is an ordered list, newest first. Tab still stops once per event.
+**Rejected** — The table, with the link on the location only.
+**Why** — It is the design's row, and the whole row being the target is easier to hit. The year is in the row above, so the full date is in the `datetime` and the title, not on the row.
+
+Source: [tasks/restyle-events.md](../tasks/restyle-events.md)
+
+## D86 · 2026-11-20 · The page's figures come from the list it already loads
+
+**Decision** — "N nights watched since Mon YYYY" counts the events and takes the month and year of the earliest (`watchedSince`). A year's marks are one square per event, filled while the year is open, hidden from the screen reader, which gets "N events". The month is three capitals from a fixed list (`dayAndMonth`).
+**Rejected** — Counting on the server. The locale's short month name.
+**Why** — Every event is a night watched (SPEC), and the page has every event. Some locales give September as "Sept".
+
+Source: [tasks/restyle-events.md](../tasks/restyle-events.md)
+
+## D87 · 2026-11-20 · The events page joins the shared look
+
+**Decision** — `.events-page` joins `.fighter-card` and `.bout-page` on the `--ds-*` properties, and `main` widens to 80rem around it as around the scorecard. Its rules are scoped to `.events-page` (`ep-`). The shared `.group`, `.count`, `table.list` and `.page-head` rules stay for the fighters and event pages, which are not restyled yet. The site header is not part of this restyle.
+**Rejected** — Restyling the shared rules, or the header, now.
+**Why** — As for the scorecard (its "shared, scoped by page" decision): pages not yet restyled must not change. The header is on every page, so it belongs to a restyle of its own.
+
+Source: [tasks/restyle-events.md](../tasks/restyle-events.md)

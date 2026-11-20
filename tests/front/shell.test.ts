@@ -8,6 +8,7 @@ import {
   boutWeightText,
   classText,
   dateText,
+  dayAndMonth,
   fighterName,
   howItEnded,
   initialOf,
@@ -19,6 +20,7 @@ import {
   resultText,
   sideOf,
   titleText,
+  watchedSince,
   weightOnTheNight,
 } from '../../front/format.ts';
 import type { BoutView, WeightClass } from '../../front/api.ts';
@@ -185,4 +187,20 @@ Deno.test('the marquee says a weight in the unit it was typed in (D36), stone as
   assertEquals(weightOnTheNight(122.25, 'st'), '8 st 10 lb 4 oz');
   assertEquals(weightOnTheNight(null, 'lbs'), ''); // no weight taken
   assertEquals(weightOnTheNight(121.6, null), '');
+});
+
+Deno.test('an events row shows the day and the month in three capitals, never shifted by the time zone', () => {
+  deepStrictEqual(dayAndMonth('2026-11-14'), { day: '14', month: 'NOV' });
+  deepStrictEqual(dayAndMonth('2025-09-01'), { day: '1', month: 'SEP' }); // never "SEPT"
+  deepStrictEqual(dayAndMonth('2024-01-31'), { day: '31', month: 'JAN' });
+});
+
+Deno.test('the events title says how many nights were watched since the first one', () => {
+  assertEquals(
+    watchedSince(['2026-11-14', '2024-05-18', '2021-11-13']),
+    '3 nights watched since Nov 2021',
+  );
+  assertEquals(watchedSince(['2024-05-18']), '1 night watched since May 2024');
+  assertEquals(watchedSince(['2021-11-13', '2026-11-14']), '2 nights watched since Nov 2021'); // in any order
+  assertEquals(watchedSince([]), '');
 });

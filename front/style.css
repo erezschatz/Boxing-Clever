@@ -534,12 +534,13 @@ button.link {
 }
 
 /* The design's look (docs/reference/design/), for the pages restyled to it
-   so far: the fighter card (task fighter-card) and the scorecard (task
-   restyle-scorecard). Scoped by page class so the others keep their look
+   so far: the fighter card (task fighter-card), the scorecard (task
+   restyle-scorecard) and the events page (task restyle-events). Scoped by page class so the others keep their look
    until they are restyled (09); no webfont until the Stack table has a row
    for one (D72). */
 .fighter-card,
-.bout-page {
+.bout-page,
+.events-page {
   --ds-ink: #111111;
   --ds-muted: #6a6760;
   --ds-line: #e6e3dc;
@@ -560,7 +561,8 @@ button.link {
 }
 
 .fighter-card .muted,
-.bout-page .muted {
+.bout-page .muted,
+.events-page .muted {
   color: var(--ds-muted);
 }
 
@@ -886,7 +888,8 @@ button.link {
    (task restyle-scorecard): marquees over a mirrored card, total · ded ·
    points | round | points · ded · total, the round being scored marked as
    v1 did and the next one after it. The largest thing in the app. */
-main:has(> .bout-page) {
+main:has(> .bout-page),
+main:has(> .events-page) {
   max-width: 80rem;
 }
 
@@ -1350,4 +1353,221 @@ main:has(> .bout-page) {
 .bout-page tfoot th.bp-total-b {
   text-align: left;
   padding-left: 1.5rem;
+}
+
+/* The events page (task restyle-events), to
+   docs/reference/design/Events.dc.html: the title large, a year per row
+   between heavy rules, the events under an open year as rows of links. */
+.events-page {
+  display: flex;
+  flex-direction: column;
+  gap: 3rem;
+  padding: 2rem 0 4rem;
+}
+
+.ep-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.5rem;
+}
+
+.ep-head h1 {
+  margin: 0 0 0.6rem;
+  font-family: var(--ds-display);
+  font-size: clamp(4rem, 10vw, 7rem);
+  font-weight: 800;
+  line-height: 0.84;
+  text-transform: uppercase;
+}
+
+.ep-head p {
+  margin: 0;
+}
+
+.events-page button.ep-new {
+  min-height: 3rem;
+  padding: 0 1.6rem;
+  border: 0;
+  border-radius: 0;
+  background: var(--ds-ink);
+  color: #fff;
+  font-family: var(--ds-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.events-page button.ep-new:hover {
+  background: var(--ds-red);
+}
+
+.ep-years {
+  border-bottom: 3px solid var(--ds-ink);
+}
+
+.ep-years h2 {
+  margin: 0;
+  font-size: inherit;
+}
+
+.events-page button.ep-year {
+  display: grid;
+  grid-template-columns: 12.5rem minmax(0, 1fr) auto 2.5rem;
+  align-items: center;
+  gap: 1.5rem;
+  width: 100%;
+  padding: 1.25rem 0;
+  border: 0;
+  border-top: 3px solid var(--ds-ink);
+  border-radius: 0;
+  background: transparent;
+  color: var(--ds-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ep-yr {
+  font-family: var(--ds-display);
+  font-size: 4.5rem;
+  font-weight: 800;
+  line-height: 0.9;
+  font-variant-numeric: tabular-nums;
+}
+
+.events-page button.ep-year:hover .ep-yr {
+  color: var(--ds-red);
+}
+
+.ep-ticks {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: center;
+  gap: 4px;
+}
+
+.ep-ticks span {
+  width: 9px;
+  height: 9px;
+  border: 1.5px solid var(--ds-ink);
+  background: #fff;
+}
+
+.ep-year[aria-expanded='true'] .ep-ticks span {
+  background: var(--ds-ink);
+}
+
+.ep-count {
+  color: var(--ds-muted);
+  font-size: 0.95rem;
+  white-space: nowrap;
+}
+
+/* The chevron and the row's arrow are drawn as two borders of a square. */
+.ep-chev,
+.ep-go {
+  display: flex;
+  justify-content: center;
+}
+
+.ep-chev::before,
+.ep-go::before {
+  content: '';
+  width: 0.7rem;
+  height: 0.7rem;
+  border-right: 2.4px solid var(--ds-ink);
+  border-bottom: 2.4px solid var(--ds-ink);
+}
+
+.ep-chev::before {
+  transform: translateY(-25%) rotate(45deg);
+}
+
+.ep-year[aria-expanded='true'] .ep-chev::before {
+  transform: translateY(25%) rotate(225deg);
+}
+
+.ep-go::before {
+  transform: rotate(-45deg);
+}
+
+.ep-events {
+  margin: 0;
+  padding: 0 0 1.5rem;
+  list-style: none;
+}
+
+.ep-events a {
+  display: grid;
+  grid-template-columns: 12.5rem minmax(0, 1fr) 2.5rem;
+  align-items: center;
+  gap: 1.5rem;
+  min-height: 5.25rem;
+  border-top: 1px solid var(--ds-line);
+  color: var(--ds-ink);
+  text-decoration: none;
+}
+
+.ep-events a:hover {
+  background: var(--ds-band);
+}
+
+.ep-events time {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+}
+
+.ep-day {
+  width: 3.5rem;
+  font-family: var(--ds-display);
+  font-size: 2.75rem;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.ep-month {
+  color: var(--ds-muted);
+  font-family: var(--ds-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.ep-where {
+  min-width: 0;
+  font-family: var(--ds-display);
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.ep-go {
+  opacity: 0.25;
+}
+
+.ep-events a:hover .ep-go {
+  opacity: 1;
+}
+
+/* On a phone the year row and the event row drop their fixed first column. */
+@media (max-width: 40rem) {
+  .events-page button.ep-year {
+    grid-template-columns: auto minmax(0, 1fr) 2rem;
+  }
+
+  .ep-ticks {
+    display: none;
+  }
+
+  .ep-events a {
+    grid-template-columns: 6.5rem minmax(0, 1fr) 2rem;
+    gap: 1rem;
+  }
 }
