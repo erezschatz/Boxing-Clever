@@ -1380,3 +1380,28 @@ Source: [tasks/restyle-fighters.md](../tasks/restyle-fighters.md)
 **Why** — As for the event card (its "styles no longer used go" decision): the stylesheet holds what the pages render.
 
 Source: [tasks/restyle-fighters.md](../tasks/restyle-fighters.md)
+
+## D97 · 2026-11-20 · A manifest returns, for the installed window; no service worker
+
+**Decision** — `front/manifest.json` names the app "Boxing Clever", opens standalone, and gives the grid mark at 192 and 512 px. Its `start_url` and `scope` are `./`, relative to the manifest, so an installed window opens wherever Atrium mounts the chamber. There is still no service worker, so nothing works offline.
+**Rejected** — D10's "`sw.js` and manifest are not carried", for the manifest. A service worker with the manifest.
+**Why** — Erez, 2026-11-20, asked for the mark "as the PWA icon", and D10 itself said a manifest could return if an installable window was wanted. D10's reason against a service worker (the app is online by nature and sits behind Atrium's login) still holds.
+Supersedes: D10
+
+Source: [tasks/brand-icons.md](../tasks/brand-icons.md)
+
+## D98 · 2026-11-20 · The icons are the mark centred, cut from the original
+
+**Decision** — The grid in `mark.png` sits above centre (its middle at 1906 px of 4096 down). The icons are cut square around the grid's middle. The 32 px favicon is cut tight (a 3000 px square), so the lines still read at that size. The apple-touch icon (180 px) and the manifest's icons (192, 512 px) keep a margin (a 3584 px square). They are PNGs made with macOS `sips`, kept in `front/` beside `style.css`.
+**Rejected** — Scaling the original as it is. A `.ico` file. An SVG favicon.
+**Why** — Off centre, the mark looks misplaced in a tab or on a home screen. A PNG favicon is read by every browser Erez uses. The original is a raster, so an SVG would be a redrawing.
+
+Source: [tasks/brand-icons.md](../tasks/brand-icons.md)
+
+## D99 · 2026-11-20 · The originals are kept in docs/reference/brand/
+
+**Decision** — `Boxing Clever _ Grid Mark Only.png` becomes `docs/reference/brand/mark.png` and `Boxing Clever _ Scorecard Grid.png` becomes `docs/reference/brand/logo.png`. The logo (the mark over "BOXING CLEVER") is not used by any page yet.
+**Rejected** — Leaving them at the root. Putting the logo in the header now.
+**Why** — `docs/reference/` is where the design material lives. The header is not part of any restyle so far (D87); the logo waits for the restyle that takes it on.
+
+Source: [tasks/brand-icons.md](../tasks/brand-icons.md)

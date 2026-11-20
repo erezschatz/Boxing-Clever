@@ -240,3 +240,28 @@ Deno.test('the fighters page counts fighters in words, one or many', () => {
   assertEquals(fighterCount(1), '1 fighter');
   assertEquals(fighterCount(48), '48 fighters');
 });
+
+Deno.test('the page names its icon and manifest, and the chamber serves them as images and JSON', async () => {
+  const index = read('front/index.html');
+  match(index, /<link rel="icon" type="image\/png" sizes="32x32" href="\/favicon-32.png">/);
+  match(index, /<link rel="apple-touch-icon" href="\/apple-touch-icon.png">/);
+  match(index, /<link rel="manifest" href="\/manifest.json">/);
+  const get = (path: string) => chamber.fetch(new Request(`http://boxing.test${path}`));
+  for (const icon of ['/favicon-32.png', '/apple-touch-icon.png']) {
+    const res = await get(icon);
+    assertEquals(res.headers.get('content-type'), 'image/png', icon);
+    await res.body?.cancel();
+  }
+  const res = await get('/manifest.json');
+  assertEquals(res.headers.get('content-type'), 'application/json');
+  const manifest = await res.json();
+  assertEquals(manifest.name, 'Boxing Clever');
+  // Relative, so the installed window starts wherever the chamber is mounted.
+  assertEquals(manifest.start_url, './');
+  for (const { src, sizes } of manifest.icons) {
+    const icon = await get(`/${src}`);
+    assertEquals(icon.headers.get('content-type'), 'image/png', src);
+    await icon.body?.cancel();
+    ok(['192x192', '512x512'].includes(sizes), sizes);
+  }
+});

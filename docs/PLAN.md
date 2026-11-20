@@ -52,6 +52,7 @@ Out-of-order work that a decision placed in the sequence, as it stood on
 - [14-deploy](../tasks/14-deploy.md) — 14 · Deploy
 - [15-live-use](../tasks/15-live-use.md) — 15 · Live use and fixes
 - [answers-2026-11-03](../tasks/answers-2026-11-03.md) — Answers to the open questions, 2026-11-03 · done
+- [brand-icons](../tasks/brand-icons.md) — The grid mark as the app's icon · done
 - [class-limits-in-dropdown](../tasks/class-limits-in-dropdown.md) — The class dropdown shows each limit · done
 - [contracted-weight-and-missed-weight](../tasks/contracted-weight-and-missed-weight.md) — Contracted weight and missed weight · done
 - [delete-finalised-bout](../tasks/delete-finalised-bout.md) — Deleting a finalised bout · done

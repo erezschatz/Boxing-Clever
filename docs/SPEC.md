@@ -59,7 +59,9 @@ Parity with v1 **plus**:
   the only gate (D2).
 - Charts, trajectories, statistics pages. Phase 2; the schema must not make
   them harder, nothing in phase 1 is done *for* them.
-- Offline / service worker. v1's PWA shell is not carried (D10).
+- Offline / service worker. v1's service worker is not carried; the
+  manifest is, for an installed window with the grid mark as its icon
+  (D97, superseding D10).
 - Automated TBRB history back-fill from archive.org. Manual tool only.
 - Browser end-to-end tests (Playwright). Parked (D11).
 - Other ranking bodies (Ring, BoxRec).
@@ -112,7 +114,10 @@ browser (lit-html, fetch)  ──►  /api/*  Hono routes (server/api/)
   (~50 lines: a `schema_version` table, apply in order, each file and its
   version row in one transaction).
 - `front/` is static ESM, flat: `index.html` (the import map that pins
-  lit-html, the header, the `<main>`), `style.css`, `app.ts` (the route
+  lit-html, the header, the `<main>`, the icon and manifest links),
+  `style.css`, `manifest.json` and the grid mark's icons (`favicon-32.png`,
+  `apple-touch-icon.png`, `icon-192.png`, `icon-512.png`, from
+  `docs/reference/brand/mark.png`), `app.ts` (the route
   table), `component.ts` (the base class and its store), `router.ts`,
   `api.ts` (fetch, and the wire shapes imported as types from the server),
   `format.ts` (names, records, dates, results as the pages say them),
