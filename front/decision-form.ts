@@ -3,7 +3,7 @@
 // and leaves the card's shape to the rules: the scorecard page passes the
 // result through shapeForResult and validateCard before it saves (§4).
 import { html, nothing } from './component.ts';
-import { DialogForm, type DialogState, FRESH } from './dialog.ts';
+import { arrowStep, DialogForm, type DialogState, FRESH } from './dialog.ts';
 import { fillFromCards, readJudge, roundAsked, winnerAfter, winnersFor } from './entry.ts';
 import {
   DECISION_TYPES,
@@ -75,6 +75,9 @@ export class DecisionForm extends DialogForm<State, BoutView> {
     const winners = winnersFor(s.code);
     const asked = roundAsked(s.code);
     const winnerLabel = (w: Winner) => (w === 'A' || w === 'B' ? this.names[w] : w);
+    // A judge's total steps down from the most a card can give, ten a round
+    // (task arrow-keys).
+    const most = 10 * this.scheduled;
     return html`
       ${this.changingFinal
         ? html`<p class="muted">Both fighters' records change at once to match the new result.</p>`
@@ -119,6 +122,7 @@ export class DecisionForm extends DialogForm<State, BoutView> {
             inputmode="numeric"
             .value=${this.roundShown()}
             ?readonly=${asked === 'last'}
+            @keydown=${arrowStep({ min: 1, max: this.scheduled })}
             @input=${(e: InputEvent) => this.set({ round: (e.target as HTMLInputElement).value })}
           >
         </label>
@@ -152,6 +156,7 @@ export class DecisionForm extends DialogForm<State, BoutView> {
                     inputmode="numeric"
                     aria-label="Judge ${j + 1}, ${k === 0 ? this.names.A : this.names.B}"
                     .value=${s.judges[j * 2 + k]}
+                    @keydown=${arrowStep({ min: 0, max: most, start: most })}
                     @input=${(e: InputEvent) => {
                       const judges = this.state.judges.slice();
                       judges[j * 2 + k] = (e.target as HTMLInputElement).value;

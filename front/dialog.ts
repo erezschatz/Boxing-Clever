@@ -5,6 +5,7 @@
 // the bout form); the second sits over the first.
 import { messageOf } from './router.ts';
 import { Component, html, nothing, type TemplateResult } from './component.ts';
+import { stepKey, stepped } from './entry.ts';
 
 export abstract class DialogForm<S extends DialogState, R> extends Component<S> {
   #finish?: (result: R | null) => void;
@@ -184,4 +185,22 @@ export class Confirm<R> extends DialogForm<DialogState, R> {
     const result = await this.attempt(this.work);
     if (result !== undefined) this.done(result);
   }
+}
+
+// Up and Down in a number box step it (`stepped`), with the box kept as text
+// so it has no spinner (task arrow-keys). The new value goes through the
+// box's own input handler, as if typed. Other keys, the arrows with a
+// modifier, and a read-only box are left to the browser.
+export function arrowStep(limits: { min: number; max?: number; start?: number }) {
+  return (event: KeyboardEvent) => {
+    const by = stepKey(event);
+    const input = event.target as HTMLInputElement;
+    if (by === 0 || input.readOnly) return;
+    const next = stepped(input.value, by, limits);
+    if (next === null) return;
+    event.preventDefault();
+    if (next === input.value) return;
+    input.value = next;
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  };
 }

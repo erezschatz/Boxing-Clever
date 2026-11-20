@@ -31,6 +31,7 @@ import {
   stoppedRound,
 } from './scorecard.ts';
 import { messageOf, navigate } from './router.ts';
+import { stepKey, steppedPoints } from './entry.ts';
 import type { Side } from '../server/rules/decisions.ts';
 import type { Result } from '../server/rules/scoring.ts';
 
@@ -296,9 +297,30 @@ export class BoutPage extends Component<State> {
   }
 
   keydown(event: KeyboardEvent, round: number, side: Side) {
+    const by = stepKey(event);
+    if (by !== 0) return this.step(event, by, round, side);
     if (event.key !== 'Enter') return;
     event.preventDefault();
     this.focusNext(event.target as HTMLInputElement, round, side);
+  }
+
+  // Up and Down in a points box step it between 9 and 10, the only points
+  // a round gives (§1; steppedPoints, a lone 1 going up to 10); an empty box
+  // starts at 10 (task arrow-keys). Focus
+  // stays, so the box can be stepped again; Enter or Tab moves on.
+  step(event: KeyboardEvent, by: 1 | -1, round: number, side: Side) {
+    const input = event.target as HTMLInputElement;
+    event.preventDefault();
+    if (input.readOnly) return;
+    const next = steppedPoints(input.value, by);
+    if (next === null || next === input.value) return;
+    input.value = next;
+    const entry = this.state.entries[round - 1];
+    const entries = this.state.entries.slice();
+    const points = Number(next);
+    entries[round - 1] = side === 'A' ? { ...entry, a: points } : { ...entry, b: points };
+    this.set({ entries, message: null });
+    input.select();
   }
 
   // Across to the other fighter, or on to the next round (nextBox, D39),

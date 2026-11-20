@@ -459,3 +459,35 @@ export function changedFields<T extends Record<string, unknown>>(
   }
   return changed;
 }
+
+// A whole number stepped by the arrow keys, as a number box's arrows would
+// step it (task arrow-keys): up or down one, kept within min and max; an
+// empty box starts at `start`. Anything that is not a whole number is left
+// alone (null), so a half-typed weight or time is never rewritten.
+export function stepped(
+  text: string,
+  by: 1 | -1,
+  { min, max = Infinity, start = min }: { min: number; max?: number; start?: number },
+): string | null {
+  const t = text.trim();
+  if (t === '') return String(Math.min(Math.max(start, min), max));
+  if (!/^\d+$/.test(t)) return null;
+  return String(Math.min(Math.max(Number(t) + by, min), max));
+}
+
+// A score box stepped (task arrow-keys): between 10 and 9, the only points a
+// round gives (§1), an empty box at 10. A lone 1 is a 10 being typed (D35),
+// so Up makes it 10.
+export function steppedPoints(text: string, by: 1 | -1): string | null {
+  if (text.trim() === '1') return by === 1 ? '10' : '9';
+  return stepped(text, by, { min: 9, max: 10, start: 10 });
+}
+
+// Up or Down alone: with a modifier held (Shift to select, Cmd or Alt to
+// jump the caret) or while composing, the keys keep the browser's meaning.
+export function stepKey(event: KeyboardEvent): 1 | -1 | 0 {
+  if (event.shiftKey || event.altKey || event.metaKey || event.ctrlKey || event.isComposing) {
+    return 0;
+  }
+  return event.key === 'ArrowUp' ? 1 : event.key === 'ArrowDown' ? -1 : 0;
+}

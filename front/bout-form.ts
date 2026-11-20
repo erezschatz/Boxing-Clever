@@ -4,7 +4,7 @@
 // brought each (SPEC API, POST/PATCH /bouts). Answers the saved bout.
 import { api, type BoutView, type Fighter, json, type Title, type WeightClass } from './api.ts';
 import { html, nothing } from './component.ts';
-import { choiceRow, DialogForm, type DialogState, FRESH } from './dialog.ts';
+import { arrowStep, choiceRow, DialogForm, type DialogState, FRESH } from './dialog.ts';
 import {
   findFighters,
   newFighterLabel,
@@ -127,6 +127,7 @@ export class BoutForm extends DialogForm<State, BoutView> {
           <input
             inputmode="numeric"
             .value=${s.scheduled_rounds}
+            @keydown=${arrowStep({ min: 1, max: MAX_ROUNDS, start: 12 })}
             @input=${(e: InputEvent) =>
               this.set({ scheduled_rounds: (e.target as HTMLInputElement).value })}
           >

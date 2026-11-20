@@ -4,7 +4,7 @@
 // round's deductions for that side as they now stand; the scorecard saves
 // them with the card. A 10–8 is a 10 and a deduction (§1).
 import { html, nothing } from './component.ts';
-import { DialogForm, type DialogState, FRESH } from './dialog.ts';
+import { arrowStep, DialogForm, type DialogState, FRESH } from './dialog.ts';
 import { isAssumed } from './scorecard.ts';
 import type { Side } from '../server/rules/decisions.ts';
 import {
@@ -75,6 +75,7 @@ export class DeductionForm extends DialogForm<State, CardDeduction[]> {
               <input
                 inputmode="numeric"
                 .value=${s.points}
+                @keydown=${arrowStep({ min: 1, max: 10 })}
                 @input=${(e: InputEvent) =>
                   this.set({ points: (e.target as HTMLInputElement).value })}
               >

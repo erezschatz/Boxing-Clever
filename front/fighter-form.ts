@@ -12,7 +12,7 @@
 // made only when nobody has the name.
 import { api, type Fighter, json } from './api.ts';
 import { html, nothing } from './component.ts';
-import { choiceRow, DialogForm, type DialogState, FRESH } from './dialog.ts';
+import { arrowStep, choiceRow, DialogForm, type DialogState, FRESH } from './dialog.ts';
 import {
   changedFields,
   fieldsOnFound,
@@ -167,6 +167,7 @@ export class FighterForm extends DialogForm<State, Fighter> {
                 <input
                   .value=${f[k]}
                   inputmode="numeric"
+                  @keydown=${arrowStep({ min: 0 })}
                   @input=${(e: Event) => this.field(k, (e.target as HTMLInputElement).value)}
                 >
               </label>

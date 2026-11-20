@@ -24,6 +24,9 @@ import {
   renameProblem,
   resolveTyped,
   roundAsked,
+  stepKey,
+  stepped,
+  steppedPoints,
   titlesOffClass,
   updatesForExisting,
   weightText,
@@ -704,4 +707,58 @@ Deno.test('End bout offers each ending its round: a stoppage the round it was st
   assertEquals(form.roundShown(), '');
   form.set({ code: 'KO', round: '5' });
   assertEquals(form.roundShown(), '5'); // a typed round comes first
+});
+
+Deno.test('the arrow keys step a number box one up or down, within its limits, and leave what is not a whole number', () => {
+  // A dialog's box: the deduction's points, 1 to 10.
+  assertEquals(stepped('2', 1, { min: 1, max: 10 }), '3');
+  assertEquals(stepped('2', -1, { min: 1, max: 10 }), '1');
+  assertEquals(stepped('1', -1, { min: 1, max: 10 }), '1');
+  assertEquals(stepped('10', 1, { min: 1, max: 10 }), '10');
+  assertEquals(stepped('', 1, { min: 1, max: 10 }), '1'); // empty starts at the least
+  assertEquals(stepped(' 4 ', 1, { min: 1 }), '5');
+
+  // A score box: 9 or 10 only (§1), an empty one starting at 10.
+  const points = { min: 9, max: 10, start: 10 };
+  assertEquals(stepped('', 1, points), '10');
+  assertEquals(stepped('', -1, points), '10');
+  assertEquals(stepped('10', -1, points), '9');
+  assertEquals(stepped('9', -1, points), '9');
+  assertEquals(stepped('9', 1, points), '10');
+
+  // A judge's total on twelve rounds: from 120 down.
+  assertEquals(stepped('', -1, { min: 0, max: 120, start: 120 }), '120');
+  assertEquals(stepped('116', -1, { min: 0, max: 120, start: 120 }), '115');
+
+  // Not a whole number: left as typed.
+  assertEquals(stepped('2:15', 1, { min: 0 }), null);
+  assertEquals(stepped('10.5', 1, { min: 0 }), null);
+});
+
+Deno.test('a score box steps between 10 and 9, a lone 1 going up to 10, and only the bare arrows step', () => {
+  assertEquals(steppedPoints('', 1), '10');
+  assertEquals(steppedPoints('', -1), '10');
+  assertEquals(steppedPoints('1', 1), '10'); // a 10 being typed (D35)
+  assertEquals(steppedPoints('1', -1), '9');
+  assertEquals(steppedPoints('10', -1), '9');
+  assertEquals(steppedPoints('9', 1), '10');
+  assertEquals(steppedPoints('10', 1), '10');
+  assertEquals(steppedPoints('9', -1), '9');
+
+  const key = (key: string, mods: Partial<KeyboardEvent> = {}) =>
+    stepKey({
+      key,
+      shiftKey: false,
+      altKey: false,
+      metaKey: false,
+      ctrlKey: false,
+      isComposing: false,
+      ...mods,
+    } as KeyboardEvent);
+  assertEquals(key('ArrowUp'), 1);
+  assertEquals(key('ArrowDown'), -1);
+  assertEquals(key('Enter'), 0);
+  for (const mod of ['shiftKey', 'altKey', 'metaKey', 'ctrlKey', 'isComposing'] as const) {
+    assertEquals(key('ArrowUp', { [mod]: true }), 0, mod); // the browser's own meaning
+  }
 });

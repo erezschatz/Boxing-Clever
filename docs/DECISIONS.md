@@ -1504,3 +1504,11 @@ Source: [tasks/short-save-line.md](../tasks/short-save-line.md)
 **Why** — Erez, 2026-11-20: "it's usually a TKO/KO in the round". A round is scored when it ends and a stopped round is not scored (D20), so the stoppage is in the round after the last scored. A knockdown is logged as it happens, so it marks the round under way. A corner retirement after round X is entered as round X at 3:00 (D55), and Erez types that over.
 
 Source: [tasks/stoppage-round.md](../tasks/stoppage-round.md)
+
+## D112 · 2026-11-20 · Up and Down step the number boxes, which stay text
+
+**Decision** — `stepped` in `front/entry.ts` steps a whole number by one within a minimum and a maximum, an empty box starting at a given value, and leaves anything else alone. `arrowStep` in `front/dialog.ts` makes a keydown handler from it for a dialog's box: it sets the new value and fires the box's `input` event, so the box's own handler takes it as if typed. The score boxes have their own, `step()` in `front/bout-page.ts`, which steps between 9 and 10 (`steppedPoints`, where a lone 1, a 10 being typed (D35), goes up to 10) and sets the points without moving focus, where a typed 9 or 10 moves it on (D39). The limits are the rules': 1 to 15 scheduled rounds (`MAX_ROUNDS`), deductions of 1 to 10, the round within the scheduled ones, ten points a round. An empty scheduled rounds box starts at 12 and an empty judge's box at the most a card can give, so the arrows go down from the usual. The weights and the time are not stepped. Only the bare arrows step (`stepKey`): with a modifier held or while composing they keep the browser's meaning (selecting, moving the caret).
+**Rejected** — `type="number"` with its spinner hidden: the score box's typing rules (a lone 1 waiting for 10, D35) read the text as typed, which a number box does not give while it is invalid, and `maxlength` and selecting the box do not apply to it. Stepping a score box through its input handler, which would move focus away on every press. Stepping the weights, whose stone form ("10 7") is not a number.
+**Why** — Erez, 2026-11-20: "I don't care for the arrows, but I like using the arrow up/down to move the number in the input". Keeping the boxes as text keeps every rule about typing in them as it is.
+
+Source: [tasks/arrow-keys.md](../tasks/arrow-keys.md)
