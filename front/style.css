@@ -12,7 +12,7 @@
   --blue: #1e5aa8;
   --font: system-ui, -apple-system, 'Segoe UI', sans-serif;
   --mono: ui-monospace, 'SF Mono', Menlo, monospace;
-  --measure: 60rem;
+  --measure: 80rem; /* the design's content width, every page (task header-logo) */
 }
 
 * {
@@ -36,33 +36,53 @@ a:hover {
   text-decoration: underline;
 }
 
+/* The header, to the design (docs/reference/design/) with Erez's logo
+   (docs/reference/brand/logo.png; task header-logo): a rule across the
+   window, the content as wide as the pages, the section we are in in ink
+   and underlined (app.ts marks it). Its padding puts the logo at the left
+   edge of main's content: main is --measure wide with 1.5rem padding. */
 header.top {
   display: flex;
-  align-items: baseline;
-  gap: 2rem;
-  max-width: var(--measure);
-  margin: 0 auto;
-  padding: 1rem 1.5rem;
-  border-bottom: 1px solid var(--line);
+  align-items: center;
+  gap: 2.25rem;
+  padding: 0 max(1.5rem, calc((100% - var(--measure)) / 2 + 1.5rem));
+  border-bottom: 1px solid var(--ds-line);
 }
 
 header.top .brand {
-  font-weight: 800;
-  letter-spacing: 0.02em;
-  color: var(--ink);
+  display: block;
+  padding: 0.6rem 0;
+  line-height: 0;
+}
+
+header.top .brand img {
+  display: block;
+  width: auto;
+  height: 4.5rem;
 }
 
 header.top nav {
   display: flex;
-  gap: 1.25rem;
+  align-self: stretch;
+  gap: 1.5rem;
+  font-size: 0.95rem;
 }
 
 header.top nav a {
-  color: var(--muted);
+  display: flex;
+  align-items: center;
+  border-bottom: 2px solid transparent;
+  color: var(--ds-muted);
+  text-decoration: none;
+}
+
+header.top nav a:hover {
+  color: var(--ds-ink);
 }
 
 header.top nav a[aria-current] {
-  color: var(--ink);
+  border-bottom-color: var(--ds-ink);
+  color: var(--ds-ink);
   font-weight: 600;
 }
 
@@ -429,14 +449,15 @@ button.link {
    so far: the fighter card (task fighter-card), the scorecard (task
    restyle-scorecard), the events page (task restyle-events), the event
    card (task restyle-event-card) and the fighters page (task
-   restyle-fighters). Scoped by page class so the others keep their look
+   restyle-fighters), and the header (task header-logo). Scoped by page class so the others keep their look
    until they are restyled (09); no webfont until the Stack table has a row
    for one (D72). */
 .fighter-card,
 .bout-page,
 .events-page,
 .event-page,
-.fighters-page {
+.fighters-page,
+header.top {
   --ds-ink: #111111;
   --ds-muted: #6a6760;
   --ds-line: #e6e3dc;
@@ -787,13 +808,6 @@ button.link {
    (task restyle-scorecard): marquees over a mirrored card, total · ded ·
    points | round | points · ded · total, the round being scored marked as
    v1 did and the next one after it. The largest thing in the app. */
-main:has(> .bout-page),
-main:has(> .events-page),
-main:has(> .event-page),
-main:has(> .fighters-page) {
-  max-width: 80rem;
-}
-
 .bout-page {
   display: flex;
   flex-direction: column;

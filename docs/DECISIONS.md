@@ -1405,3 +1405,28 @@ Source: [tasks/brand-icons.md](../tasks/brand-icons.md)
 **Why** — `docs/reference/` is where the design material lives. The header is not part of any restyle so far (D87); the logo waits for the restyle that takes it on.
 
 Source: [tasks/brand-icons.md](../tasks/brand-icons.md)
+
+## D100 · 2026-11-20 · The header shows Erez's logo, 72 px high, in place of the design's mark and word
+
+**Decision** — The header's brand link is `front/logo.png`, Erez's logo (the grid mark over "BOXING CLEVER"), with `alt="Boxing Clever"`. It is shown 72 px high (4.5rem) and stored at twice that, 87 × 144 px, cut tight from `docs/reference/brand/logo.png` and made with `sips`. The header grows to fit it.
+**Rejected** — The design's 26 px mark with "BOXING CLEVER" set as text beside it. The logo at the design's 64 px header height or less.
+**Why** — Erez asked for the logo. Its words sit under the mark, so it needs about 72 px for them to read; smaller, they blur.
+
+Source: [tasks/header-logo.md](../tasks/header-logo.md)
+
+## D101 · 2026-11-20 · The header takes the design's look and the shared colours
+
+**Decision** — `header.top` joins the shared `--ds-*` rule. Its rule runs the full width of the window, and its content lines up with the pages' content. The section links are muted, and the current one is ink, semibold, and underlined by a 2 px rule at the header's foot. The links, their order and `markNavigation` are unchanged.
+**Rejected** — Keeping the header at the old 60rem measure. Its old colours.
+**Why** — All four pages are restyled, so the header was the last part of every page in the old look; D87 left it out of the page restyles only because it is on every page.
+
+Source: [tasks/header-logo.md](../tasks/header-logo.md)
+
+## D102 · 2026-11-20 · Every page is 80rem wide
+
+**Decision** — `--measure`, the width of `main`, becomes 80rem for every page, and the per-page `main:has(...)` widening goes. The header's padding reads `--measure`, so the logo sits at the left edge of every page's content. The rest of D81 stands: the `--ds-*` colours are shared, each page's rules are scoped by its class, and there is no webfont (D72).
+**Rejected** — D81's "`main` widens to 80rem only when it holds a `.bout-page`", carried by each restyle since. Excepting the fighter card and the not-found page from the header's alignment.
+**Why** — The cold read found the logo out of line with the fighter card and the not-found page, which were still at 60rem. The design's content width is 1280 px on every page (`docs/reference/design/README.md`), the fighter card included, and its rules are fluid; D81 kept 60rem only so pages not yet restyled would not change, and all of them are now restyled.
+Supersedes: D81
+
+Source: [tasks/header-logo.md](../tasks/header-logo.md)

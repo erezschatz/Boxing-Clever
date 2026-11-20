@@ -114,7 +114,9 @@ browser (lit-html, fetch)  ──►  /api/*  Hono routes (server/api/)
   (~50 lines: a `schema_version` table, apply in order, each file and its
   version row in one transaction).
 - `front/` is static ESM, flat: `index.html` (the import map that pins
-  lit-html, the header, the `<main>`, the icon and manifest links),
+  lit-html, the header with Erez's logo (`logo.png`, from
+  `docs/reference/brand/logo.png`), the `<main>`, the icon and manifest
+  links),
   `style.css`, `manifest.json` and the grid mark's icons (`favicon-32.png`,
   `apple-touch-icon.png`, `icon-192.png`, `icon-512.png`, from
   `docs/reference/brand/mark.png`), `app.ts` (the route

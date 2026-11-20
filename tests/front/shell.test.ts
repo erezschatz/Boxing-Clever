@@ -265,3 +265,14 @@ Deno.test('the page names its icon and manifest, and the chamber serves them as 
     ok(['192x192', '512x512'].includes(sizes), sizes);
   }
 });
+
+Deno.test('the header carries the logo, named for the screen reader, and the chamber serves it', async () => {
+  const index = read('front/index.html');
+  const header = index.slice(index.indexOf('<header'), index.indexOf('</header>'));
+  match(header, /<a class="brand" href="\/"><img src="\/logo.png" alt="Boxing Clever"/);
+  match(header, /<a href="\/">Events<\/a>/); // the sections stay beside it
+  match(header, /<a href="\/fighters">Fighters<\/a>/);
+  const res = await chamber.fetch(new Request('http://boxing.test/logo.png'));
+  assertEquals(res.headers.get('content-type'), 'image/png');
+  await res.body?.cancel();
+});
