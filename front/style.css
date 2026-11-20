@@ -152,17 +152,6 @@ code {
   color: #a86b00;
 }
 
-dialog.deductions {
-  min-width: 20rem;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-}
-
-dialog.deductions h2 {
-  margin: 0 0 0.75rem;
-  font-size: 1.1rem;
-}
-
 /* Buttons, and the dialogs of task 08 over native <dialog>. */
 button {
   padding: 0.35rem 0.8rem;
@@ -457,7 +446,8 @@ button.link {
 .events-page,
 .event-page,
 .fighters-page,
-header.top {
+header.top,
+dialog.form {
   --ds-ink: #111111;
   --ds-muted: #6a6760;
   --ds-line: #e6e3dc;
@@ -465,6 +455,7 @@ header.top {
   --ds-band: #f5f3ee;
   --ds-red: #c8102e;
   --ds-blue: #1554b8;
+  --ds-danger: #a50d25; /* delete buttons only (docs/reference/design/README.md) */
   --ds-display: 'Avenir Next Condensed', 'HelveticaNeue-CondensedBold', 'Arial Narrow',
     sans-serif;
   color: var(--ds-ink);
@@ -1964,4 +1955,397 @@ a.ec-score:hover {
 .fighters-page button.fl-quiet:hover {
   color: var(--ds-ink);
   text-decoration: underline;
+}
+
+/* The dialogs (task restyle-dialogs), to docs/reference/design/
+   DialogsScoring, DialogsData and DialogsGuard: a white sheet with a 2px ink
+   border and square corners over paper grey, three bands (the title, the
+   body, the actions) between hairlines, inputs 48px high, the main action
+   dark, a delete red, Cancel quiet. These rules come after the dialogs'
+   layout rules above and only restyle them. */
+dialog.form {
+  width: min(40rem, calc(100vw - 2rem));
+  padding: 0;
+  border: 2px solid var(--ds-ink);
+  border-radius: 0;
+  background: #fff;
+}
+
+dialog.form::backdrop {
+  background: rgb(240 238 233 / 0.85);
+}
+
+dialog.form .dialog-head {
+  padding: 1.6rem 2rem 1.1rem;
+  border-bottom: 1px solid var(--ds-line);
+}
+
+dialog.form .dialog-head h2 {
+  margin: 0;
+  font-family: var(--ds-display);
+  font-size: 2.1rem;
+  font-weight: 800;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+dialog.form .dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 1.5rem 2rem;
+}
+
+dialog.form .dialog-body > * {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+dialog.form .grid {
+  gap: 1.1rem 1.25rem;
+}
+
+dialog.form label,
+dialog.form .field,
+dialog.form .label,
+dialog.form legend {
+  color: var(--ds-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+dialog.form label,
+dialog.form .field {
+  gap: 0.5rem;
+}
+
+/* A label's own words are small capitals; what it holds (an input, a found
+   fighter, a status line, a hint) is not. The rules after this one set
+   their own. */
+dialog.form label *,
+dialog.form .field *,
+dialog.form legend * {
+  font-weight: 400;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+dialog.form .field > .label,
+dialog.form .field > label {
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* The chosen fighter's name, in a <strong> the reset above also reaches. */
+dialog.form .chosen strong {
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+dialog.form label.inline {
+  color: var(--ds-ink);
+  font-size: 0.95rem;
+  font-weight: 400;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+dialog.form label small,
+dialog.form legend small {
+  font-weight: 400;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+dialog.form input,
+dialog.form select {
+  min-height: 3rem;
+  padding: 0 0.75rem;
+  border: 1.5px solid var(--ds-border);
+  border-radius: 0;
+  background: #fff;
+  color: var(--ds-ink);
+  font-size: 1rem;
+  font-weight: 400;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+dialog.form input:focus,
+dialog.form select:focus {
+  border-color: var(--ds-ink);
+  outline: none;
+}
+
+dialog.form input[type='checkbox'],
+dialog.form input[type='radio'] {
+  width: 1.25rem;
+  min-height: 0;
+  height: 1.25rem;
+  margin: 0;
+  accent-color: var(--ds-ink);
+}
+
+dialog.form label.inline,
+dialog.form .missed-weight label.inline {
+  min-height: 2.75rem;
+}
+
+dialog.form fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+}
+
+dialog.form legend {
+  margin-bottom: 0.5rem;
+  padding: 0;
+}
+
+dialog.form .missed-weight {
+  color: var(--ds-muted);
+  font-size: 0.875rem;
+}
+
+dialog.form .muted,
+dialog.form .status,
+dialog.form .typed-record {
+  color: var(--ds-muted);
+}
+
+dialog.form .chosen {
+  min-height: 3rem;
+  border-bottom: 2px solid var(--ds-ink);
+  font-family: var(--ds-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: normal;
+  text-transform: uppercase;
+}
+
+dialog.form .chosen .record {
+  font-family: var(--font);
+  font-size: 0.8rem;
+  font-weight: 400;
+  text-transform: none;
+}
+
+dialog.form .record {
+  font-family: inherit;
+  color: var(--ds-muted);
+}
+
+dialog.form .titles .line {
+  gap: 0.75rem;
+  margin-top: 0;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--ds-line);
+}
+
+dialog.form .titles .line:first-of-type {
+  border-top: 1px solid var(--ds-ink);
+}
+
+dialog.form .titles .line > span {
+  color: var(--ds-ink);
+  font-weight: 500;
+}
+
+/* A row of two or three choices (choiceRow in dialog.ts). */
+dialog.form .seg {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+dialog.form .seg button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-width: 3.25rem;
+  min-height: 2.75rem;
+  margin-left: -1.5px;
+  padding: 0 0.9rem;
+  border: 1.5px solid var(--ds-border);
+  border-radius: 0;
+  background: #fff;
+  color: var(--ds-ink);
+  font-size: 0.875rem;
+  font-weight: 400;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+dialog.form .seg button:first-child {
+  margin-left: 0;
+}
+
+dialog.form .seg button[aria-pressed='true'] {
+  position: relative;
+  border-color: var(--ds-ink);
+  background: var(--ds-ink);
+  color: #fff;
+}
+
+dialog.form .seg .swatch {
+  width: 0.75rem;
+  height: 0.75rem;
+  border: 1.5px solid var(--ds-ink);
+}
+
+dialog.form .seg button[aria-pressed='true'] .swatch {
+  border-color: #fff;
+}
+
+dialog.form .seg .swatch.red {
+  background: var(--ds-red);
+}
+
+dialog.form .seg .swatch.blue {
+  background: var(--ds-blue);
+}
+
+/* The body's own buttons (Add deduction, a pick in a list) are quiet
+   outlines; the main action is only in the actions band. */
+dialog.form .dialog-body button:not(.quiet):not(.link):not(.pick):not(.seg button) {
+  min-height: 2.75rem;
+  padding: 0 1rem;
+  border: 1.5px solid var(--ds-border);
+  border-radius: 0;
+  background: #fff;
+  color: var(--ds-ink);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+dialog.form button.quiet {
+  min-height: 2.75rem;
+  padding: 0 0.6rem;
+  border: 0;
+  background: transparent;
+  color: var(--ds-muted);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+dialog.form button.quiet:hover:not(:disabled) {
+  color: var(--ds-ink);
+  text-decoration: underline;
+}
+
+dialog.form button.link {
+  color: var(--ds-ink);
+}
+
+/* The fighter search's matches: an ink box under the input, the highlighted
+   match in ink. */
+dialog.form ul.found.listed {
+  border: 2px solid var(--ds-ink);
+  border-radius: 0;
+}
+
+dialog.form ul.found.drop {
+  margin-top: 0;
+  border-top: 0;
+  box-shadow: none;
+}
+
+dialog.form button.pick {
+  min-height: 3rem;
+  padding: 0 0.75rem;
+  border-radius: 0;
+  color: var(--ds-ink);
+  font-size: 0.95rem;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+dialog.form button.pick:hover,
+dialog.form button.pick.highlighted {
+  background: var(--ds-ink);
+  box-shadow: none;
+  color: #fff;
+}
+
+dialog.form button.pick:hover .record,
+dialog.form button.pick.highlighted .record {
+  color: #d9d6cf;
+}
+
+/* The delete and merge previews: the records before and after. */
+dialog.form table.preview {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+dialog.form table.preview th {
+  padding: 0 0 0.5rem;
+  border-bottom: 1px solid var(--ds-ink);
+  color: var(--ds-muted);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+dialog.form table.preview td {
+  padding: 0.6rem 0.5rem 0.6rem 0;
+  border-bottom: 1px solid var(--ds-line);
+}
+
+dialog.form table.preview td.record {
+  color: var(--ds-ink);
+  font-family: var(--ds-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+dialog.form .dialog-actions {
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 1.1rem 2rem;
+  border-top: 1px solid var(--ds-line);
+}
+
+dialog.form .dialog-actions button:not(.quiet) {
+  min-height: 3rem;
+  padding: 0 1.6rem;
+  border: 0;
+  border-radius: 0;
+  background: var(--ds-ink);
+  color: #fff;
+  font-family: var(--ds-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+dialog.form .dialog-actions button:not(.quiet):not(.danger):hover:not(:disabled) {
+  background: var(--ds-red);
+}
+
+dialog.form .dialog-actions button.danger {
+  border: 2px solid var(--ds-danger);
+  background: #fff;
+  color: var(--ds-danger);
+}
+
+dialog.form .dialog-actions button.danger.strong {
+  background: var(--ds-danger);
+  color: #fff;
+}
+
+dialog.form .error {
+  color: var(--ds-danger);
 }

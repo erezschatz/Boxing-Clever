@@ -4,7 +4,7 @@
 // brought each (SPEC API, POST/PATCH /bouts). Answers the saved bout.
 import { api, type BoutView, type Fighter, json, type Title, type WeightClass } from './api.ts';
 import { html, nothing } from './component.ts';
-import { DialogForm, type DialogState, FRESH } from './dialog.ts';
+import { choiceRow, DialogForm, type DialogState, FRESH } from './dialog.ts';
 import {
   findFighters,
   newFighterLabel,
@@ -109,14 +109,19 @@ export class BoutForm extends DialogForm<State, BoutView> {
     return html`
       <div class="grid">
         ${this.fighterField('A', s.a, s.queryA)} ${this.fighterField('B', s.b, s.queryB)}
-        <label>Corner of fighter A
-          <select @change=${(e: InputEvent) =>
-            this.set({ corner_a: (e.target as HTMLSelectElement).value as State['corner_a'] })}>
-            <option value="red" ?selected=${s.corner_a === 'red'}>Red (B is blue)</option>
-            <option value="blue" ?selected=${s.corner_a === 'blue'}>Blue (B is red)</option>
-            <option value="" ?selected=${s.corner_a === ''}>Not recorded</option>
-          </select>
-        </label>
+        <div class="field">
+          <span class="label">Corner of fighter A</span>
+          ${choiceRow<State['corner_a']>(
+            'Corner of fighter A',
+            [
+              { value: 'red', label: 'Red', swatch: 'red' },
+              { value: 'blue', label: 'Blue', swatch: 'blue' },
+              { value: '', label: 'Not recorded' },
+            ],
+            s.corner_a,
+            (corner_a) => this.set({ corner_a }),
+          )}
+        </div>
         ${this.weightField()}
         <label>Scheduled rounds
           <input

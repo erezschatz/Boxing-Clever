@@ -63,6 +63,7 @@ Out-of-order work that a decision placed in the sequence, as it stood on
 - [merge-asks-before-records-move](../tasks/merge-asks-before-records-move.md) — Merge asks before records move · done
 - [questions-2026-11-03](../tasks/questions-2026-11-03.md) — Open questions, 2026-11-03 · done
 - [quiet-missed-weight](../tasks/quiet-missed-weight.md) — A missed weight is noted quietly · done
+- [restyle-dialogs](../tasks/restyle-dialogs.md) — The dialogs, restyled · done
 - [restyle-event-card](../tasks/restyle-event-card.md) — The event card, restyled · done
 - [restyle-events](../tasks/restyle-events.md) — The events page, restyled · done
 - [restyle-fighters](../tasks/restyle-fighters.md) — The fighters page, restyled · done

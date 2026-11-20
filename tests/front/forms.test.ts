@@ -38,6 +38,7 @@ import {
   lastTyped,
   reopenBody,
 } from '../../front/scorecard.ts';
+import { choiceRow } from '../../front/dialog.ts';
 import type { BoutView, Fighter, Title } from '../../front/api.ts';
 import { type Api, recordOf, testApi, usykFury } from '../helpers/api.ts';
 
@@ -619,4 +620,26 @@ Deno.test('the bout form sends the class chosen or the contracted weight typed, 
   for (const typed of ['', '  ', '0', '0.001', '-150', 'ten', '10st']) {
     ok('error' in readBoutWeight('contracted', 10, typed), JSON.stringify(typed));
   }
+});
+
+Deno.test('a choice of two or three is a row of buttons: the chosen one pressed, a press on another picks it, on the chosen one nothing', () => {
+  const picked: string[] = [];
+  const row = choiceRow(
+    'Unit',
+    [
+      { value: 'lbs', label: 'lbs' },
+      { value: 'kg', label: 'kg' },
+      { value: 'st', label: 'st' },
+    ],
+    'lbs',
+    (u) => picked.push(u),
+  );
+  // lit-html's TemplateResult: the row's values hold one template per
+  // button, whose values are aria-pressed, the click handler, the swatch
+  // and the label.
+  const buttons = row.values.find(Array.isArray) as { values: unknown[] }[];
+  deepStrictEqual(buttons.map((b) => b.values[0]), [true, false, false]);
+  deepStrictEqual(buttons.map((b) => b.values[3]), ['lbs', 'kg', 'st']);
+  for (const b of buttons) (b.values[1] as () => void)();
+  deepStrictEqual(picked, ['kg', 'st']); // as a dropdown fires no change on its own option
 });

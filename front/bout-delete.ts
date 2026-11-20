@@ -118,7 +118,7 @@ export class BoutDelete extends DialogForm<State, true> {
         return html`
           <button
             type="button"
-            class="danger"
+            class="danger strong"
             ?disabled=${busy || !step.preview.reverse_possible}
             @click=${() => this.choose('reverse')}
           >Delete and reset the records</button>

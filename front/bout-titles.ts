@@ -5,7 +5,8 @@
 import { api, json, type Title } from './api.ts';
 import type { BoutForm, Holder, Line, NewTitle } from './bout-form.ts';
 import { html, nothing } from './component.ts';
-import { fighterName, titleText } from './format.ts';
+import { choiceRow } from './dialog.ts';
+import { plainName, titleText } from './format.ts';
 
 // The belts on the line: each a title of this class and who brought it.
 export function titlesField(form: BoutForm) {
@@ -16,9 +17,10 @@ export function titlesField(form: BoutForm) {
     ? []
     : form.lists.titles.filter((t) => t.weight_class_id === s.weight_class_id);
   const unused = ofClass.filter((t) => !s.titles.some((l) => l.title_id === t.id));
+  // Short enough for a button: the name without the nickname.
   const name = (side: 'A' | 'B') => {
     const f = side === 'A' ? s.a : s.b;
-    return f ? fighterName(f) : `fighter ${side}`;
+    return f ? plainName(f) : `Fighter ${side}`;
   };
   const setLine = (i: number, line: Line) =>
     form.set({ titles: s.titles.map((l, j) => (j === i ? line : l)) });
@@ -30,21 +32,16 @@ export function titlesField(form: BoutForm) {
         return html`
           <div class="line">
             <span>${title ? titleText(title) : `title ${line.title_id}`}</span>
-            <select @change=${(e: InputEvent) =>
-              setLine(i, {
-                ...line,
-                holder_side: (e.target as HTMLSelectElement).value as Holder,
-              })}>
-              <option value="A" ?selected=${line.holder_side === 'A'}>held by ${name(
-                'A',
-              )}</option>
-              <option value="B" ?selected=${line.holder_side === 'B'}>held by ${name(
-                'B',
-              )}</option>
-              <option value="vacant" ?selected=${line.holder_side === 'vacant'}>
-                vacant (neither is champion)
-              </option>
-            </select>
+            ${choiceRow<Holder>(
+              `${title ? titleText(title) : 'Title'}, brought in by`,
+              [
+                { value: 'A', label: name('A') },
+                { value: 'B', label: name('B') },
+                { value: 'vacant', label: 'Vacant' },
+              ],
+              line.holder_side,
+              (holder_side) => setLine(i, { ...line, holder_side }),
+            )}
             <button type="button" class="quiet" @click=${() =>
               form.set({ titles: s.titles.filter((_, j) => j !== i) })}>remove</button>
           </div>

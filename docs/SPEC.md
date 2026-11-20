@@ -345,7 +345,12 @@ reference lists, every fighter, class and title (D34). Pages:
 No CSS framework. One stylesheet, custom properties, light theme only.
 Native `<dialog>` for modals (v1 already did this): each form is a
 `DialogForm` (`dialog.ts`) that opens over the page and answers what it
-made (D37). The fighter and bout forms ask before Cancel or Escape
+made (D37). It is built to `docs/reference/design/Dialogs*.dc.html` (task
+restyle-dialogs): the title, the body and the actions in three bands
+inside a 2px ink border over paper grey, the main action dark and a delete
+red; a choice of two or three options is a row of buttons (`choiceRow`:
+the corner of fighter A, who brought a title in, the weight unit), and one
+of more stays a dropdown. The fighter and bout forms ask before Cancel or Escape
 discards what was typed (D44; the others do not say yet what dirty is).
 The forms are `event-form.ts`, `fighter-form.ts`
 (edit, or find-or-add: as the name is typed the fighters it could be drop

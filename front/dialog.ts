@@ -39,10 +39,16 @@ export abstract class DialogForm<S extends DialogState, R> extends Component<S> 
   }
 
   view() {
+    // The design's three bands (docs/reference/design/Dialogs*.dc.html; task
+    // restyle-dialogs): the title, the body, the actions.
     return html`
-      <h2>${this.title()}</h2>
-      ${this.body()}
-      ${this.state.error ? html`<p class="error">${this.state.error}</p>` : nothing}
+      <div class="dialog-head">
+        <h2>${this.title()}</h2>
+      </div>
+      <div class="dialog-body">
+        ${this.body()}
+        ${this.state.error ? html`<p class="error">${this.state.error}</p>` : nothing}
+      </div>
       <div class="dialog-actions">
         ${this.state.leaving
           ? html`
@@ -114,6 +120,33 @@ export abstract class DialogForm<S extends DialogState, R> extends Component<S> 
     dialog.showModal();
     return answer;
   }
+}
+
+// A choice of two or three as a row of buttons, the chosen one pressed
+// (Erez, 2026-11-20: buttons for two or three, a dropdown for more; task
+// restyle-dialogs). A swatch marks a corner's colour. Pressing the chosen
+// one does nothing, as picking the chosen option of a dropdown fires no
+// change.
+export type Choice<V> = { value: V; label: string; swatch?: 'red' | 'blue' };
+
+export function choiceRow<V>(
+  label: string,
+  options: Choice<V>[],
+  current: V,
+  pick: (value: V) => void,
+) {
+  return html`
+    <div class="seg" role="group" aria-label=${label}>
+      ${options.map((o) =>
+        html`
+          <button type="button" aria-pressed=${o.value === current} @click=${() =>
+            o.value !== current && pick(o.value)}>
+            ${o.swatch ? html`<span class="swatch ${o.swatch}"></span>` : nothing}${o.label}
+          </button>
+        `
+      )}
+    </div>
+  `;
 }
 
 export type DialogState = { error: string | null; busy: boolean; leaving: boolean };

@@ -12,7 +12,7 @@
 // made only when nobody has the name.
 import { api, type Fighter, json } from './api.ts';
 import { html, nothing } from './component.ts';
-import { DialogForm, type DialogState, FRESH } from './dialog.ts';
+import { choiceRow, DialogForm, type DialogState, FRESH } from './dialog.ts';
 import {
   changedFields,
   fieldsOnFound,
@@ -31,7 +31,7 @@ import {
   weightText,
 } from './entry.ts';
 import { fighterName, recordText } from './format.ts';
-import { getUnitDisplayName, type WeightUnit } from '../server/rules/weight.ts';
+import type { WeightUnit } from '../server/rules/weight.ts';
 
 const UNITS: WeightUnit[] = ['lbs', 'kg', 'st'];
 const RECORD_LABELS = { won: 'Won', lost: 'Lost', draws: 'Drawn', nc: 'NC', kos: 'KOs' };
@@ -148,14 +148,15 @@ export class FighterForm extends DialogForm<State, Fighter> {
             @input=${(e: Event) => this.field('weight', (e.target as HTMLInputElement).value)}
           >
         </label>
-        <label>Unit
-          <select @change=${(e: Event) =>
-            this.changeUnit((e.target as HTMLSelectElement).value as WeightUnit)}>
-            ${UNITS.map((u) =>
-              html`<option value=${u} ?selected=${u === f.unit}>${getUnitDisplayName(u)}</option>`
-            )}
-          </select>
-        </label>
+        <div class="field">
+          <span class="label">Unit</span>
+          ${choiceRow<WeightUnit>(
+            'Unit',
+            UNITS.map((u) => ({ value: u, label: u })),
+            f.unit,
+            (u) => this.changeUnit(u),
+          )}
+        </div>
         <fieldset class="counts">
           <legend>Record <small class="muted">${this.recordNote()}</small></legend>
           ${RECORD_KEYS.map((k) =>
