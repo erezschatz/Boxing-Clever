@@ -80,12 +80,35 @@ export function titleText(t: Title): string {
 // it; a result not yet final (a bout reopened for scoring) says so. The word
 // "draft" is the API's, never the page's (D39).
 export function resultText(bout: BoutView, nameA: string, nameB: string): string {
+  const text = outcomeText(bout, nameA, nameB);
+  return text && bout.card.is_draft ? `${text} · not final` : text;
+}
+
+// Who won and how, without saying whether it is final: the event card says
+// "not final" on a line of its own (task restyle-event-card).
+export function outcomeText(bout: BoutView, nameA: string, nameB: string): string {
   const { result } = bout.card;
   if (!result) return '';
   const who = result.winner === 'A' ? nameA : result.winner === 'B' ? nameB : '';
   const how = howItEnded(bout);
-  const text = who ? `${who} · ${how}` : how;
-  return bout.card.is_draft ? `${text} · not final` : text;
+  return who ? `${who} · ${how}` : how;
+}
+
+// How far an event's card has got, for the line beside "Add bout": every
+// bout, those with no result yet (to score), and those with a result that
+// is not final (a bout reopened for scoring, D39).
+export function cardCounts(
+  bouts: BoutView[],
+): { bouts: number; toScore: number; notFinal: number } {
+  const toScore = bouts.filter((b) => !b.card.result).length;
+  const notFinal = bouts.filter((b) => b.card.result && b.card.is_draft).length;
+  return { bouts: bouts.length, toScore, notFinal };
+}
+
+// A name without the nickname, as the event card's rows set it large:
+// "Tyson Fury".
+export function plainName(f: Named): string {
+  return `${f.first_name} ${f.last_name}`;
 }
 
 // The code with the round and time of a stoppage: "KO 7 (2:14)", "UD".

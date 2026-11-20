@@ -268,7 +268,12 @@ reference lists, every fighter, class and title (D34). Pages:
   first; a row per year with the year large, a mark per event and the count;
   under an open year, a row per event linking to its card, the day large,
   the month, and the location as typed
-- `/events/:id` the card: bouts in order with both fighters and their
+- `/events/:id` the card, built to `docs/reference/design/Event.dc.html`
+  (task restyle-event-card): the date and "Edit event", the location large,
+  how many bouts, how many still to score and how many not final, and "Add
+  bout"; bouts in order, the two sides facing each other across "VS" with
+  corner squares, names set large without the nickname and the loser's
+  greyed once there is a winner, and their
   record on the night (the snapshot, once taken), a missed weight noted
   quietly beside the fighter who missed it (D47), corners, class or "Contracted at
   N lbs" (D26), rounds,

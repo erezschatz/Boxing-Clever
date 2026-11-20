@@ -2,7 +2,8 @@
 // the corners, the class, the rounds, the belts on the line and who brought
 // each, and the result (SPEC Front end; v1's Event page columns). The event
 // and its bouts are added, edited and deleted here in dialogs (task 08); the
-// whole row opens the bout's scorecard (task 07).
+// whole row opens the bout's scorecard (task 07). Restyled to
+// docs/reference/design/Event.dc.html (task restyle-event-card).
 import { api, type BoutView, type Event, references } from './api.ts';
 import { BoutDelete } from './bout-delete.ts';
 import { BoutForm } from './bout-form.ts';
@@ -11,14 +12,17 @@ import { EventForm } from './event-form.ts';
 import { navigate } from './router.ts';
 import {
   boutWeightText,
+  cardCounts,
   dateText,
   fighterName,
   missedWeightNote,
+  outcomeText,
+  plainName,
   recordOnTheNight,
   resultLabel,
-  resultText,
   titleText,
 } from './format.ts';
+import type { Side } from '../server/rules/decisions.ts';
 
 type References = Awaited<ReturnType<typeof references>>;
 type State = { event: Event | null; bouts: BoutView[]; refs: References | null };
@@ -66,29 +70,88 @@ export class EventPage extends Component<State> {
   view() {
     const { event, bouts, refs } = this.state;
     if (!event || !refs) return html`<p class="muted">Loading…</p>`;
+    const counts = cardCounts(bouts);
     return html`
-      <div class="page-head">
-        <h1>${event.location}</h1>
-        <button type="button" class="quiet" @click=${() => this.editEvent(event)}>edit</button>
-        <button type="button" @click=${() => this.editBout(null)}>Add bout</button>
+      <div class="event-page">
+        <div class="ec-head">
+          <div class="ec-where">
+            <p class="ec-date">
+              <span>${dateText(event.date)}</span>
+              <button type="button" class="ec-quiet" @click=${() =>
+                this.editEvent(event)}>Edit event</button>
+            </p>
+            <h1>${event.location}</h1>
+          </div>
+          <div class="ec-tally">
+            ${bouts.length > 0
+              ? html`
+                <p class="muted">
+                  <strong>${counts.bouts}</strong> ${counts.bouts === 1 ? 'bout' : 'bouts'}${counts
+                      .toScore > 0
+                    ? html`
+                      · <strong>${counts.toScore}</strong> to score
+                    `
+                    : nothing}${counts.notFinal > 0
+                    ? html`
+                      · <strong>${counts.notFinal}</strong> not final
+                    `
+                    : nothing}
+                </p>
+              `
+              : nothing}
+            <button type="button" class="ec-add" @click=${() =>
+              this.editBout(null)}>Add bout</button>
+          </div>
+        </div>
+        ${bouts.length === 0 ? html`<p class="muted">No bouts on this card yet.</p>` : html`
+          <div class="ec-scroll">
+            <table class="ec-card" aria-label="The card">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th colspan="3">Fighters</th>
+                  <th>Weight · rounds · titles</th>
+                  <th>Result</th>
+                  <th><span class="visually-hidden">Edit or delete</span></th>
+                </tr>
+              </thead>
+              <tbody>${bouts.map((bout) => this.row(bout, refs))}</tbody>
+            </table>
+          </div>
+          <p class="ec-note muted">A row opens its scorecard.</p>
+        `}
       </div>
-      <p class="subtitle">${dateText(event.date)}</p>
-      ${bouts.length === 0 ? html`<p class="muted">No bouts on this card yet.</p>` : html`
-        <table class="list card">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Fighters</th>
-              <th>Class</th>
-              <th>Rounds</th>
-              <th>Titles</th>
-              <th>Result</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>${bouts.map((bout) => this.row(bout, refs))}</tbody>
-        </table>
-      `}
+    `;
+  }
+
+  // A side of a bout row: the corner square, the name large (grey once the
+  // other side has won), and the record on the night with a missed weight
+  // noted beside it (D47). Side B is mirrored, its square after the name.
+  side(bout: BoutView, side: Side, name: string, corner: string | null) {
+    const s = side === 'A' ? 'a' : 'b';
+    const winner = bout.card.result?.winner;
+    const lost = (winner === 'A' || winner === 'B') && winner !== side;
+    const record = recordOnTheNight(bout, s);
+    const missed = missedWeightNote(bout, side);
+    return html`
+      <div class="ec-side side-${s}">
+        <div class="ec-fighter">
+          <span
+            class="ec-corner ${corner ?? 'none'}"
+            role="img"
+            aria-label=${corner ? `${corner} corner` : 'corner not recorded'}
+          ></span>
+          <span class="ec-name ${lost ? 'lost' : ''}">${name}</span>
+        </div>
+        ${record || missed
+          ? html`
+            <div class="ec-record">
+              ${record ? html`<span class="record">${record}</span>` : nothing}
+              ${missed ? html`<span class="missed">${missed}</span>` : nothing}
+            </div>
+          `
+          : nothing}
+      </div>
     `;
   }
 
@@ -97,18 +160,13 @@ export class EventPage extends Component<State> {
     const b = refs.fighters.get(bout.fighter_b_id);
     const nameA = a ? fighterName(a) : `fighter ${bout.fighter_a_id}`;
     const nameB = b ? fighterName(b) : `fighter ${bout.fighter_b_id}`;
+    // The rows set names large, without the nickname (task restyle-event-card).
+    const shortA = a ? plainName(a) : nameA;
+    const shortB = b ? plainName(b) : nameB;
     const cornerB = bout.corner_a === 'red' ? 'blue' : bout.corner_a === 'blue' ? 'red' : null;
-    const side = (name: string, corner: string | null, record: string | null, missed: string) =>
-      html`
-        <div class="side">
-          ${corner
-            ? html`<span class="corner ${corner}" title="${corner} corner"></span>`
-            : nothing}
-          <span class="name">${name}</span>
-          ${record ? html`<span class="record">${record}</span>` : nothing}
-          ${missed ? html`<span class="missed">${missed}</span>` : nothing}
-        </div>
-      `;
+    const outcome = outcomeText(bout, shortA, shortB);
+    const note = bout.card.result && bout.card.is_draft ? 'not final' : '';
+    const weight = boutWeightText(bout, refs.classes);
     // The whole row opens the scorecard (Erez, 2026-11-07); the result
     // link stays for the keyboard, and edit and delete are their own.
     const open = (e: MouseEvent) => {
@@ -117,29 +175,30 @@ export class EventPage extends Component<State> {
     };
     return html`
       <tr class="bout" @click=${open}>
-        <td class="order">${bout.card_order}</td>
-        <td>
-          ${side(nameA, bout.corner_a, recordOnTheNight(bout, 'a'), missedWeightNote(bout, 'A'))}
-          ${side(nameB, cornerB, recordOnTheNight(bout, 'b'), missedWeightNote(bout, 'B'))}
-        </td>
-        <td>${boutWeightText(bout, refs.classes)}</td>
-        <td>${bout.scheduled_rounds}</td>
-        <td>
+        <td class="ec-order">${bout.card_order}</td>
+        <td class="ec-a">${this.side(bout, 'A', shortA, bout.corner_a)}</td>
+        <td class="ec-vs" aria-hidden="true">vs</td>
+        <td class="ec-b">${this.side(bout, 'B', shortB, cornerB)}</td>
+        <td class="ec-terms">
+          <div>${weight ? `${weight} · ` : ''}${bout.scheduled_rounds} rounds</div>
           ${bout.titles.map(({ title_id, holder_side }) => {
             const title = refs.titles.get(title_id);
-            const holder = holder_side === 'A' ? nameA : holder_side === 'B' ? nameB : 'vacant';
-            return html`<div>${
+            const holder = holder_side === 'A' ? shortA : holder_side === 'B' ? shortB : 'vacant';
+            return html`<div class="ec-title">${
               title ? titleText(title) : `title ${title_id}`
             } <span class="muted">(${holder})</span></div>`;
           })}
         </td>
-        <td title=${resultLabel(bout)}>
-          <a href="/bouts/${bout.id}">${resultText(bout, nameA, nameB) || 'Score'}</a>
+        <td class="ec-result" title=${resultLabel(bout)}>
+          ${outcome
+            ? html`<a class="ec-outcome" href="/bouts/${bout.id}">${outcome}</a>`
+            : html`<a class="ec-score" href="/bouts/${bout.id}">Score</a>`}
+          ${note ? html`<span class="muted">${note}</span>` : nothing}
         </td>
-        <td class="row-actions">
-          <button type="button" class="quiet" @click=${() => this.editBout(bout)}>edit</button>
-          <button type="button" class="quiet" @click=${() =>
-            this.deleteBout(bout, `${nameA} v ${nameB}`)}>delete</button>
+        <td class="ec-actions">
+          <button type="button" class="ec-quiet" @click=${() => this.editBout(bout)}>Edit</button>
+          <button type="button" class="ec-quiet" @click=${() =>
+            this.deleteBout(bout, `${nameA} v ${nameB}`)}>Delete</button>
         </td>
       </tr>
     `;

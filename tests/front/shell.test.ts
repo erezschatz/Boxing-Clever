@@ -6,6 +6,7 @@ import chamber from '../../mod.ts';
 import { matchRoute } from '../../front/router.ts';
 import {
   boutWeightText,
+  cardCounts,
   classText,
   dateText,
   dayAndMonth,
@@ -16,6 +17,8 @@ import {
   missedWeightNote,
   myCardFor,
   outcomeFor,
+  outcomeText,
+  plainName,
   recordText,
   resultText,
   sideOf,
@@ -203,4 +206,31 @@ Deno.test('the events title says how many nights were watched since the first on
   assertEquals(watchedSince(['2024-05-18']), '1 night watched since May 2024');
   assertEquals(watchedSince(['2021-11-13', '2026-11-14']), '2 nights watched since Nov 2021'); // in any order
   assertEquals(watchedSince([]), '');
+});
+
+Deno.test('an event card row says who won and how, and leaves "not final" to a line of its own', () => {
+  const bout = (result: BoutView['card']['result'], is_draft = false) =>
+    ({ card: { result, is_draft } }) as BoutView;
+  const ud = { decision_type: 'UD', winner: 'A', round: null, time: null } as const;
+  assertEquals(outcomeText(bout(ud, true), 'Oleksandr Usyk', 'Tyson Fury'), 'Oleksandr Usyk · UD');
+  const ko = { decision_type: 'KO', winner: 'B', round: 9, time: '2:52' } as const;
+  assertEquals(outcomeText(bout(ko), 'Usyk', 'Dubois'), 'Dubois · KO 9 (2:52)');
+  const draw = { decision_type: 'D', winner: 'draw', round: null, time: null } as const;
+  assertEquals(outcomeText(bout(draw), 'Fury', 'Wilder'), 'D');
+  assertEquals(outcomeText(bout(null, true), 'Usyk', 'Fury'), ''); // the row offers "Score"
+  assertEquals(
+    plainName({ first_name: 'Tyson', last_name: 'Fury', nickname: 'The Gypsy King' }),
+    'Tyson Fury',
+  );
+});
+
+Deno.test('an event card counts its bouts, those still to score, and those with a result not final', () => {
+  const bout = (result: BoutView['card']['result'], is_draft: boolean) =>
+    ({ card: { result, is_draft } }) as BoutView;
+  const ud = { decision_type: 'UD', winner: 'A', round: null, time: null } as const;
+  deepStrictEqual(
+    cardCounts([bout(ud, false), bout(ud, true), bout(null, true), bout(null, true)]),
+    { bouts: 4, toScore: 2, notFinal: 1 },
+  );
+  deepStrictEqual(cardCounts([]), { bouts: 0, toScore: 0, notFinal: 0 });
 });

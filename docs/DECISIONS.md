@@ -1308,3 +1308,43 @@ Source: [tasks/restyle-events.md](../tasks/restyle-events.md)
 **Why** — As for the scorecard (its "shared, scoped by page" decision): pages not yet restyled must not change. The header is on every page, so it belongs to a restyle of its own.
 
 Source: [tasks/restyle-events.md](../tasks/restyle-events.md)
+
+## D88 · 2026-11-20 · The event card's rows set names without the nickname
+
+**Decision** — A bout row shows each fighter's first and last name (`plainName`), set large in capitals, and the result and the belts' holders use the same names. The delete dialog's names keep `fighterName`, with the nickname.
+**Rejected** — `fighterName` on the row, as before. The design's last name alone in the result.
+**Why** — At the design's size, a nickname doubles the name's length and crowds the facing side. A last name alone is ambiguous on a card with brothers on it. The nickname is on the scorecard's marquee and the fighter card.
+
+Source: [tasks/restyle-event-card.md](../tasks/restyle-event-card.md)
+
+## D89 · 2026-11-20 · "Not final" goes under the result, and the counts come from the bouts
+
+**Decision** — A row's result link says who won and how (`outcomeText`, which `resultText` now builds on), with "not final" on a line under it when the result is not final. A bout with no result shows "Score" as an outlined link, with no note. The head counts the bouts, those with no result ("to score") and those with a result not final (`cardCounts`), from the bouts the page already loads. A count of none is left out.
+**Rejected** — "· not final" inside the link, as before. The design's "not scored yet" under "Score", which would be wrong for a bout scored in part.
+**Why** — It is the design's row, and every figure is in the bouts the page has. `resultText` says the same as before, so the scorecard's band is unchanged.
+
+Source: [tasks/restyle-event-card.md](../tasks/restyle-event-card.md)
+
+## D90 · 2026-11-20 · The card stays a table, mirrored, with words in title case
+
+**Decision** — The card is still a `table` (now `ec-card`), its columns the order, side A, "VS", side B (mirrored, its square after the name), weight · rounds · titles, the result, and Edit and Delete. The corner square has `role="img"` and says its corner, or "corner not recorded". The buttons read "Edit event", "Edit" and "Delete", as the design has them. The whole-row click, the result link and the four dialogs are as before.
+**Rejected** — The design's rows of `div`s. Keeping "edit" and "delete" in lower case.
+**Why** — A table keeps the columns and their headers for the screen reader. The words change case only; what each button opens is the same.
+
+Source: [tasks/restyle-event-card.md](../tasks/restyle-event-card.md)
+
+## D91 · 2026-11-20 · The events page loses its phone layout
+
+**Decision** — The `max-width: 40rem` block restyle-events added to the events page is removed, and no restyled page has one.
+**Rejected** — Keeping it.
+**Why** — D9: laptop first, no mobile layout in phase 1. It went in with a line in that task's record but no decision, and Erez was told on 2026-11-20.
+
+Source: [tasks/restyle-event-card.md](../tasks/restyle-event-card.md)
+
+## D92 · 2026-11-20 · The styles the event card no longer uses go
+
+**Decision** — With the card restyled, `.subtitle`, `table.card`'s rows, `.side`, `.corner` and the `table.list` `td.date`/`td.order` widths are removed from `front/style.css`; nothing renders them now. `.event-page` joins the shared `--ds-*` rule, `.muted`, `.visually-hidden` and the 80rem `main`; its own rules are `ec-`. `.record` and `.missed` stay for the forms and the scorecard, and the card's rows restyle them within `.event-page`.
+**Rejected** — Leaving unused rules in the stylesheet.
+**Why** — The stylesheet should hold what the pages render. Restyle-events had kept `td.date` for the pages still on it; none was.
+
+Source: [tasks/restyle-event-card.md](../tasks/restyle-event-card.md)
