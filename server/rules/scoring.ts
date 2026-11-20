@@ -106,7 +106,7 @@ export function validateCard(card: Card): CardProblem[] {
       if (round.a !== 0 || round.b !== 0) {
         problem('stoppage-round', `round ${round.round_no} is the stoppage round and must be 0–0`);
       }
-    } else if (!isScoredRound(round)) {
+    } else if (!isScoredRound(round) && !isUnderWay(card, round, last)) {
       problem('points', `round ${round.round_no} must be 10–9, 9–10 or 10–10`);
     }
   }
@@ -142,6 +142,16 @@ export function validateCard(card: Card): CardProblem[] {
   }
 
   return problems;
+}
+
+// A draft with no result may end in a round under way: 0–0, holding at least
+// one of the deductions logged as they happened (a knockdown before the round is
+// scored), so a save or a reload keeps them (task kd-in-round-under-way).
+// Scoring that round replaces it; ending the bout in it makes it the §4
+// stoppage round, which is 0–0 already.
+export function isUnderWay(card: Card, { round_no, a, b }: CardRound, last: number): boolean {
+  return card.is_draft && card.result === null && round_no === last && a === 0 && b === 0 &&
+    card.deductions.some((d) => d.round_no === round_no);
 }
 
 // §1: 10 to the winner of the round, 9 to the loser, or 10–10. A 10–8 is a

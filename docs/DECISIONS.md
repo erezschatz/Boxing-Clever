@@ -1536,3 +1536,11 @@ Source: [tasks/marquee-before-save.md](../tasks/marquee-before-save.md)
 **Why** — Erez: "the VS should be to the top, see what happens with one guy in a single line and the other not".
 
 Source: [tasks/marquee-before-save.md](../tasks/marquee-before-save.md)
+
+## D116 · 2026-11-20 · A draft may end in a round under way, 0–0, holding a deduction logged before it was scored
+
+**Decision** — `isUnderWay` in `server/rules/scoring.ts`: a draft with no result may end in a round recorded 0–0 when at least one deduction is in it. `validateCard` accepts that round, which the 0–0 rule (§1) otherwise refuses, and the schema's foreign key (D18) holds because the round has its rows. The page sends it (`draftToSave`) when a deduction is in the round after the last one scored, the server has not held that round scored, and the card has no result. It loads its boxes empty (`entriesOf`) and is not counted as a stored round (`scoredRounds`, used for the page's count of what the server holds, D35). Scoring the round replaces it; ending the bout in it makes it the §4 stoppage round, 0–0 already. The server's totals count its deduction, as the scorecard's running totals already did; the fighter card's "My card" (`myCardFor`) says nothing for a card whose only row is a round under way, as for any card with no round scored.
+**Rejected** — Keeping the knockdown in the browser's storage until its round is scored (Erez chose the server). Dropping D18's foreign key so a deduction could stand without its round. A 0–0 round under way with no deduction, or anywhere but last, or on a card with a result. Sending a stored round cleared under its deduction as under way, which would quietly undo a scored round (D35 refuses it and says why).
+**Why** — Erez, 2026-11-20: "I want those to remain if possible", and, of the two ways offered, "Store it in the draft". A knockdown is logged as it happens, before its round is scored, and a draft is the card as it stands; refusing it whole lost the knockdown on leaving the page. The 0–0 row is how the card already writes a round with no points and deductions in it, the stoppage round (§4).
+
+Source: [tasks/kd-in-round-under-way.md](../tasks/kd-in-round-under-way.md)

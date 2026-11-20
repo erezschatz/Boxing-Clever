@@ -486,3 +486,31 @@ Deno.test('§4: a knockdown and a stop in round 1 is round 1 at 0–0 with the k
   deepStrictEqual(shaped, { rounds: [r(1, 0, 0)], deductions: [kd(1, 'B')] });
   deepStrictEqual(validateCard({ ...typed, ...shaped }), []);
 });
+
+Deno.test('a draft with no result may end in a round under way: 0–0, holding a deduction logged before it was scored', () => {
+  const underWay = { rounds: [r(1, 10, 9), r(2, 0, 0)], deductions: [kd(2, 'B')] };
+  deepStrictEqual(broken(card(underWay)), []);
+  // Only the last round, only with a deduction, only in a draft with no result.
+  deepStrictEqual(
+    broken(card({ rounds: [r(1, 0, 0), r(2, 10, 9)], deductions: [kd(1, 'B')] })),
+    ['points'],
+  );
+  deepStrictEqual(broken(card({ rounds: [r(1, 10, 9), r(2, 0, 0)], deductions: [kd(1, 'B')] })), [
+    'points',
+  ]);
+  deepStrictEqual(
+    broken(card({ ...underWay, is_draft: false, result: result('UD', 'A', 12) })),
+    ['distance', 'points'],
+  );
+  deepStrictEqual(broken(card({ ...underWay, result: result('UD', 'A', 12) })), [
+    'distance',
+    'points',
+  ]);
+  // A knockdown in round 1 before anything is scored.
+  deepStrictEqual(broken(card({ rounds: [r(1, 0, 0)], deductions: [kd(1, 'A')] })), []);
+  // Not after a gap.
+  deepStrictEqual(
+    broken(card({ rounds: [r(1, 10, 9), r(3, 0, 0)], deductions: [kd(3, 'B')] })),
+    ['no-gaps'],
+  );
+});

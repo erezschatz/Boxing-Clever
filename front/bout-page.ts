@@ -28,6 +28,7 @@ import {
   readPoints,
   reopenBody,
   runningTotals,
+  scoredRounds,
   stoppedRound,
 } from './scorecard.ts';
 import { messageOf, navigate } from './router.ts';
@@ -89,7 +90,7 @@ export class BoutPage extends Component<State> {
     await saves;
     const [bout, refs] = await Promise.all([api<BoutView>(`/bouts/${this.id}`), references()]);
     const event = await api<Event>(`/events/${bout.event_id}`);
-    this.#stored = bout.card.rounds.length;
+    this.#stored = scoredRounds(bout.card);
     this.set({ bout, event, refs, entries: entriesOf(bout), deductions: bout.card.deductions });
   }
 
@@ -140,7 +141,7 @@ export class BoutPage extends Component<State> {
     // and a draft sent now would take the result off both records (D32).
     if (!body || this.finalised || this.#changing) return { sent: null, unsaved };
     const before = this.#stored;
-    this.#stored = body.rounds.length;
+    this.#stored = scoredRounds(body);
     const sent = putCard(this.id, body, keepalive);
     // Refused or lost: the server holds what it held. Restored before the
     // next save's turn, which waits for this one to settle.
@@ -292,7 +293,7 @@ export class BoutPage extends Component<State> {
   // The server's answer becomes the page: the boxes, the deductions and
   // what it holds.
   loaded(bout: BoutView) {
-    this.#stored = bout.card.rounds.length;
+    this.#stored = scoredRounds(bout.card);
     this.set({ bout, entries: entriesOf(bout), deductions: bout.card.deductions, message: null });
   }
 

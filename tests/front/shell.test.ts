@@ -390,3 +390,29 @@ Deno.test('the scorecard names the titles fought for under the class, or nothing
   assertEquals(titlesAtStake(fought([1]), titles), 'WBC World title');
   assertEquals(titlesAtStake(fought([1, 2]), titles), 'WBC World · IBF World titles');
 });
+
+Deno.test('My card says nothing for a draft holding only a round under way, and counts its deduction once rounds are scored', () => {
+  const kd = { round_no: 2, side: 'B', points: 1, reason: 'knockdown', note: null };
+  const draft = (
+    rounds: { round_no: number; a: number; b: number }[],
+    totals: { a: number; b: number },
+  ) =>
+    ({
+      scheduled_rounds: 12,
+      card: {
+        rounds,
+        deductions: [{ ...kd, round_no: rounds.at(-1)!.round_no }],
+        result: null,
+        is_draft: true,
+        totals,
+      },
+    }) as unknown as BoutView;
+  assertEquals(myCardFor(draft([{ round_no: 1, a: 0, b: 0 }], { a: 0, b: -1 }), 'A'), '');
+  assertEquals(
+    myCardFor(
+      draft([{ round_no: 1, a: 10, b: 9 }, { round_no: 2, a: 0, b: 0 }], { a: 10, b: 8 }),
+      'A',
+    ),
+    '10–8',
+  );
+});

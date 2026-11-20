@@ -9,11 +9,13 @@ import {
   draftToSave,
   entriesOf,
   type Entry,
+  finalCard,
   isAssumed,
   nextBox,
   rankOf,
   readPoints,
   runningTotals,
+  scoredRounds,
 } from '../../front/scorecard.ts';
 import { rankText } from '../../front/format.ts';
 import type { BoutView } from '../../front/api.ts';
@@ -280,4 +282,76 @@ Deno.test('a deduction box says why: KD for a knockdown, FOUL for any other reas
     deepStrictEqual(deductionKinds([d(foul)]), { kd: false, foul: true }, foul);
   }
   deepStrictEqual(deductionKinds([d('knockdown'), d('holding')]), { kd: true, foul: true });
+});
+
+Deno.test('a knockdown logged before its round is scored is kept by a save and a reload, and stays when the bout is ended in that round', async () => {
+  const api = testApi();
+  const { boutId } = await usykFury(api);
+  const bout = await get(api, boutId);
+  const kd = {
+    round_no: 2,
+    side: 'B' as const,
+    points: 1,
+    reason: 'knockdown' as const,
+    note: null,
+  };
+  const entries = entriesOf(bout);
+  entries[0] = e(10, 9);
+
+  // Round 1 scored, the knockdown in round 2: the draft carries round 2
+  // under way, 0–0 (Erez, 2026-11-20: the KD vanished on leaving the page).
+  const draft = draftToSave(bout, entries, [kd]);
+  deepStrictEqual(draft.body?.rounds, [{ round_no: 1, a: 10, b: 9 }, { round_no: 2, a: 0, b: 0 }]);
+  const saved = await api.call('PUT', `/api/bouts/${boutId}/card`, draft.body);
+  assertEquals(saved.status, 200);
+
+  // A reload: the knockdown is there, round 2's boxes are empty, and the
+  // server holds one scored round.
+  const back = await get(api, boutId);
+  deepStrictEqual(back.card.deductions.map((d) => [d.round_no, d.side, d.reason]), [[
+    2,
+    'B',
+    'knockdown',
+  ]]);
+  deepStrictEqual(entriesOf(back).slice(0, 2), [e(10, 9), e(null, null)]);
+  assertEquals(scoredRounds(back.card), 1);
+
+  // Round 2 half typed: held back as before, the knockdown still sent, and
+  // the server still holds round 2 under way.
+  const half = entriesOf(back);
+  half[1] = e(10, null);
+  const halfDraft = draftToSave(back, half, back.card.deductions, scoredRounds(back.card));
+  deepStrictEqual(halfDraft.body?.rounds.at(-1), { round_no: 2, a: 0, b: 0 });
+  assertEquals((await api.call('PUT', `/api/bouts/${boutId}/card`, halfDraft.body)).status, 200);
+  const halfBack = await get(api, boutId);
+  deepStrictEqual(entriesOf(halfBack).slice(0, 2), [e(10, 9), e(null, null)]);
+  assertEquals(halfBack.card.deductions.length, 1);
+
+  // Round 2 scored after all: it replaces the round under way.
+  const scored = entriesOf(back);
+  scored[1] = e(10, 8);
+  const scoredDraft = draftToSave(back, scored, back.card.deductions, scoredRounds(back.card));
+  // 10–8 is not points (§1); 10–9 with the knockdown is the round.
+  assertEquals(scoredDraft.body, null);
+  scored[1] = e(10, 9);
+  const scoredBody = draftToSave(back, scored, back.card.deductions, scoredRounds(back.card)).body;
+  deepStrictEqual(scoredBody?.rounds.at(-1), { round_no: 2, a: 10, b: 9 });
+  assertEquals((await api.call('PUT', `/api/bouts/${boutId}/card`, scoredBody)).status, 200);
+  const scoredBack = await get(api, boutId);
+  deepStrictEqual(entriesOf(scoredBack).slice(0, 2), [e(10, 9), e(10, 9)]);
+  assertEquals(scoredRounds(scoredBack.card), 2);
+  assertEquals(scoredBack.card.deductions.length, 1);
+  // Back to the round under way, for the stoppage below.
+  assertEquals((await api.call('PUT', `/api/bouts/${boutId}/card`, draft.body)).status, 200);
+
+  // Ended in round 2 instead: the stoppage round keeps the knockdown.
+  const ko = { decision_type: 'KO' as const, winner: 'A' as const, round: 2, time: '0:20' };
+  const none = { a: null, b: null };
+  const noJudges: BoutView['card']['judges'] = [none, none, none];
+  const final = finalCard(back, entriesOf(back), back.card.deductions, ko, noJudges);
+  const ended = await api.call('PUT', `/api/bouts/${boutId}/card`, final.body);
+  assertEquals(ended.status, 200);
+  const done = await get(api, boutId);
+  deepStrictEqual(done.card.rounds, [{ round_no: 1, a: 10, b: 9 }, { round_no: 2, a: 0, b: 0 }]);
+  deepStrictEqual(done.card.deductions.map((d) => [d.round_no, d.side]), [[2, 'B']]);
 });

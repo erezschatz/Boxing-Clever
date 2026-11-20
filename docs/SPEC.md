@@ -177,7 +177,9 @@ origin; the three stoppage defects there are fixed by construction here.
    stoppage round has a row for both sides. The one exception is a corner
    retirement, a `TKO` at 3:00 (D55): its round was fought in full, so it is
    scored like any other, and the card ends there. A KO, a DQ, or a TKO at
-   any other time keeps the 0–0 round.
+   any other time keeps the 0–0 round. A draft with no result may also end
+   in a round under way, 0–0 with at least one deduction in it: one logged
+   before the round was scored, kept until it is.
 5. Decision types: `UD` `MD` `SD` `DEC` (unspecified points win), `KO` `TKO`
    `TD` `DQ` `NC` `MT` `T` (majority/technical draw) `D` (draw). There is
    no `RTD`: a corner retirement after round X is a `TKO` at 3:00 of round
@@ -323,6 +325,10 @@ reference lists, every fighter, class and title (D34). Pages:
   snapshot). Focus moves on once an entry cannot grow; a save (the API's
   draft) keeps the whole typed card when the rules accept it, never
   dropping a stored round by mistake, on demand and on leaving the page; a
+  deduction logged in the round after the last scored (a knockdown before
+  the round is scored) is saved with that round under way, 0–0, which
+  loads with empty boxes and gives way to the round once scored, or
+  becomes the stoppage round (§4); a
   finalised card is read-only: its decision can be changed, or it is
   reopened for scoring to fix a round (D35, D37). The pages say "score",
   "save progress" and "not final", never "draft" (D39). The card a result implies comes from the rules

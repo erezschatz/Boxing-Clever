@@ -8,6 +8,7 @@ import {
   type Card,
   type CardDeduction,
   type CardRound,
+  isUnderWay,
   type Result,
   resultEnd,
   roundTotal,
@@ -44,12 +45,26 @@ export function entriesOf(bout: BoutView): Entry[] {
     a: null,
     b: null,
   }));
-  for (const r of bout.card.rounds) {
+  const held = scoredRounds(bout.card);
+  for (const r of bout.card.rounds.slice(0, held)) {
     if (r.round_no >= 1 && r.round_no <= entries.length) {
       entries[r.round_no - 1] = { a: r.a, b: r.b };
     }
   }
   return entries;
+}
+
+// How many of a stored card's rounds are scored: all of them, but for a
+// draft's round under way (isUnderWay, task kd-in-round-under-way), the 0–0
+// row that only carries a knockdown logged before the round was scored. Its
+// boxes load empty, and it does not count as a round the server holds.
+export function scoredRounds(
+  card: Pick<BoutView['card'], 'rounds' | 'deductions' | 'result' | 'is_draft'>,
+): number {
+  const { rounds } = card;
+  const last = rounds.at(-1);
+  const whole = { ...card, scheduled_rounds: rounds.length } as Card;
+  return last && isUnderWay(whole, last, last.round_no) ? rounds.length - 1 : rounds.length;
 }
 
 // What the points box holds as it is typed (SPEC §1: whole points 0–10).
@@ -129,14 +144,15 @@ export type DraftBody = {
 // deductions, judges and result as loaded. The one round that may be held
 // back is the last typed one while it has only one side scored, and only
 // when the server does not hold it yet: a save never removes a stored round
-// unless both its boxes were cleared, and then only from the end. `stored`
-// is how many rounds the server holds: the page counts it from the last
+// unless both its boxes were cleared, and then only from the end. A
+// deduction in the round after the last scored goes with that round, 0–0,
+// under way. `stored` is how many scored rounds the server holds: the page counts it from the last
 // card it sent, which may be newer than the bout it loaded.
 export function draftToSave(
   bout: BoutView,
   entries: Entry[],
   deductions: Deduction[],
-  stored = bout.card.rounds.length,
+  stored = scoredRounds(bout.card),
 ): { body: DraftBody | null; unsaved: string[] } {
   const typed = entries.flatMap((e, i) => (e.a !== null || e.b !== null ? [i + 1] : []));
   const last = typed.at(-1) ?? 0;
@@ -154,6 +170,19 @@ export function draftToSave(
     if (n < last) return refuse(`round ${n} has one side empty, with later rounds scored`);
     if (n <= stored) return refuse(`round ${n} has one side empty`);
     unsaved.push(`round ${n} is saved once both sides are scored`);
+  }
+
+  // A deduction logged in the round after the last one scored (a knockdown
+  // before the round is) goes with that round under way, 0–0, so it is kept
+  // (isUnderWay, task kd-in-round-under-way). Only a round the server has
+  // not held scored: a stored round cleared under its deduction is refused
+  // as before (D35). A card with a result has no round under way.
+  const next = rounds.length + 1;
+  if (
+    bout.card.result === null && next > stored && next <= bout.scheduled_rounds &&
+    deductions.some((d) => d.round_no === next)
+  ) {
+    rounds.push({ round_no: next, a: 0, b: 0 });
   }
 
   const body: DraftBody = {

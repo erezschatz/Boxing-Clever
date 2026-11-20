@@ -2,6 +2,7 @@
 // result. Pure functions, so the tests can state them. Where v1 had a way of
 // saying it (BOXING-CLEVER-V1.md), that way is kept.
 import { decisionLabel } from '../server/rules/decisions.ts';
+import { isUnderWay } from '../server/rules/scoring.ts';
 import { applyDelta, type FightRecord, recordChange } from '../server/rules/records.ts';
 import {
   convertFromPounds,
@@ -160,10 +161,16 @@ export function outcomeFor(bout: BoutView, side: 'A' | 'B'): 'W' | 'L' | 'D' | '
 }
 
 // "115–111" with that side's total first, or '' when no round was scored
-// (a fight watched, not scored, is valid: SPEC Scoring §5).
+// (a fight watched, not scored, is valid: SPEC Scoring §5). A draft's round
+// under way is not a scored round, so a card holding only that says nothing;
+// with rounds scored, its deduction counts, as on the scorecard (task
+// kd-in-round-under-way).
 export function myCardFor(bout: BoutView, side: 'A' | 'B'): string {
   const { totals, rounds } = bout.card;
-  if (rounds.length === 0) return '';
+  const last = rounds.at(-1);
+  const underWay = last !== undefined &&
+    isUnderWay({ ...bout.card, scheduled_rounds: bout.scheduled_rounds }, last, last.round_no);
+  if (rounds.length - (underWay ? 1 : 0) === 0) return '';
   return side === 'A' ? `${totals.a}–${totals.b}` : `${totals.b}–${totals.a}`;
 }
 
