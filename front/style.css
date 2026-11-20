@@ -931,8 +931,14 @@ dialog.form {
 }
 
 .bp-class {
-  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
   text-align: center;
+}
+
+.bp-class p {
+  margin: 0;
   font-family: var(--ds-display);
   font-weight: 700;
   font-size: 1.25rem;
@@ -940,18 +946,35 @@ dialog.form {
   text-transform: uppercase;
 }
 
+/* The titles fought for, quiet under the class, as in the design. */
+.bp-class p.bp-stakes {
+  color: var(--ds-muted);
+  font-family: var(--font);
+  font-size: 0.9rem;
+  font-weight: 400;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
 /* The marquees: A on the left, B mirrored on the right, aligned over the
    card's halves. */
 .bp-marquees {
+  --bp-name-size: clamp(2.25rem, 5vw, 4.75rem);
   display: grid;
   grid-template-columns: minmax(0, 1fr) 7rem minmax(0, 1fr);
   align-items: stretch;
 }
 
+/* VS is level with the names' first line (Erez, task marquee-before-save),
+   not centred on the marquees, which a name on two lines makes uneven: it
+   drops past the corner line (1.75rem and the 0.6rem gap) and is centred on
+   a name line (0.9 of the name's size). */
 .bp-vs {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
+  padding-top: calc(2.35rem + (var(--bp-name-size) * 0.9 - 2.75rem) / 2);
+  line-height: 1;
   font-family: var(--ds-display);
   font-weight: 800;
   font-size: 2.75rem;
@@ -975,11 +998,13 @@ dialog.form {
   margin: 0;
 }
 
+/* One height, chip or not, so both names start level and VS lines up with
+   them (task marquee-before-save). */
 .bp-corner {
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  min-height: 1.5rem;
+  height: 1.75rem;
 }
 
 .bp-marquee.side-b .bp-corner {
@@ -1031,7 +1056,7 @@ dialog.form {
   margin: 0;
   font-family: var(--ds-display);
   font-weight: 800;
-  font-size: clamp(2.25rem, 5vw, 4.75rem);
+  font-size: var(--bp-name-size);
   line-height: 0.9;
   text-transform: uppercase;
 }

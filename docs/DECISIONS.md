@@ -1512,3 +1512,27 @@ Source: [tasks/stoppage-round.md](../tasks/stoppage-round.md)
 **Why** — Erez, 2026-11-20: "I don't care for the arrows, but I like using the arrow up/down to move the number in the input". Keeping the boxes as text keeps every rule about typing in them as it is.
 
 Source: [tasks/arrow-keys.md](../tasks/arrow-keys.md)
+
+## D113 · 2026-11-20 · Before the snapshot, a marquee shows the fighter as they stand
+
+**Decision** — `standingOnTheNight` in `front/format.ts` gives a side's record, weight and colours: the snapshot's once the first save has taken it (`a_won` or `b_won` not null), and before that the fighter's row as loaded with the page, which is what the first save will take (§7). A finalised bout with no snapshot (an import) already counts in the fighter's record, and that save takes its result off first (`recordChange` from `server/rules/records.ts`), so the marquee does too. The TBRB rank stays the snapshot's only (`rankOf`), as the rank is read on the server. Only the scorecard's marquees use it; the event card and fighter card keep the snapshot's record.
+**Rejected** — Taking the snapshot when the page opens (a save the user did not make). Leaving the marquee empty until a save, as it was. Changing the event card's rows too, which were not asked about.
+**Why** — Erez expected the record on a fresh card, as the design shows it. The fighter's row is what the snapshot will hold, unless the fighter is edited before the first save, in which case the marquee shows the edit, as the snapshot will.
+
+Source: [tasks/marquee-before-save.md](../tasks/marquee-before-save.md)
+
+## D114 · 2026-11-20 · The titles fought for are named under the class
+
+**Decision** — `titlesAtStake` names a bout's titles (`titleText`, joined by " · ", then "title" or "titles"), shown in muted plain text under the class and rounds line, which is now a `.bp-class` block of two lines. A bout with no title has no second line.
+**Rejected** — The design's "WBC super bantamweight title", which names the class, not the title's area as the app stores it. Putting the titles in the class line in capitals.
+**Why** — The design shows what is at stake under the class; the belts each side brings in stay in the marquees (D78's marquee, unchanged).
+
+Source: [tasks/marquee-before-save.md](../tasks/marquee-before-save.md)
+
+## D115 · 2026-11-20 · VS is level with the names' first line
+
+**Decision** — The corner line is one height, 1.75rem, whether or not it holds the Champion chip, so both names start level. `.bp-vs` is aligned to the top of the marquees and dropped past the corner line (1.75rem and its 0.6rem gap), then centred on one line of a name, whose size is now the custom property `--bp-name-size` on `.bp-marquees` so both rules read it.
+**Rejected** — The design's VS centred on the marquees, which a name on two lines pulls down. Measuring the names with a script.
+**Why** — Erez: "the VS should be to the top, see what happens with one guy in a single line and the other not".
+
+Source: [tasks/marquee-before-save.md](../tasks/marquee-before-save.md)

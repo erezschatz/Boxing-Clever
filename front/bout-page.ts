@@ -13,7 +13,7 @@ import { Component, html, nothing } from './component.ts';
 import { DeductionForm } from './deduction-form.ts';
 import { DecisionForm } from './decision-form.ts';
 import { Confirm } from './dialog.ts';
-import { boutWeightText, dateText, fighterName, shortStatus } from './format.ts';
+import { boutWeightText, dateText, fighterName, shortStatus, titlesAtStake } from './format.ts';
 import {
   afterDecision,
   type Deduction,
@@ -410,6 +410,8 @@ export class BoutPage extends Component<State> {
     const totals = runningTotals(this.state.entries, this.state.deductions);
     // The class, or the contracted weight (D26, D45).
     const weightClass = boutWeightText(bout, refs.classes);
+    // The titles fought for, under the class, as in the design.
+    const stakes = titlesAtStake(bout, refs.titles);
     // A side's three column heads, mirrored: A reads total · ded · points,
     // B points · ded · total, so a round's two points boxes sit side by side
     // (task restyle-scorecard). The corner colour is the bar over them.
@@ -425,7 +427,10 @@ export class BoutPage extends Component<State> {
     return html`
       <div class="bout-page">
         <h1 class="visually-hidden">${nameA} v ${nameB}</h1>
-        <p class="bp-class">${weightClass} · ${bout.scheduled_rounds} rounds</p>
+        <div class="bp-class">
+          <p>${weightClass} · ${bout.scheduled_rounds} rounds</p>
+          ${stakes ? html`<p class="bp-stakes">${stakes}</p>` : nothing}
+        </div>
         <section class="bp-marquees" aria-label="The fighters">
           ${sideHead(
             bout,

@@ -2,14 +2,14 @@
 // result. Pure functions, so the tests can state them. Where v1 had a way of
 // saying it (BOXING-CLEVER-V1.md), that way is kept.
 import { decisionLabel } from '../server/rules/decisions.ts';
-import type { FightRecord } from '../server/rules/records.ts';
+import { applyDelta, type FightRecord, recordChange } from '../server/rules/records.ts';
 import {
   convertFromPounds,
   formatWeight,
   poundsToStoneLbsOz,
   type WeightUnit,
 } from '../server/rules/weight.ts';
-import type { BoutView, Title, WeightClass } from './api.ts';
+import type { BoutView, Fighter, Title, WeightClass } from './api.ts';
 
 type Named = { first_name: string; last_name: string; nickname: string | null };
 
@@ -185,6 +185,51 @@ export function recordOnTheNight(bout: BoutView, side: 'a' | 'b'): string | null
     : { won: bout.b_won, lost: bout.b_lost, draws: bout.b_draws, nc: bout.b_nc, kos: bout.b_kos };
   if (s.won === null) return null;
   return recordText({ won: s.won, lost: s.lost!, draws: s.draws!, nc: s.nc!, kos: s.kos! });
+}
+
+// What a scorecard's marquee shows of one side (task marquee-before-save):
+// the record, weight and colours on the night, from the snapshot once the
+// first save has taken it (§7); before that, the fighter as they stand now,
+// which is what that save will take. A finalised bout with no snapshot (an
+// import) already counts in the fighter's record, and the save takes it off
+// first, so the marquee does too. A side whose fighter is not loaded shows
+// only what the snapshot has.
+export function standingOnTheNight(
+  bout: BoutView,
+  side: 'a' | 'b',
+  fighter: Fighter | undefined,
+): { record: string | null; weight: string; colours: string | null } {
+  const taken = (side === 'a' ? bout.a_won : bout.b_won) !== null;
+  if (taken || !fighter) {
+    return {
+      record: recordOnTheNight(bout, side),
+      weight: side === 'a'
+        ? weightOnTheNight(bout.a_weight, bout.a_weight_unit)
+        : weightOnTheNight(bout.b_weight, bout.b_weight_unit),
+      colours: side === 'a' ? bout.a_colors : bout.b_colors,
+    };
+  }
+  const result = bout.card.result;
+  const counted = bout.is_draft === 0 && result
+    ? recordChange({ decision_type: result.decision_type, winner: result.winner }, null)[side]
+    : null;
+  return {
+    record: recordText(counted ? applyDelta(fighter, counted) : fighter),
+    weight: weightOnTheNight(fighter.weight, fighter.weight_unit),
+    colours: fighter.colors,
+  };
+}
+
+// The titles a bout is fought for, under its class on the scorecard, as the
+// design has it: "WBC World title", "WBC World · IBF World titles"; empty
+// when none is at stake.
+export function titlesAtStake(bout: BoutView, titles: Map<number, Title>): string {
+  const names = bout.titles.map((t) => {
+    const title = titles.get(t.title_id);
+    return title ? titleText(title) : `title ${t.title_id}`;
+  });
+  if (names.length === 0) return '';
+  return `${names.join(' · ')} ${names.length === 1 ? 'title' : 'titles'}`;
 }
 
 // A class as the bout form's dropdown offers it, with its limit as v1 showed

@@ -24,11 +24,13 @@ import {
   resultText,
   shortStatus,
   sideOf,
+  standingOnTheNight,
+  titlesAtStake,
   titleText,
   watchedSince,
   weightOnTheNight,
 } from '../../front/format.ts';
-import type { BoutView, WeightClass } from '../../front/api.ts';
+import type { BoutView, Fighter, Title, WeightClass } from '../../front/api.ts';
 
 const ROOT = new URL('../../', import.meta.url);
 const read = (path: string) => Deno.readTextFileSync(new URL(path, ROOT));
@@ -306,4 +308,85 @@ Deno.test("the scorecard's save line in the header is its first words, the rest 
   assertEquals(shortStatus('Cannot be saved: round 2 is half scored'), 'Cannot be saved');
   assertEquals(shortStatus('Finalised'), 'Finalised');
   assertEquals(shortStatus(''), '');
+});
+
+Deno.test("a scorecard's marquee shows the fighter as they stand until the first save takes the snapshot, then the snapshot", () => {
+  const fighter = {
+    id: 7,
+    first_name: 'Denzel',
+    last_name: 'Bentley',
+    nickname: null,
+    colors: 'Olive/Black',
+    weight: 159.6,
+    weight_unit: 'lbs',
+    won: 21,
+    lost: 3,
+    draws: 1,
+    nc: 0,
+    kos: 17,
+  } as Fighter;
+  const unsaved = {
+    a_won: null,
+    a_weight: null,
+    a_weight_unit: null,
+    a_colors: null,
+    b_won: null,
+    is_draft: 1,
+    card: { result: null },
+  } as unknown as BoutView;
+  deepStrictEqual(standingOnTheNight(unsaved, 'a', fighter), {
+    record: '21-3-1 (17 KOs)',
+    weight: '159.6 lbs',
+    colours: 'Olive/Black',
+  });
+  // Once taken, the snapshot, even where it differs from the fighter now.
+  const saved = {
+    a_won: 20,
+    a_lost: 3,
+    a_draws: 1,
+    a_nc: 0,
+    a_kos: 16,
+    a_weight: 160,
+    a_weight_unit: 'lbs',
+    a_colors: null,
+  } as BoutView;
+  deepStrictEqual(standingOnTheNight(saved, 'a', fighter), {
+    record: '20-3-1 (16 KOs)',
+    weight: '160 lbs',
+    colours: null,
+  });
+  // A finalised bout with no snapshot (an import) already counts in the
+  // fighter's record; the first save takes it off, and so does the marquee.
+  const imported = {
+    ...unsaved,
+    is_draft: 0,
+    card: { result: { decision_type: 'KO', winner: 'A', round: 3, time: '1:10' } },
+  } as unknown as BoutView;
+  assertEquals(standingOnTheNight(imported, 'a', fighter).record, '20-3-1 (16 KOs)');
+  assertEquals(
+    standingOnTheNight(imported, 'b', { ...fighter, lost: 4 }).record,
+    '21-3-1 (17 KOs)',
+  );
+  // A draft has nothing counted yet.
+  const draft = { ...imported, is_draft: 1 } as unknown as BoutView;
+  assertEquals(standingOnTheNight(draft, 'a', fighter).record, '21-3-1 (17 KOs)');
+
+  // No fighter loaded and no snapshot: nothing to show.
+  deepStrictEqual(standingOnTheNight(unsaved, 'a', undefined), {
+    record: null,
+    weight: '',
+    colours: null,
+  });
+});
+
+Deno.test('the scorecard names the titles fought for under the class, or nothing', () => {
+  const titles = new Map<number, Title>([
+    [1, { id: 1, sanctioning_body: 'WBC', area: 'World', interim: 0 } as Title],
+    [2, { id: 2, sanctioning_body: 'IBF', area: 'World', interim: 0 } as Title],
+  ]);
+  const fought = (ids: number[]) =>
+    ({ titles: ids.map((title_id) => ({ title_id, holder_side: null })) }) as unknown as BoutView;
+  assertEquals(titlesAtStake(fought([]), titles), '');
+  assertEquals(titlesAtStake(fought([1]), titles), 'WBC World title');
+  assertEquals(titlesAtStake(fought([1, 2]), titles), 'WBC World · IBF World titles');
 });

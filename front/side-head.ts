@@ -6,19 +6,19 @@ import { html, nothing } from './component.ts';
 import {
   missedWeightNote,
   rankText,
-  recordOnTheNight,
   resultLabel,
   resultText,
+  standingOnTheNight,
   titleText,
-  weightOnTheNight,
 } from './format.ts';
 import { beltsOf, rankOf } from './scorecard.ts';
 import type { Side } from '../server/rules/decisions.ts';
 
 // A side's marquee (SPEC Front end): corner, a "Champion" chip and the belts
 // brought in, the name and nickname, a missed weight noted quietly (D26,
-// D47), and, once the first save has taken the snapshot (§7), the record,
-// TBRB rank, weight and colours on the night.
+// D47), and the record, weight and colours on the night (standingOnTheNight:
+// the fighter as they stand until the first save takes the snapshot, §7),
+// with the TBRB rank once the snapshot has it.
 export function sideHead(
   bout: BoutView,
   titles: Map<number, Title>,
@@ -32,12 +32,8 @@ export function sideHead(
     return title ? titleText(title) : `title ${id}`;
   });
   const s = side === 'A' ? 'a' : 'b';
-  const record = recordOnTheNight(bout, s);
+  const { record, weight, colours } = standingOnTheNight(bout, s, fighter);
   const rank = rankOf(bout, side);
-  const weight = side === 'A'
-    ? weightOnTheNight(bout.a_weight, bout.a_weight_unit)
-    : weightOnTheNight(bout.b_weight, bout.b_weight_unit);
-  const colours = side === 'A' ? bout.a_colors : bout.b_colors;
   const note = missedWeightNote(bout, side);
   const stat = (label: string, value: string) =>
     html`

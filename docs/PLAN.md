@@ -62,6 +62,7 @@ Out-of-order work that a decision placed in the sequence, as it stood on
 - [header-logo](../tasks/header-logo.md) — The logo in the header · done
 - [header-to-design](../tasks/header-to-design.md) — The header to the design, and the End bout dialog's labels · done
 - [kept-result-is-stored](../tasks/kept-result-is-stored.md) — A kept result is stored, so a recompute keeps it · done
+- [marquee-before-save](../tasks/marquee-before-save.md) — The scorecard's marquees before the first save, the titles at stake, and VS at the top · done
 - [merge-asks-before-records-move](../tasks/merge-asks-before-records-move.md) — Merge asks before records move · done
 - [questions-2026-11-03](../tasks/questions-2026-11-03.md) — Open questions, 2026-11-03 · done
 - [quiet-missed-weight](../tasks/quiet-missed-weight.md) — A missed weight is noted quietly · done
