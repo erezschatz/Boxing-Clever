@@ -278,3 +278,15 @@ Deno.test('the header carries the grid mark and the name, a slot for a page bar,
   assertEquals(res.headers.get('content-type'), 'image/png');
   await res.body?.cancel();
 });
+
+Deno.test('the header stays at the top of the window, and what scrolls to a box stops below it', () => {
+  const css = read('front/style.css');
+  const rule = (selector: string) => {
+    const at = css.indexOf(`\n${selector} {`);
+    return at < 0 ? '' : css.slice(at, css.indexOf('}', at));
+  };
+  match(rule('header.top'), /position: sticky;/);
+  match(rule('header.top'), /top: 0;/);
+  match(rule('header.top'), /background: #fff;/); // the page does not show through it
+  match(rule('html'), /scroll-padding-top: \d/);
+});

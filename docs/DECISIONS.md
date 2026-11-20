@@ -1480,3 +1480,11 @@ Source: [tasks/header-to-design.md](../tasks/header-to-design.md)
 **Why** — A label is a column, its words over its box; the hint was a second item in the column, on its own line, so Time's box sat lower than Round's. In the design the hint is in the label's line.
 
 Source: [tasks/header-to-design.md](../tasks/header-to-design.md)
+
+## D109 · 2026-11-20 · The header is sticky on every page, and scrolling stops below it
+
+**Decision** — `header.top` is `position: sticky` at the top of the window, white, with `z-index: 10` over the page; dialogs are in the browser's top layer and stay over it. `html` has `scroll-padding-top: 5rem`, so the focus moving down the card (D39) or a link to a part of a page stops below the header's 4rem.
+**Rejected** — Sticky only on the scorecard. A fixed header with the page padded to clear it. Sticking only the scorecard's bar.
+**Why** — Erez asked for it with the scorecard in front of him. Every page has the same header, and one that stays on some pages and scrolls away on others would be a difference to remember for nothing; at 64 px (D106) it costs little. Sticky keeps the header in the page's flow, so nothing has to be padded to clear it. Without the scroll padding, a box the focus goes back up to (Shift+Tab) or a link scrolls to would stop under the header. The padding is for the header's one row; a header wrapped to two rows is a narrow window, which the app does not lay out for (D9), so the padding is not made to measure it.
+
+Source: [tasks/sticky-header.md](../tasks/sticky-header.md)
