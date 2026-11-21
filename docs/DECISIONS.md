@@ -1544,3 +1544,12 @@ Source: [tasks/marquee-before-save.md](../tasks/marquee-before-save.md)
 **Why** — Erez, 2026-11-20: "I want those to remain if possible", and, of the two ways offered, "Store it in the draft". A knockdown is logged as it happens, before its round is scored, and a draft is the card as it stands; refusing it whole lost the knockdown on leaving the page. The 0–0 row is how the card already writes a round with no points and deductions in it, the stoppage round (§4).
 
 Source: [tasks/kd-in-round-under-way.md](../tasks/kd-in-round-under-way.md)
+
+## D117 · 2026-11-20 · An event's place is a venue record, with a city, region and country
+
+**Decision** — A `venue` table holds each place once: its name, city, region (a state or province, which may be empty) and country. An event points to one venue. The event form picks it by search or adds a new one. It is built after Erez's check of 09 and before 10, so both imports write venues.
+**Rejected** — The place as one string, shown as typed (D84). Venue, city, region and country as fields on each event, which would spell one arena two ways on two nights. Venue, city and country with no region, which would drop the sheet's state ("Anaheim. CA").
+**Why** — Erez, 2026-11-20: "we can even save it separately and use it so later I may want to see all venues in Las Vegas or in the UK I saw", and, asked, "Venues as records" with "Venue, city, region, country". A venue typed once groups every night there under one name; the country, always present, is what "everything I saw in the UK" filters on. D84 kept the location as typed only because the sheet's cells could not be split reliably for display; a split stored once, and checked by the migration and the import, settles that.
+Supersedes: D84
+
+Source: [tasks/venues.md](../tasks/venues.md)
