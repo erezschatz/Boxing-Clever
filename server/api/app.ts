@@ -7,6 +7,7 @@ import { constraintResponse, type GetDb } from './http.ts';
 import { weightClassRoutes } from './weight-classes.ts';
 import { fighterRoutes } from './fighters.ts';
 import { eventRoutes } from './events.ts';
+import { venueRoutes } from './venues.ts';
 import { titleRoutes } from './titles.ts';
 import { boutRoutes } from './bouts.ts';
 import { cardRoutes } from './card.ts';
@@ -20,6 +21,7 @@ export function createApp(db: GetDb): Hono {
   app.route('/api/weight-classes', weightClassRoutes(db));
   app.route('/api/fighters', fighterRoutes(db));
   app.route('/api/events', eventRoutes(db));
+  app.route('/api/venues', venueRoutes(db));
   app.route('/api/titles', titleRoutes(db));
   app.route('/api/bouts', boutRoutes(db));
   app.route('/api/bouts', cardRoutes(db));

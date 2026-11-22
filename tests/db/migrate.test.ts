@@ -4,6 +4,7 @@ import { openDatabase } from '../../server/db/connection.ts';
 import { migrate, readMigrations, REBUILDS } from '../../server/db/migrate.ts';
 import { listWeightClasses } from '../../server/db/weight-class.ts';
 import { insertEvent, listEvents } from '../../server/db/event.ts';
+import { insertVenue } from '../../server/db/venue.ts';
 
 const SPEC_TABLES = [
   'bout',
@@ -18,6 +19,7 @@ const SPEC_TABLES = [
   'round_score',
   'tbrb_snapshot',
   'title',
+  'venue',
   'weight_class',
 ];
 
@@ -36,7 +38,13 @@ Deno.test('a fresh database gets every table the spec names', () => {
 Deno.test('migrating again applies nothing and keeps the data', () => {
   const db = openDatabase(':memory:');
   migrate(db);
-  insertEvent(db, { date: '2026-11-01', location: 'Riyadh' });
+  const venue_id = insertVenue(db, {
+    name: 'Kingdom Arena',
+    city: 'Riyadh',
+    region: null,
+    country: 'Saudi Arabia',
+  });
+  insertEvent(db, { date: '2026-11-01', venue_id });
   deepStrictEqual(migrate(db), []);
   assertEquals(listEvents(db).length, 1);
   assertEquals(listWeightClasses(db).length, 18);
@@ -327,4 +335,107 @@ Deno.test('migration 005: an RTD becomes a TKO at 3:00 in the same round; nothin
   assertEquals(db.prepare('SELECT COUNT(*) AS n FROM round_score WHERE bout_id = 1').get()?.n, 2);
   deepStrictEqual(db.prepare('PRAGMA foreign_key_check').all(), []);
   throws(() => db.exec("UPDATE bout SET decision_type = 'RTD' WHERE id = 2"), /CHECK/);
+});
+
+// Migration 007 (task venues, D117): each location typed so far becomes a
+// venue, split at its commas; the same place twice is one venue, and a
+// location that does not split into venue, city and country keeps what it
+// has, with '' for the rest, for the venue form to fill in.
+Deno.test('migration 007 splits each location into a venue and points its event there', () => {
+  const db = openDatabase(':memory:');
+  migrate(db, readMigrations().filter((m) => m.version <= 6));
+  db.exec(`
+    INSERT INTO event (id, date, location) VALUES
+      (1, '2026-03-15', '3 Arena, Dublin, Ireland'),
+      (2, '2026-04-04', 'O2 Arena, London, UK'),
+      (3, '2026-05-01', ' O2 Arena ,London,  UK '),
+      (4, '2025-01-01', 'Honda Center, Anaheim, CA, USA'),
+      (5, '2025-01-04', 'The Theater, Madison Square Garden, New York, NY, USA'),
+      (6, '2025-01-03', 'Madison Square Garden, New York'),
+      (7, '2025-01-02', 'Riyadh');
+    INSERT INTO fighter (id, first_name, last_name) VALUES (1, 'Jono', 'Carroll'), (2, 'Colm', 'Murphy');
+    INSERT INTO bout (id, event_id, card_order, weight_class_id, contracted_weight, scheduled_rounds, fighter_a_id, fighter_b_id)
+      VALUES (1, 2, 1, 9, NULL, 12, 1, 2);
+  `);
+  deepStrictEqual(migrate(db), [7]);
+  const venues = db.prepare(
+    `SELECT e.id AS event, v.name, v.city, v.region, v.country
+     FROM event e JOIN venue v ON v.id = e.venue_id ORDER BY e.id`,
+  ).all().map((row) => ({ ...row }));
+  deepStrictEqual(venues, [
+    { event: 1, name: '3 Arena', city: 'Dublin', region: null, country: 'Ireland' },
+    { event: 2, name: 'O2 Arena', city: 'London', region: null, country: 'UK' },
+    { event: 3, name: 'O2 Arena', city: 'London', region: null, country: 'UK' },
+    { event: 4, name: 'Honda Center', city: 'Anaheim', region: 'CA', country: 'USA' },
+    {
+      event: 5,
+      name: 'The Theater, Madison Square Garden',
+      city: 'New York',
+      region: 'NY',
+      country: 'USA',
+    },
+    { event: 6, name: 'Madison Square Garden', city: 'New York', region: null, country: '' },
+    { event: 7, name: 'Riyadh', city: '', region: null, country: '' },
+  ]);
+  // One venue for the O2, typed twice; the bout still on its event.
+  assertEquals(db.prepare('SELECT count(*) AS n FROM venue').get()!.n, 6);
+  assertEquals(db.prepare('SELECT event_id FROM bout WHERE id = 1').get()!.event_id, 2);
+  deepStrictEqual(db.prepare('PRAGMA foreign_key_check').all(), []);
+  // The location column is gone; an event needs a venue that exists.
+  throws(
+    () => db.exec("INSERT INTO event (date, location) VALUES ('2026-01-01', 'x')"),
+    /location/,
+  );
+  throws(
+    () => db.exec("INSERT INTO event (date, venue_id) VALUES ('2026-01-01', 99)"),
+    /FOREIGN KEY/,
+  );
+});
+
+// D118: an empty part is dropped before the split, and a location with no
+// part at all is an "Unknown venue": every event keeps its id and gets a
+// venue, so the migration never stops the chamber from opening its database.
+Deno.test('migration 007 keeps every event, whatever its location holds', () => {
+  const db = openDatabase(':memory:');
+  migrate(db, readMigrations().filter((m) => m.version <= 6));
+  const locations = [
+    ', London, UK',
+    'O2,, London, UK',
+    'O2, London,, UK',
+    'A,,B',
+    ',,,D,E',
+    '',
+    '   ',
+    ',',
+  ];
+  locations.forEach((location, i) =>
+    db.prepare('INSERT INTO event (id, date, location) VALUES (?, ?, ?)').run(
+      i + 1,
+      '2026-01-01',
+      location,
+    )
+  );
+  db.exec(`
+    INSERT INTO fighter (id, first_name, last_name) VALUES (1, 'Jono', 'Carroll'), (2, 'Colm', 'Murphy');
+    INSERT INTO bout (id, event_id, card_order, weight_class_id, scheduled_rounds, fighter_a_id, fighter_b_id)
+      VALUES (1, 7, 1, 9, 12, 1, 2);
+  `);
+  deepStrictEqual(migrate(db), [7]);
+  const venues = db.prepare(
+    `SELECT e.id AS event, v.name, v.city, v.region, v.country
+     FROM event e JOIN venue v ON v.id = e.venue_id ORDER BY e.id`,
+  ).all().map((row) => ({ ...row }));
+  const none = { name: 'Unknown venue', city: '', region: null, country: '' };
+  deepStrictEqual(venues, [
+    { event: 1, name: 'London', city: 'UK', region: null, country: '' },
+    { event: 2, name: 'O2', city: 'London', region: null, country: 'UK' },
+    { event: 3, name: 'O2', city: 'London', region: null, country: 'UK' },
+    { event: 4, name: 'A', city: 'B', region: null, country: '' },
+    { event: 5, name: 'D', city: 'E', region: null, country: '' },
+    { event: 6, ...none },
+    { event: 7, ...none },
+    { event: 8, ...none },
+  ]);
+  assertEquals(db.prepare('SELECT event_id FROM bout WHERE id = 1').get()!.event_id, 7);
+  deepStrictEqual(db.prepare('PRAGMA foreign_key_check').all(), []);
 });

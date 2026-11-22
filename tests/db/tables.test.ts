@@ -4,6 +4,14 @@ import { deepStrictEqual, strictEqual as assertEquals, throws } from 'node:asser
 import { testDatabase } from '../helpers/db.ts';
 import type { Database } from '../../server/db/connection.ts';
 import { deleteEvent, getEvent, insertEvent } from '../../server/db/event.ts';
+import { insertVenue } from '../../server/db/venue.ts';
+
+const kingdomArena = {
+  name: 'Kingdom Arena',
+  city: 'Riyadh',
+  region: null,
+  country: 'Saudi Arabia',
+};
 import {
   deleteFighter,
   type FighterFields,
@@ -47,7 +55,8 @@ const fury: FighterFields = { ...usyk, first_name: 'Tyson', last_name: 'Fury', c
 const plain = <T extends object>(rows: T[]) => rows.map((row) => ({ ...row }));
 
 function setUpBout(db: Database, overrides: Partial<BoutFields> = {}) {
-  const eventId = insertEvent(db, { date: '2024-05-18', location: 'Kingdom Arena, Riyadh' });
+  const venue_id = insertVenue(db, kingdomArena);
+  const eventId = insertEvent(db, { date: '2024-05-18', venue_id });
   const a = insertFighter(db, usyk);
   const b = insertFighter(db, fury);
   const boutId = insertBout(db, {
@@ -207,8 +216,9 @@ Deno.test('checked values outside their sets are refused', () => {
     () => insertBoutTitle(db, { bout_id: boutId, title_id: titleId, holder_side: 'C' as 'A' }),
     /CHECK/,
   );
-  throws(() => insertEvent(db, { date: '2026-02-30', location: 'Nowhere' }), /CHECK/);
-  throws(() => insertEvent(db, { date: '18/05/2024', location: 'Nowhere' }), /CHECK/);
+  const venue_id = insertVenue(db, { ...kingdomArena, name: 'Nowhere' });
+  throws(() => insertEvent(db, { date: '2026-02-30', venue_id }), /CHECK/);
+  throws(() => insertEvent(db, { date: '18/05/2024', venue_id }), /CHECK/);
   throws(
     () =>
       insertBout(db, {

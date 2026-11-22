@@ -71,8 +71,9 @@ under `## Decisions` in task 09 (or a superseding one) before it is built:
   "No. 2"; the fighter card uses the app's own "23-1-0 (16 KOs)" and
   "TBRB #2". One has to give.
 - **Events list rows** show the main event and how many bouts are scored or
-  not final. `/api/events` returns only a date and a location today, and the
-  city / venue split assumes locations are typed "City, Venue".
+  not final. `/api/events` returns the date and the venue, but not the main
+  event or the counts. The city / venue split is settled: an event's place
+  is a venue with a city, region and country (D117, task venues).
 - **Fighters Find box**: filter by any part of a name. New behaviour.
 - **Fighter card**: "won 2 May 2026 · 1 defence" under titles held would
   have to be worked out from fights watched; colours drawn as swatches need

@@ -142,7 +142,8 @@ none. All ids are `INTEGER PRIMARY KEY`.
 | `weight_class` | the 18 classes: name, alternate name, lbs, kg | seeded by migration 002 in v1's order; Heavyweight's limit is null (D17) |
 | `fighter` | first/last name, nickname, colors, weight (pounds) + the unit it is typed and shown in (D36), **current** record (won, lost, draws, nc, kos) | the record is derived data that is stored: typed in on creation and correctable by hand (D28), updated transactionally on finalise, recomputable by `scripts/recompute-records.ts`, which rebuilds it from bouts and adds the fighter's `record_adjustment` rows (D13, D57) |
 | `fighter_alias` | fighter_id, alias text | names as TBRB and the sheet spell them; merge keeps aliases; an alias names one fighter (D19) |
-| `event` | date, location | |
+| `event` | date, venue_id | the place is a venue, typed once (D117) |
+| `venue` | name, city, region, country | one row per place, unique on all four; region (a state or province) may be null; migration 007 split the location strings typed before it at their commas, leaving `''` where one did not split, for the venue form to fill in (D117, D118) |
 | `bout` | event_id, card_order, weight_class_id **or** contracted_weight (pounds; exactly one of the two, D26, D45), scheduled_rounds, fighter_a_id, fighter_b_id, **corner_a** (`red`/`blue`, null when not recorded), **missed_weight_a/b** (0/1, marked by the user, never computed; D26), a/b **as-of snapshot** (record ×5, weight, unit, colors, tbrb_rank), result (decision_type, winner `A`/`B`/`draw`/`none`, round, time), judges ×3 ×2, is_draft | there is no catchweight class: a bout fought at a weight that is no class's limit records that weight (migration 004); the snapshot is what v1's Mongo document was for and is kept on purpose (D4); its columns are `a_won` … `a_tbrb_rank`, `b_won` …, null until first save; result columns `decision_type`, `winner`, `result_round`, `result_time`; judges `judge1_a` … `judge3_b` |
 | `round_score` | bout_id, round_no, side, points | one row per fighter per round actually scored; the stoppage round has points `0`, except a retirement's (a TKO at 3:00, D55), which is scored (see Scoring) |
 | `deduction` | bout_id, round_no, side, points, reason | reasons: knockdown, low blow, holding, headbutt, other — a free text alongside |
@@ -252,9 +253,11 @@ did, and its `409` carries a `preview` of what each choice would do (D31).
 | POST | `/api/fighters/:id/merge/:targetId` | `:id` is the duplicate. Its bouts, aliases, TBRB rows and record adjustments move to the target and it is deleted, in one transaction. The results of its finalised fights and its kept results are added to the target's record (D61). Every merge needs `?records=add`, else `409` with the preview (D31). The duplicate's typed-in record is dropped (D28). `409` if the two fought each other, in a bout or in a deleted one whose result was kept (D62); GET answers the same `409`. Answers the preview, carried out |
 | GET | `/api/fighters/:id/bouts` | history as witnessed, oldest first, each bout as `GET /api/bouts/:id` answers it (snapshot, `titles`, `card`; D34) |
 | GET | `/api/fighters/:id/standing` | where the fighter stands now, for the fighter card: `{titles: [title_id], tbrb: [{weight_class_id, rank, snapshot_date}]}`, the titles held as witnessed (Scoring §8) and their rank on each class's latest TBRB list that names them; a class whose latest list leaves them off is not there, which is unranked (D25) |
-| GET/POST | `/api/events` | |
+| GET/POST | `/api/events` | an event is `{date, venue_id}`; it answers with `venue`, the venue's parts (D117) |
 | GET/PATCH/DELETE | `/api/events/:id` | delete refuses (`409`) if any bout is finalised; otherwise its bouts go with it |
 | GET | `/api/events/:id/bouts` | ordered by card_order, each bout as `GET /api/bouts/:id` answers it (D34) |
+| GET/POST | `/api/venues` | listed by country, city, name; name, city and country required, an empty region is none; the same four parts again is `409` (D117) |
+| GET/PATCH | `/api/venues/:id` | a fix shows on every event held there; no delete (D117) |
 | POST | `/api/bouts` | `card_order` left out puts the bout last on its card; `titles` is `[{title_id, holder_side}]`. `weight_class_id` or `contracted_weight` (pounds, positive), one of the two and the other null or left out, else `400`; `missed_weight_a` and `missed_weight_b` are `true`/`false`, false when left out, and answered as the stored 0/1 (D26, D45). A bout is answered as its row with `titles` beside it |
 | GET/PATCH/DELETE | `/api/bouts/:id` | GET (and every write that answers a bout) gives the row with its snapshot and result, `titles`, and `card` in PUT's shape plus read-only `totals` (`{rounds: [{round_no, a, b}], a, b}`, from the rules). PATCH covers corners, the class or contracted weight (moving between them sends both, one null; the bout as it would stand must have exactly one, else `400`), the missed-weight marks, titles with holder side (the list sent replaces the old one), scheduled rounds (re-checked against the saved card, `400` if it no longer fits); a finalised bout's fighters cannot change (`409`, D30). DELETE of a finalised bout needs `?records=reverse` (both records lose the result, in the same transaction) or `?records=keep` (both records stay as they are, and each fighter gets a `record_adjustment` row for the kept result in the same transaction, D57), else `409` with a preview of both records before and after a reverse; a reverse that would go below zero is `409` too. Answers `200` with the choice made and both records before and after (D31); a draft's delete is `204`. It never deletes the event, not even its last bout (D23) |
 | PUT | `/api/bouts/:id/card` | the whole scorecard, `{rounds: [{round_no, a, b}], deductions: [{round_no, side, points, reason, note}], result: {decision_type, winner, round, time} \| null, judges: [{a, b}] ×3, is_draft}`; `deductions` (none), `judges` (all null) and a deduction's `note` (null) may be left out. Validated by the rules (`400 {error, problems}`), then written in one transaction with the snapshot (§7) and the record change (§6); finalise = `is_draft:false` with a result. A change that would take a record below zero is `409` (D32). Answers the bout, as GET does |
@@ -277,9 +280,9 @@ reference lists, every fighter, class and title (D34). Pages:
   restyle-events): the title with how many nights were watched since the
   first; a row per year with the year large, a mark per event and the count;
   under an open year, a row per event linking to its card, the day large,
-  the month, and the location as typed
+  the month, and the city large over the venue, region and country (D117)
 - `/events/:id` the card, built to `docs/reference/design/Event.dc.html`
-  (task restyle-event-card): the date and "Edit event", the location large,
+  (task restyle-event-card): the date and "Edit event", the city large with the venue under it (D117),
   how many bouts, how many still to score and how many not final, and "Add
   bout"; bouts in order, the two sides facing each other across "VS" with
   corner squares, names set large without the nickname and the loser's
@@ -365,9 +368,12 @@ restyle-dialogs): the title, the body and the actions in three bands
 inside a 2px ink border over paper grey, the main action dark and a delete
 red; a choice of two or three options is a row of buttons (`choiceRow`:
 the corner of fighter A, who brought a title in, the weight unit), and one
-of more stays a dropdown. The fighter and bout forms ask before Cancel or Escape
-discards what was typed (D44; the others do not say yet what dirty is).
-The forms are `event-form.ts`, `fighter-form.ts`
+of more stays a dropdown. The fighter, bout, event and venue forms ask
+before Cancel or Escape discards what was typed (D44, D121; the others do
+not say yet what dirty is).
+The event form finds its venue by any part of it, as the bout form finds a
+fighter, or adds one in `venue-form.ts`, which also fixes a venue for
+every event held there (D117). The forms are `event-form.ts`, `fighter-form.ts`
 (edit, or find-or-add: as the name is typed the fighters it could be drop
 down under it; picking one, or saving a name that is exactly one
 fighter's, makes the form theirs and keeps it open, with their name and

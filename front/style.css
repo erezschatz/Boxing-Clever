@@ -1531,13 +1531,25 @@ dialog.form {
   letter-spacing: 0.12em;
 }
 
+/* The city large, the venue quiet under it (Events.dc.html; task venues). */
 .ep-where {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
   min-width: 0;
+}
+
+.ep-city {
   font-family: var(--ds-display);
   font-size: 1.6rem;
   font-weight: 700;
   line-height: 1.1;
   text-transform: uppercase;
+}
+
+.ep-venue {
+  color: var(--ds-muted);
+  font-size: 0.9rem;
 }
 
 .ep-go {
@@ -1592,6 +1604,13 @@ dialog.form {
   font-weight: 800;
   line-height: 0.84;
   text-transform: uppercase;
+}
+
+/* The venue under the city (Event.dc.html; task venues). */
+.ec-where .ec-venue {
+  margin: 0;
+  color: var(--ds-muted);
+  font-size: 1.05rem;
 }
 
 .ec-tally {

@@ -17,7 +17,7 @@ import {
   poundsToStoneLbsOz,
   type WeightUnit,
 } from '../server/rules/weight.ts';
-import type { Fighter, Title } from './api.ts';
+import type { Fighter, Title, Venue } from './api.ts';
 import { fighterName } from './format.ts';
 
 // A weight as typed in its unit, stored in pounds as v1 stored it, with the
@@ -62,6 +62,24 @@ export function findFighters(fighters: Fighter[], query: string, limit = 8): Fig
     )
     .slice(0, limit)
     .map(({ f }) => f);
+}
+
+// The venues whose name, city, region or country hold every word typed, in
+// any order, accents and case ignored: "vegas" finds the T-Mobile Arena,
+// "uk london" the O2 (task venues). Exactly what was typed first, then by
+// country, city and name.
+export function findVenues(venues: Venue[], query: string, limit = 8): Venue[] {
+  const words = fold(query).split(/\s+/).filter(Boolean);
+  if (words.length === 0) return [];
+  const text = (v: Venue) => fold([v.name, v.city, v.region ?? '', v.country].join(' '));
+  const exact = (v: Venue) => (squash(v.name) === squash(query) ? 0 : 1);
+  return venues
+    .filter((v) => words.every((w) => text(v).includes(w)))
+    .sort((x, y) =>
+      exact(x) - exact(y) || x.country.localeCompare(y.country) ||
+      x.city.localeCompare(y.city) || x.name.localeCompare(y.name)
+    )
+    .slice(0, limit);
 }
 
 // Whether `typed` is this fighter's name in full: first and last, or as the

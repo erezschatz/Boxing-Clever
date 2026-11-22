@@ -10,6 +10,7 @@ import {
   testApi,
   usyk,
   usykFury,
+  venueId,
 } from '../helpers/api.ts';
 import { getBout } from '../../server/db/bout.ts';
 import { getFighter } from '../../server/db/fighter.ts';
@@ -26,7 +27,12 @@ async function withDuplicate(api: Api) {
   });
   const { json: event } = await api.call('POST', '/api/events', {
     date: '2023-08-26',
-    location: 'Wroclaw',
+    venue_id: await venueId(api, {
+      name: 'Tarczynski Arena',
+      city: 'Wroclaw',
+      region: null,
+      country: 'Poland',
+    }),
   });
   const { json: other } = await api.call('POST', '/api/fighters', {
     first_name: 'Daniel',

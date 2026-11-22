@@ -1553,3 +1553,43 @@ Source: [tasks/kd-in-round-under-way.md](../tasks/kd-in-round-under-way.md)
 Supersedes: D84
 
 Source: [tasks/venues.md](../tasks/venues.md)
+
+## D118 · 2026-11-22 · The migration keeps an unsplit location's parts and leaves the rest empty, rather than listing it
+
+**Decision** — Migration 007 splits each location at its commas: three parts are venue, city, country; four add the region; five or more keep the extra in the venue's name. Empty parts (",,", a leading comma) are dropped before counting. One with two parts keeps the venue and city and leaves the country `''`; one with one part keeps the name and leaves the city and country `''`; one with no part at all (empty, spaces, only commas) is an "Unknown venue" with the rest `''`. So every event keeps its id and gets a venue, and the migration always commits. The venue form fills them in, and the pages show such a venue's name large, saying nothing twice. The schema allows `''` in a city and a country; the API does not, and a PATCH that leaves one `''` is refused, so a venue the migration could not split is fixed whole.
+**Rejected** — A migration that refuses an unsplit location and lists it (the acceptance as first written): migrations are plain SQL run when the chamber opens its database, where no one reads a list, and a refusal would stop the chamber. A script to run before the migration.
+**Why** — Erez's dev database splits cleanly ("O2 Arena, London, UK", "3 Arena, Dublin, Ireland"); the rule is for what it may not, and an empty part is visible on the page and fixed once in the venue form.
+
+Source: [tasks/venues.md](../tasks/venues.md)
+
+## D119 · 2026-11-22 · An event answers with its venue; venues are added and fixed, never deleted
+
+**Decision** — `GET` of an event, of the list and of a write's answer gives the event's `venue_id` and `venue`, the venue's four parts (`eventView` in `server/api/events.ts`), so the pages need no second call. `/api/venues` lists, adds and edits venues; there is no delete, as events point to a venue, and no merge of two venues yet. A venue that does not exist is a 400 from the schema's foreign key (D30), the same four parts twice a 409 from its index.
+**Rejected** — The pages fetching each venue. The venue's parts flattened into the event. A venue delete or merge, which nothing asks for yet.
+**Why** — The pages show the place everywhere an event appears; one answer keeps them as simple as they were with the location string.
+
+Source: [tasks/venues.md](../tasks/venues.md)
+
+## D120 · 2026-11-22 · The place reads as the design sets it: the city large, the venue, region and country under it
+
+**Decision** — `placeLines` gives the city, set large on the events list and the event card, and under it the venue then the region and country, "T-Mobile Arena · NV, USA", in the muted small style (`Events.dc.html`, `Event.dc.html`). The scorecard's crumb names the city, with the whole place (`venueText`) as its tooltip, as the design's crumb does. The event form shows a chosen venue's name strong and the rest beside it, with "change" and "edit venue".
+**Rejected** — The location as one line (D84, superseded by D117). The venue large and the city under it.
+**Why** — The design sets the city first and large; with the place stored in parts it can, which D84 said it could not.
+
+Source: [tasks/venues.md](../tasks/venues.md)
+
+## D121 · 2026-11-22 · The event and venue forms ask before discarding what was typed
+
+**Decision** — The event form is dirty when its date or venue differs from the event's, or, for a new event, when a venue is chosen or a search typed; the venue form when any box differs. Cancel and Escape then ask first, as the fighter and bout forms do (D44).
+**Rejected** — Leaving the event form without a dirty check, as it was.
+**Why** — The event form now holds a search and a chosen venue, and the venue form four boxes; at ringside these take a moment to type, which is D44's reason.
+
+Source: [tasks/venues.md](../tasks/venues.md)
+
+## D122 · 2026-11-22 · A bout does not answer its venue; its page reads the event, which does
+
+**Decision** — `GET /api/bouts/:id` is unchanged and carries `event_id` only. The scorecard already reads the bout's event (`/api/events/:id`), which answers the venue (D119). The acceptance's "`GET` of an event or bout answers the venue's parts" is met for the event; for the bout, through its event.
+**Rejected** — Adding the venue to every bout's answer (`boutView`), which the event card's list of bouts and the fighter card's history would carry for nothing.
+**Why** — The one page that shows a bout's place already makes that call; nothing else that reads a bout shows where it was.
+
+Source: [tasks/venues.md](../tasks/venues.md)

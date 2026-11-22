@@ -17,6 +17,7 @@ import {
   fighterName,
   missedWeightNote,
   outcomeText,
+  placeLines,
   plainName,
   recordOnTheNight,
   resultLabel,
@@ -42,8 +43,10 @@ export class EventPage extends Component<State> {
   }
 
   async editEvent(event: Event) {
-    const saved = await new EventForm(event).open();
-    if (saved) this.set({ event: saved });
+    // Read again even on Cancel: a venue fixed from the form is saved
+    // whether or not the event is (task venues).
+    await new EventForm(event).open();
+    await this.load();
   }
 
   // The bout form gets the reference lists as arrays it may add to (a new
@@ -80,7 +83,10 @@ export class EventPage extends Component<State> {
               <button type="button" class="ec-quiet" @click=${() =>
                 this.editEvent(event)}>Edit event</button>
             </p>
-            <h1>${event.location}</h1>
+            <h1>${placeLines(event.venue).city}</h1>
+            ${placeLines(event.venue).venue
+              ? html`<p class="ec-venue">${placeLines(event.venue).venue}</p>`
+              : nothing}
           </div>
           <div class="ec-tally">
             ${bouts.length > 0

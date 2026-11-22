@@ -10,7 +10,7 @@ import {
   poundsToStoneLbsOz,
   type WeightUnit,
 } from '../server/rules/weight.ts';
-import type { BoutView, Fighter, Title, WeightClass } from './api.ts';
+import type { BoutView, Fighter, Title, Venue, WeightClass } from './api.ts';
 
 type Named = { first_name: string; last_name: string; nickname: string | null };
 
@@ -237,6 +237,21 @@ export function titlesAtStake(bout: BoutView, titles: Map<number, Title>): strin
   });
   if (names.length === 0) return '';
   return `${names.join(' · ')} ${names.length === 1 ? 'title' : 'titles'}`;
+}
+
+// A venue as the design sets it (task venues; Events.dc.html, Event.dc.html):
+// the city large, and under it the venue, then the region and country,
+// "T-Mobile Arena · NV, USA". A venue whose city was left empty (a location
+// the migration could not split) shows its name large and nothing twice.
+export function placeLines(venue: Venue): { city: string; venue: string } {
+  const where = [venue.region, venue.country].filter(Boolean).join(', ');
+  if (!venue.city) return { city: venue.name, venue: where };
+  return { city: venue.city, venue: [venue.name, where].filter(Boolean).join(' · ') };
+}
+
+// A venue in one line, every part it has: "O2 Arena, London, UK".
+export function venueText(venue: Venue): string {
+  return [venue.name, venue.city, venue.region, venue.country].filter(Boolean).join(', ');
 }
 
 // A class as the bout form's dropdown offers it, with its limit as v1 showed

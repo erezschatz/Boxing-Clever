@@ -54,11 +54,24 @@ export const fury = {
   kos: 24,
 };
 
+// A venue made over HTTP (task venues); returns its id. The same four parts
+// are one venue, so a second call with them answers the venue already made.
+export async function venueId(
+  api: Api,
+  fields = { name: 'Kingdom Arena', city: 'Riyadh', region: null, country: 'Saudi Arabia' },
+): Promise<number> {
+  const made = await api.call('POST', '/api/venues', fields);
+  if (made.status === 201) return made.json.id;
+  // Already there: the same four parts are one venue.
+  const all = (await api.call('GET', '/api/venues')).json as { id: number; name: string }[];
+  return all.find((v) => v.name === fields.name)!.id;
+}
+
 // An event with Usyk v Fury on it, made over HTTP; returns the ids.
 export async function usykFury(api: Api) {
   const event = (await api.call('POST', '/api/events', {
     date: '2024-05-18',
-    location: 'Kingdom Arena, Riyadh',
+    venue_id: await venueId(api),
   })).json;
   const a = (await api.call('POST', '/api/fighters', usyk)).json;
   const b = (await api.call('POST', '/api/fighters', fury)).json;

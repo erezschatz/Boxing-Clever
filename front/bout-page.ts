@@ -13,7 +13,15 @@ import { Component, html, nothing } from './component.ts';
 import { DeductionForm } from './deduction-form.ts';
 import { DecisionForm } from './decision-form.ts';
 import { Confirm } from './dialog.ts';
-import { boutWeightText, dateText, fighterName, shortStatus, titlesAtStake } from './format.ts';
+import {
+  boutWeightText,
+  dateText,
+  fighterName,
+  placeLines,
+  shortStatus,
+  titlesAtStake,
+  venueText,
+} from './format.ts';
 import {
   afterDecision,
   type Deduction,
@@ -365,7 +373,8 @@ export class BoutPage extends Component<State> {
         <nav class="crumb" aria-label="Where this bout is">
           <a href="/">Events</a>
           <span aria-hidden="true">/</span>
-          <a href="/events/${event.id}">${event.location}</a>
+          <a href="/events/${event.id}" title=${venueText(event.venue)}>${placeLines(event.venue)
+            .city}</a>
           <span class="muted">· ${dateText(event.date)}</span>
         </nav>
         ${this.finalised

@@ -1,7 +1,9 @@
 // Tier 2: /api/fighters over HTTP (SPEC API). Merge's all-or-nothing is
 // tier 3, in tests/api/merge.test.ts.
 import { deepStrictEqual, strictEqual as assertEquals } from 'node:assert/strict';
-import { finalise, fury, HEAVYWEIGHT, testApi, usyk, usykFury } from '../helpers/api.ts';
+import { finalise, fury, HEAVYWEIGHT, testApi, usyk, usykFury, venueId } from '../helpers/api.ts';
+
+const london = { name: 'Wembley Stadium', city: 'London', region: null, country: 'UK' };
 import { insertTbrbRow } from '../../server/db/tbrb-snapshot.ts';
 
 const CRUISERWEIGHT = 17;
@@ -108,7 +110,7 @@ Deno.test('POST /api/fighters/:id/merge/:targetId moves the bouts and deletes th
   });
   const { json: event } = await api.call('POST', '/api/events', {
     date: '2021-09-25',
-    location: 'London',
+    venue_id: await venueId(api, london),
   });
   const { json: dupBout } = await api.call('POST', '/api/bouts', {
     event_id: event.id,
@@ -207,7 +209,8 @@ Deno.test('standing: a title goes with the last finalised bout for it, in fight 
   });
   const titles = (fighterId: number) => api.call('GET', `/api/fighters/${fighterId}/standing`);
   const bout = async (date: string, a: number, b: number, holder: string) => {
-    const { json: event } = await api.call('POST', '/api/events', { date, location: 'London' });
+    const venue_id = await venueId(api, london);
+    const { json: event } = await api.call('POST', '/api/events', { date, venue_id });
     const { json } = await api.call('POST', '/api/bouts', {
       event_id: event.id,
       weight_class_id: HEAVYWEIGHT,

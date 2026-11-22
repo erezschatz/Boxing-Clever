@@ -127,6 +127,19 @@ Diamond) map as migration 003 does (D42):
 - Rows that come out the same belt, ignoring case and spacing, are one
   title.
 
+## Places: venues (D117)
+
+An event points to a venue (name, city, region, country; task venues).
+Both imports turn a location string into a venue, split as migration 007
+split the locations typed before it: at the separators (`,` and, for the sheet, `.`), the first part the
+venue, the last the country, the one before it the city and anything
+between the region; a venue with the same four parts is reused, so the
+same arena typed on two nights is one place. The sheet's cells often end
+with a US state and no country (`Honda Center. Anaheim. CA`), which the
+split alone would read as the country; task 11 decides how it reads them,
+as a decision. A location that does not give a venue, a city and a country
+is rejected to the batch's list rather than guessed.
+
 ## Order
 
 v1 first (task 10), then the sheet (task 11): v1 is smaller and structured,

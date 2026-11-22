@@ -12,6 +12,7 @@ import {
   fighterFor,
   fillFromCards,
   findFighters,
+  findVenues,
   namedFighters,
   newFighterLabel,
   patchForFound,
@@ -761,4 +762,23 @@ Deno.test('a score box steps between 10 and 9, a lone 1 going up to 10, and only
   for (const mod of ['shiftKey', 'altKey', 'metaKey', 'ctrlKey', 'isComposing'] as const) {
     assertEquals(key('ArrowUp', { [mod]: true }), 0, mod); // the browser's own meaning
   }
+});
+
+Deno.test('the event form finds a venue by any part of it, in any order, accents and case ignored', () => {
+  const venues = [
+    { id: 1, name: 'T-Mobile Arena', city: 'Las Vegas', region: 'NV', country: 'USA' },
+    { id: 2, name: 'O2 Arena', city: 'London', region: null, country: 'UK' },
+    { id: 3, name: 'Wembley Stadium', city: 'London', region: null, country: 'UK' },
+    { id: 4, name: 'Estadio Akron', city: 'Zapopan', region: 'Jalisco', country: 'México' },
+  ];
+  const ids = (query: string) => findVenues(venues, query).map((v) => v.id);
+  deepStrictEqual(ids('vegas'), [1]);
+  deepStrictEqual(ids('nv'), [1]);
+  deepStrictEqual(ids('london'), [2, 3]); // by name within a city
+  deepStrictEqual(ids('uk wembley'), [3]);
+  deepStrictEqual(ids('mexico'), [4]);
+  deepStrictEqual(ids('arena'), [2, 1]); // by country: UK before USA
+  deepStrictEqual(ids('o2 arena'), [2]);
+  deepStrictEqual(ids(''), []);
+  deepStrictEqual(ids('tokyo'), []);
 });

@@ -1,33 +1,57 @@
 // Tier 2: /api/events over HTTP (SPEC API). The finalised-bout refusal is
 // tier 3, in tests/api/delete.test.ts.
 import { deepStrictEqual, strictEqual as assertEquals } from 'node:assert/strict';
-import { testApi, usykFury } from '../helpers/api.ts';
+import { type Api, testApi, usykFury, venueId } from '../helpers/api.ts';
 
-const riyadh = { date: '2024-05-18', location: 'Kingdom Arena, Riyadh' };
+const kingdomArena = {
+  name: 'Kingdom Arena',
+  city: 'Riyadh',
+  region: null,
+  country: 'Saudi Arabia',
+};
+
+// An event at the Kingdom Arena (task venues: an event points to its venue).
+const riyadh = async (api: Api) => ({ date: '2024-05-18', venue_id: await venueId(api) });
 
 Deno.test('POST /api/events creates an event; GET /api/events lists newest first', async () => {
   const api = testApi();
-  const older = await api.call('POST', '/api/events', { date: '2023-12-23', location: 'Riyadh' });
-  const newer = await api.call('POST', '/api/events', riyadh);
+  const body = await riyadh(api);
+  const older = await api.call('POST', '/api/events', { ...body, date: '2023-12-23' });
+  const newer = await api.call('POST', '/api/events', body);
   assertEquals(newer.status, 201);
-  deepStrictEqual(newer.json, { id: newer.json.id, ...riyadh });
+  // The event answers with its venue's parts.
+  deepStrictEqual(newer.json, {
+    id: newer.json.id,
+    ...body,
+    venue: { id: body.venue_id, ...kingdomArena },
+  });
   const list = await api.call('GET', '/api/events');
   assertEquals(list.status, 200);
   deepStrictEqual(list.json.map((e: { id: number }) => e.id), [newer.json.id, older.json.id]);
 });
 
-Deno.test('POST /api/events refuses a day that does not exist and an empty location', async () => {
+Deno.test('POST /api/events refuses a day that does not exist, a missing venue and a location string', async () => {
   const api = testApi();
-  for (const body of [{ ...riyadh, date: '2024-02-30' }, { ...riyadh, location: ' ' }, {}]) {
+  const event = await riyadh(api);
+  for (
+    const body of [
+      { ...event, date: '2024-02-30' },
+      { date: event.date },
+      { date: event.date, location: 'Kingdom Arena, Riyadh' },
+      {},
+    ]
+  ) {
     const { status, json } = await api.call('POST', '/api/events', body);
     assertEquals(status, 400, JSON.stringify(body));
     assertEquals(Array.isArray(json.issues), true);
   }
+  // A venue that does not exist is refused by the schema (D30).
+  assertEquals((await api.call('POST', '/api/events', { ...event, venue_id: 999 })).status, 400);
 });
 
 Deno.test('GET /api/events/:id returns the event, or 404', async () => {
   const api = testApi();
-  const { json: event } = await api.call('POST', '/api/events', riyadh);
+  const { json: event } = await api.call('POST', '/api/events', await riyadh(api));
   deepStrictEqual((await api.call('GET', `/api/events/${event.id}`)).json, event);
   for (const path of ['/api/events/999', '/api/events/abc', '/api/events/0']) {
     const miss = await api.call('GET', path);
@@ -38,7 +62,7 @@ Deno.test('GET /api/events/:id returns the event, or 404', async () => {
 
 Deno.test('PATCH /api/events/:id changes only what was sent; 404 when missing', async () => {
   const api = testApi();
-  const { json: event } = await api.call('POST', '/api/events', riyadh);
+  const { json: event } = await api.call('POST', '/api/events', await riyadh(api));
   const { status, json } = await api.call('PATCH', `/api/events/${event.id}`, {
     date: '2024-05-19',
   });

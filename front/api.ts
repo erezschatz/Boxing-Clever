@@ -2,7 +2,8 @@
 // `{ error }` thrown as an Error with its status. The wire shapes are the
 // server's own types, imported as types only, so the bundle carries nothing
 // of the server and the two cannot drift apart unnoticed.
-import type { Event } from '../server/db/event.ts';
+import type { EventView as Event } from '../server/api/events.ts';
+import type { Venue } from '../server/db/venue.ts';
 import type { Fighter } from '../server/db/fighter.ts';
 import type { WeightClass } from '../server/db/weight-class.ts';
 import type { Title } from '../server/db/title.ts';
@@ -19,6 +20,7 @@ export type {
   MergePreview,
   Standing,
   Title,
+  Venue,
   WeightClass,
 };
 

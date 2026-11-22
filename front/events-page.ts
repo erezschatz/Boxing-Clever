@@ -5,7 +5,7 @@ import { api, type Event } from './api.ts';
 import { Component, html } from './component.ts';
 import { EventForm } from './event-form.ts';
 import { navigate } from './router.ts';
-import { dateText, dayAndMonth, watchedSince, yearOf } from './format.ts';
+import { dateText, dayAndMonth, placeLines, watchedSince, yearOf } from './format.ts';
 
 type State = { events: Event[] | null; open: Set<string> };
 
@@ -101,7 +101,10 @@ export class EventsPage extends Component<State> {
                   <span class="ep-day">${day}</span>
                   <span class="ep-month">${month}</span>
                 </time>
-                <span class="ep-where">${event.location}</span>
+                <span class="ep-where">
+                  <span class="ep-city">${placeLines(event.venue).city}</span>
+                  <span class="ep-venue">${placeLines(event.venue).venue}</span>
+                </span>
                 <span class="ep-go" aria-hidden="true"></span>
               </a>
             </li>

@@ -19,6 +19,7 @@ import {
   myCardFor,
   outcomeFor,
   outcomeText,
+  placeLines,
   plainName,
   recordText,
   resultText,
@@ -27,6 +28,7 @@ import {
   standingOnTheNight,
   titlesAtStake,
   titleText,
+  venueText,
   watchedSince,
   weightOnTheNight,
 } from '../../front/format.ts';
@@ -415,4 +417,17 @@ Deno.test('My card says nothing for a draft holding only a round under way, and 
     ),
     '10–8',
   );
+});
+
+Deno.test('a venue reads as the design sets it: the city large, the venue, region and country under it', () => {
+  const vegas = { id: 1, name: 'T-Mobile Arena', city: 'Las Vegas', region: 'NV', country: 'USA' };
+  const london = { id: 2, name: 'O2 Arena', city: 'London', region: null, country: 'UK' };
+  deepStrictEqual(placeLines(vegas), { city: 'Las Vegas', venue: 'T-Mobile Arena · NV, USA' });
+  deepStrictEqual(placeLines(london), { city: 'London', venue: 'O2 Arena · UK' });
+  assertEquals(venueText(vegas), 'T-Mobile Arena, Las Vegas, NV, USA');
+  assertEquals(venueText(london), 'O2 Arena, London, UK');
+  // A location the migration could not split: its name large, nothing twice.
+  const unsplit = { id: 3, name: 'Riyadh', city: '', region: null, country: '' };
+  deepStrictEqual(placeLines(unsplit), { city: 'Riyadh', venue: '' });
+  assertEquals(venueText(unsplit), 'Riyadh');
 });
