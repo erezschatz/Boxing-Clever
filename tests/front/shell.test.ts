@@ -28,6 +28,7 @@ import {
   standingOnTheNight,
   titlesAtStake,
   titleText,
+  venueAndCity,
   venueText,
   watchedSince,
   weightOnTheNight,
@@ -419,15 +420,21 @@ Deno.test('My card says nothing for a draft holding only a round under way, and 
   );
 });
 
-Deno.test('a venue reads as the design sets it: the city large, the venue, region and country under it', () => {
+Deno.test('a venue reads with its name large and the city, region and country under it; the crumb is the venue and city', () => {
   const vegas = { id: 1, name: 'T-Mobile Arena', city: 'Las Vegas', region: 'NV', country: 'USA' };
   const london = { id: 2, name: 'O2 Arena', city: 'London', region: null, country: 'UK' };
-  deepStrictEqual(placeLines(vegas), { city: 'Las Vegas', venue: 'T-Mobile Arena · NV, USA' });
-  deepStrictEqual(placeLines(london), { city: 'London', venue: 'O2 Arena · UK' });
+  deepStrictEqual(placeLines(vegas), { name: 'T-Mobile Arena', where: 'Las Vegas, NV, USA' });
+  deepStrictEqual(placeLines(london), { name: 'O2 Arena', where: 'London, UK' });
+  assertEquals(venueAndCity(london), 'O2 Arena, London');
+  assertEquals(venueAndCity(vegas), 'T-Mobile Arena, Las Vegas');
   assertEquals(venueText(vegas), 'T-Mobile Arena, Las Vegas, NV, USA');
   assertEquals(venueText(london), 'O2 Arena, London, UK');
-  // A location the migration could not split: its name large, nothing twice.
+  // A location the migration could not split: what it has, nothing empty.
   const unsplit = { id: 3, name: 'Riyadh', city: '', region: null, country: '' };
-  deepStrictEqual(placeLines(unsplit), { city: 'Riyadh', venue: '' });
+  deepStrictEqual(placeLines(unsplit), { name: 'Riyadh', where: '' });
+  assertEquals(venueAndCity(unsplit), 'Riyadh');
+  const twoParts = { id: 4, name: 'O2 Arena', city: 'London', region: null, country: '' };
+  deepStrictEqual(placeLines(twoParts), { name: 'O2 Arena', where: 'London' });
+  assertEquals(venueAndCity(twoParts), 'O2 Arena, London');
   assertEquals(venueText(unsplit), 'Riyadh');
 });

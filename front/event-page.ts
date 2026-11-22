@@ -83,9 +83,9 @@ export class EventPage extends Component<State> {
               <button type="button" class="ec-quiet" @click=${() =>
                 this.editEvent(event)}>Edit event</button>
             </p>
-            <h1>${placeLines(event.venue).city}</h1>
-            ${placeLines(event.venue).venue
-              ? html`<p class="ec-venue">${placeLines(event.venue).venue}</p>`
+            <h1>${placeLines(event.venue).name}</h1>
+            ${placeLines(event.venue).where
+              ? html`<p class="ec-place">${placeLines(event.venue).where}</p>`
               : nothing}
           </div>
           <div class="ec-tally">

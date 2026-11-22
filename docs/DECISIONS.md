@@ -1593,3 +1593,12 @@ Source: [tasks/venues.md](../tasks/venues.md)
 **Why** — The one page that shows a bout's place already makes that call; nothing else that reads a bout shows where it was.
 
 Source: [tasks/venues.md](../tasks/venues.md)
+
+## D123 · 2026-11-22 · The venue's name is set large, with its city, region and country under it
+
+**Decision** — `placeLines` gives the venue's name, set large on the event card and the events list, and under it the city, region and country in one muted line ("Las Vegas, NV, USA"). `venueAndCity` gives the crumb's "O2 Arena, London"; `venueText`, the whole place, stays its tooltip. Empty parts are left out, and a line with nothing in it is not drawn. The rest of D120 stands: the event form shows a chosen venue's name strong and the rest beside it, with "change" and "edit venue".
+**Rejected** — The city large and the venue under it, as the design sets it (D120). The venue alone in the crumb.
+**Why** — Erez, 2026-11-22: "I would use the Arena name and the city, rather than the city." A night is remembered by the arena; London alone says little when the O2 and Wembley are both there.
+Supersedes: D120
+
+Source: [tasks/venue-name-first.md](../tasks/venue-name-first.md)

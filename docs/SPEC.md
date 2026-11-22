@@ -280,9 +280,9 @@ reference lists, every fighter, class and title (D34). Pages:
   restyle-events): the title with how many nights were watched since the
   first; a row per year with the year large, a mark per event and the count;
   under an open year, a row per event linking to its card, the day large,
-  the month, and the city large over the venue, region and country (D117)
+  the month, and the venue's name large over its city, region and country (D123)
 - `/events/:id` the card, built to `docs/reference/design/Event.dc.html`
-  (task restyle-event-card): the date and "Edit event", the city large with the venue under it (D117),
+  (task restyle-event-card): the date and "Edit event", the venue's name large with its city, region and country under it (D123),
   how many bouts, how many still to score and how many not final, and "Add
   bout"; bouts in order, the two sides facing each other across "VS" with
   corner squares, names set large without the nickname and the loser's
@@ -309,7 +309,8 @@ reference lists, every fighter, class and title (D34). Pages:
   rank); under the class and rounds, the titles fought for, VS level with
   the names; the crumb, the save
   line (its first words, the rest in its tooltip) and the page's buttons
-  sit in the header's row, in place of its sections; once final, a band
+  sit in the header's row, in place of its sections, the crumb naming the
+  venue and its city (D123); once final, a band
   under the marquees gives the result, the judges' cards and mine;
   focus moves across to the other fighter, or on to the next round when
   that box is scored (D39); Up and Down step a score box between 10 and 9,

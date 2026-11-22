@@ -2,7 +2,7 @@
 // (SPEC Front end; v1's EventList). A new event opens its card. Restyled to
 // docs/reference/design/Events.dc.html (task restyle-events).
 import { api, type Event } from './api.ts';
-import { Component, html } from './component.ts';
+import { Component, html, nothing } from './component.ts';
 import { EventForm } from './event-form.ts';
 import { navigate } from './router.ts';
 import { dateText, dayAndMonth, placeLines, watchedSince, yearOf } from './format.ts';
@@ -102,8 +102,10 @@ export class EventsPage extends Component<State> {
                   <span class="ep-month">${month}</span>
                 </time>
                 <span class="ep-where">
-                  <span class="ep-city">${placeLines(event.venue).city}</span>
-                  <span class="ep-venue">${placeLines(event.venue).venue}</span>
+                  <span class="ep-name">${placeLines(event.venue).name}</span>
+                  ${placeLines(event.venue).where
+                    ? html`<span class="ep-place">${placeLines(event.venue).where}</span>`
+                    : nothing}
                 </span>
                 <span class="ep-go" aria-hidden="true"></span>
               </a>

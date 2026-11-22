@@ -1531,7 +1531,8 @@ dialog.form {
   letter-spacing: 0.12em;
 }
 
-/* The city large, the venue quiet under it (Events.dc.html; task venues). */
+/* The venue's name large, its city, region and country quiet under it
+   (task venue-name-first). */
 .ep-where {
   display: flex;
   flex-direction: column;
@@ -1539,7 +1540,7 @@ dialog.form {
   min-width: 0;
 }
 
-.ep-city {
+.ep-name {
   font-family: var(--ds-display);
   font-size: 1.6rem;
   font-weight: 700;
@@ -1547,7 +1548,7 @@ dialog.form {
   text-transform: uppercase;
 }
 
-.ep-venue {
+.ep-place {
   color: var(--ds-muted);
   font-size: 0.9rem;
 }
@@ -1606,8 +1607,9 @@ dialog.form {
   text-transform: uppercase;
 }
 
-/* The venue under the city (Event.dc.html; task venues). */
-.ec-where .ec-venue {
+/* The city, region and country under the venue's name (task
+   venue-name-first). */
+.ec-where .ec-place {
   margin: 0;
   color: var(--ds-muted);
   font-size: 1.05rem;

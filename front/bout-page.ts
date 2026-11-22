@@ -17,9 +17,9 @@ import {
   boutWeightText,
   dateText,
   fighterName,
-  placeLines,
   shortStatus,
   titlesAtStake,
+  venueAndCity,
   venueText,
 } from './format.ts';
 import {
@@ -373,8 +373,9 @@ export class BoutPage extends Component<State> {
         <nav class="crumb" aria-label="Where this bout is">
           <a href="/">Events</a>
           <span aria-hidden="true">/</span>
-          <a href="/events/${event.id}" title=${venueText(event.venue)}>${placeLines(event.venue)
-            .city}</a>
+          <a href="/events/${event.id}" title=${venueText(event.venue)}>${venueAndCity(
+            event.venue,
+          )}</a>
           <span class="muted">· ${dateText(event.date)}</span>
         </nav>
         ${this.finalised

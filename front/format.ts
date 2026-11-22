@@ -239,14 +239,19 @@ export function titlesAtStake(bout: BoutView, titles: Map<number, Title>): strin
   return `${names.join(' · ')} ${names.length === 1 ? 'title' : 'titles'}`;
 }
 
-// A venue as the design sets it (task venues; Events.dc.html, Event.dc.html):
-// the city large, and under it the venue, then the region and country,
-// "T-Mobile Arena · NV, USA". A venue whose city was left empty (a location
-// the migration could not split) shows its name large and nothing twice.
-export function placeLines(venue: Venue): { city: string; venue: string } {
-  const where = [venue.region, venue.country].filter(Boolean).join(', ');
-  if (!venue.city) return { city: venue.name, venue: where };
-  return { city: venue.city, venue: [venue.name, where].filter(Boolean).join(' · ') };
+// A venue as the pages set it (Erez, 2026-11-22; task venue-name-first):
+// the venue's name large, and under it the city, region and country, "Las
+// Vegas, NV, USA". A part the migration left empty is left out (D118).
+export function placeLines(venue: Venue): { name: string; where: string } {
+  return {
+    name: venue.name,
+    where: [venue.city, venue.region, venue.country].filter(Boolean).join(', '),
+  };
+}
+
+// The scorecard's crumb: the venue and its city, "O2 Arena, London".
+export function venueAndCity(venue: Venue): string {
+  return [venue.name, venue.city].filter(Boolean).join(', ');
 }
 
 // A venue in one line, every part it has: "O2 Arena, London, UK".
