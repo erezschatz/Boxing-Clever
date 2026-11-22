@@ -142,7 +142,10 @@ is rejected to the batch's list rather than guessed.
 
 ## Order
 
-v1 first (task 10), then the sheet (task 11): v1 is smaller and structured,
+The real run starts from an empty database: stop the chamber, rename
+`data/boxing.db` (Erez's test data) to `data/boxing-test-<date>.db`, and
+let the chamber create a fresh one before the first batch (task 10's
+decisions). v1 first (task 10), then the sheet (task 11): v1 is smaller and structured,
 and exercises the importer before the messy source. Both batches are
 re-runnable. The audit trail is per batch (counts and rejects); rows are
 not linked to the batch that wrote them, because which source a bout came
