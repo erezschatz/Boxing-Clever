@@ -44,7 +44,7 @@ Out-of-order work that a decision placed in the sequence, as it stood on
 - [06-front-shell](../tasks/06-front-shell.md) — 06 · Front: shell and read-only pages · done
 - [07-front-scorecard](../tasks/07-front-scorecard.md) — 07 · Front: the scorecard page · done
 - [08-front-forms](../tasks/08-front-forms.md) — 08 · Front: forms · done
-- [09-design-pass](../tasks/09-design-pass.md) — 09 · Design pass
+- [09-design-pass](../tasks/09-design-pass.md) — 09 · Design pass · done
 - [10-import-v1](../tasks/10-import-v1.md) — 10 · Import: v1 databases
 - [11-import-sheet](../tasks/11-import-sheet.md) — 11 · Import: the Numbers sheet
 - [12-tbrb-current](../tasks/12-tbrb-current.md) — 12 · TBRB: current rankings
