@@ -265,7 +265,6 @@ did, and its `409` carries a `preview` of what each choice would do (D31).
 | GET | `/api/tbrb/current` | latest snapshot, grouped by weight class |
 | GET | `/api/tbrb/fighters/:id` | that fighter's rank history |
 | POST | `/api/tbrb/snapshots` | manual back-fill: a dated page's parsed rows |
-| POST | `/api/imports/:source` | staged import; returns batch id and rejects |
 
 ## Front end
 

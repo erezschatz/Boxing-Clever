@@ -73,8 +73,9 @@ decision. When the inference is ambiguous → reject.
   coloured one is in a round with a 10. 15 red 9s each sit in a round with
   no 10 and an uncoloured other side, 14 against a 9 and one against an 8.
 - Technical decisions and draws (`TD`, `T`): D22 scores their last round,
-  but the sheet's stopped-round cell holds a time or a marker, and v1 stored
-  it 0–0 → reject, from either source; Erez enters them by hand.
+  but the sheet's stopped-round cell holds a time or a marker, and v1 did
+  not store it → reject, from either source; Erez enters them by hand. v1's
+  own `T` is not one of these: it is a draw over the distance (Source B).
 - Corner retirements (`RTD`, `RET`): there is no RTD code. A retirement
   after round X becomes a `TKO` at 3:00 of round X, with round X scored
   (`tasks/retirement-is-a-tko.md`). Where the source has no score for round
@@ -101,16 +102,48 @@ decision. When the inference is ambiguous → reject.
 Dumps taken on the v1 machine, gitignored under `data/import/v1/`:
 
 ```
-mysqldump --no-create-info --complete-insert boxing > v1-mysql.sql   # or per-table CSV
+for t in event fighter weight_class title bout_detail bout_title; do
+  mysql --batch -u boxing -p boxing -e "SELECT * FROM $t" > $t.tsv
+done
 mongoexport --db boxing-scores --collection boutscores --jsonArray > v1-mongo.json
 ```
 
-Mapping is direct (BOXING-CLEVER-V1.md lists the shapes). The Mongo
-document's `fighters.*.record` and `weight`/`colors` become the bout's
-as-of snapshot; `rounds[]` become `round_score` rows and `deductions[]`
-strings are parsed as `"<points> <reason>"` or rejected; `result.decision`
-is mapped by code (v1 already stored codes). Bouts with no Mongo document
-are imported as unscored bouts. v1 had the 18 classes and no contracted
+One tab-separated file per MySQL table, with its header line (task 10's
+decisions). The import is a script, `scripts/import-v1.ts`; there is no
+import endpoint.
+
+The mapping, as measured on 2026-11-22 against v1's code and its 172
+documents (29 events, 27 Jun 2025 → 4 Apr 2026; task 10's decisions):
+
+- **Snapshot.** The document's `fighters.*.record`, `weight` and `colors`
+  become the bout's as-of snapshot. 36 documents (bouts 1–38, saved Nov–Dec
+  2025) predate v1 keeping them; those bouts arrive with no snapshot, and
+  their scheduled rounds, class and event come from MySQL.
+- **Rounds.** `rounds[]` become `round_score` rows. v1 dropped the stoppage
+  round, so a stopped card holds rounds 1 to N−1 for a result in round N and
+  the importer adds round N at 0–0 (SPEC Scoring §4). A stopped card with
+  rounds missing before N is rejected; one with no rounds at all is a bout
+  watched and not scored.
+- **Deductions.** v1 stored the reason alone (`KnockDown`, `LowBlow`,
+  `Holding`, `HeadButt`, `IllegalPunch`, `Other`), never the points. Each is
+  one point where the side's `round_score` less its `total_score` equals
+  the number of its deductions in that round; otherwise the bout is
+  rejected. `IllegalPunch` becomes `other`, noted `illegal punch`.
+- **Result.** v1's codes are taken as they are, except `T`, which v1
+  labelled "Draw" and used for a draw over the distance: it becomes `D`. A
+  `TD` is rejected (below). The winner's kind comes from the decision type,
+  since v1 wrote `draw` only for `MT` and `T`. Judges' totals of 0–0, a
+  result round of 0 and an empty time are none.
+- **Final or draft.** A document with a decision type is final whatever its
+  `is_draft` says: v1 moved the records the first time a result was saved.
+  One with none is a draft. A bout with no document is an unscored bout.
+- **Records.** Each fighter arrives with v1's record as it stands, which
+  already counts every result, and the finalised bouts are written without
+  moving it again.
+- **Every card passes the rules** `PUT /api/bouts/:id/card` applies before
+  it is written; one that fails is rejected with the rules' problems.
+
+v1 had the 18 classes and no contracted
 weight, so every v1 bout arrives with its class (matched by name) and no
 `contracted_weight`; a fight Erez knows was at a contracted weight is
 changed by hand afterwards in the bout form. v1 had no missed-weight mark,
@@ -120,7 +153,9 @@ fighters by exact name; both may exist and are merged by the user.
 v1's title kinds (its form offered Active, Vacant, Interim, Silver,
 Diamond) map as migration 003 does (D42):
 - Active and Vacant become the regular belt. A v1 bout under a "Vacant"
-  title has holder `vacant`, unless v1 names a holder.
+  title has holder `vacant`. v1 never stored who brought a belt in, so
+  under any other title the holder arrives not recorded (null), and Erez
+  fills it in by hand in the bout form (task 10's decisions).
 - Interim becomes the interim flag; "Interim Silver" is the flag plus
   "World Silver".
 - Any other kind joins the area: Silver becomes "World Silver".
@@ -134,10 +169,10 @@ Both imports turn a location string into a venue, split as migration 007
 split the locations typed before it: at the separators (`,` and, for the sheet, `.`), the first part the
 venue, the last the country, the one before it the city and anything
 between the region; a venue with the same four parts is reused, so the
-same arena typed on two nights is one place. The sheet's cells often end
-with a US state and no country (`Honda Center. Anaheim. CA`), which the
-split alone would read as the country; task 11 decides how it reads them,
-as a decision. A location that does not give a venue, a city and a country
+same arena typed on two nights is one place. Erez wrote American places
+the American way, ending with the state and no country (`Honda Center.
+Anaheim. CA`): when the last part is a two-letter US state code it is the
+region, and the country is `USA` (task 10's decisions). A location that does not give a venue, a city and a country
 is rejected to the batch's list rather than guessed.
 
 ## Order

@@ -70,9 +70,10 @@ denormalised `event`, `weight_class`, `titles`, `fighters.fighterA/B`
 (with `record`), `scheduled_rounds`, `rounds[]` (`fighterA/B.round_score`,
 `total_score`, `deductions[]` as strings), `bout_totals`, `result`
 (`time`, `round`, `decision.{type,winner}`, `judges_scores.ref_1..3`),
-`is_draft`. v1 data starts where the sheet ends (Nov 2025 schema; fights
-from ~mid 2025). Bouts present in both sources: the sheet wins for the
-record snapshot, v1 for the scorecard — see IMPORT.md.
+`is_draft`. v1 data starts after the sheet ends: the sheet's last event is
+19 Apr 2025 and v1's first 27 Jun 2025, so no bout is in both.
 
-Note v1's `deductions` are strings; the importer parses `"<points> <reason>"`
-and rejects what it cannot.
+What the documents really hold differs from this schema in several ways
+(deductions are a reason with no points, the stoppage round is missing,
+`T` means a draw, `is_draft` is unreliable, the oldest 36 have no
+snapshot): IMPORT.md, Source B, has the mapping as measured.
