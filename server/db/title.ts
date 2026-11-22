@@ -29,3 +29,14 @@ export function listTitles(db: Database): Title[] {
     'SELECT * FROM title ORDER BY weight_class_id, sanctioning_body, area, interim',
   ).all() as Title[];
 }
+
+// The same belt, ignoring case and spacing, as migration 003 compared them
+// (D42): what the import looks up before making a title.
+export function findTitle(db: Database, fields: TitleFields): Title | undefined {
+  const words = (s: string) => s.trim().split(/\s+/).join(' ').toLowerCase();
+  return listTitles(db).find((t) =>
+    t.weight_class_id === fields.weight_class_id && t.interim === fields.interim &&
+    words(t.sanctioning_body) === words(fields.sanctioning_body) &&
+    words(t.area) === words(fields.area)
+  );
+}

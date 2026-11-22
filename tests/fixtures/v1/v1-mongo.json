@@ -1,0 +1,490 @@
+[
+  {
+    "bout_id": 1,
+    "fighters": {
+      "fighterA_id": 1,
+      "fighterB_id": 2
+    },
+    "rounds": [
+      {
+        "fighterA": {
+          "round_score": 10,
+          "total_score": 10,
+          "deductions": []
+        },
+        "fighterB": {
+          "round_score": 9,
+          "total_score": 9,
+          "deductions": []
+        }
+      },
+      {
+        "fighterA": {
+          "round_score": 10,
+          "total_score": 10,
+          "deductions": []
+        },
+        "fighterB": {
+          "round_score": 9,
+          "total_score": 9,
+          "deductions": []
+        }
+      }
+    ],
+    "result": {
+      "time": "01:10",
+      "round": 3,
+      "decision": {
+        "type": "TKO",
+        "winner": "fighterA"
+      },
+      "judges_scores": {
+        "ref_1": {
+          "fighterA": 0,
+          "fighterB": 0
+        },
+        "ref_2": {
+          "fighterA": 0,
+          "fighterB": 0
+        },
+        "ref_3": {
+          "fighterA": 0,
+          "fighterB": 0
+        }
+      }
+    },
+    "is_draft": false,
+    "createdAt": {
+      "$date": "2025-12-01T10:00:00Z"
+    },
+    "updatedAt": {
+      "$date": "2025-12-01T10:30:00Z"
+    }
+  },
+  {
+    "bout_id": 2,
+    "event": {
+      "id": 1
+    },
+    "scheduled_rounds": 4,
+    "fighters": {
+      "fighterA": {
+        "id": 3,
+        "first_name": "Cy ",
+        "last_name": "Charlie",
+        "nickname": "",
+        "record": {
+          "won": 5,
+          "lost": 0,
+          "draws": 0,
+          "nc": 0,
+          "kos": 2
+        },
+        "weight": 66.5,
+        "weight_unit": "kg",
+        "colors": "Blue/White"
+      },
+      "fighterB": {
+        "id": 4,
+        "first_name": "Dee",
+        "last_name": "Delta",
+        "nickname": "",
+        "record": {
+          "won": 2,
+          "lost": 0,
+          "draws": 0,
+          "nc": 0,
+          "kos": 1
+        },
+        "weight": 10.7,
+        "weight_unit": "st",
+        "colors": null
+      }
+    },
+    "rounds": [
+      {
+        "fighterA": {
+          "round_score": 9,
+          "total_score": 9,
+          "deductions": []
+        },
+        "fighterB": {
+          "round_score": 10,
+          "total_score": 10,
+          "deductions": []
+        }
+      },
+      {
+        "fighterA": {
+          "round_score": 9,
+          "total_score": 8,
+          "deductions": [
+            "KnockDown"
+          ]
+        },
+        "fighterB": {
+          "round_score": 10,
+          "total_score": 10,
+          "deductions": []
+        }
+      },
+      {
+        "fighterA": {
+          "round_score": 10,
+          "total_score": 10,
+          "deductions": []
+        },
+        "fighterB": {
+          "round_score": 9,
+          "total_score": 9,
+          "deductions": []
+        }
+      },
+      {
+        "fighterA": {
+          "round_score": 9,
+          "total_score": 9,
+          "deductions": []
+        },
+        "fighterB": {
+          "round_score": 10,
+          "total_score": 10,
+          "deductions": []
+        }
+      }
+    ],
+    "result": {
+      "time": "",
+      "round": 0,
+      "decision": {
+        "type": "UD",
+        "winner": "fighterB"
+      },
+      "judges_scores": {
+        "ref_1": {
+          "fighterA": 36,
+          "fighterB": 39
+        },
+        "ref_2": {
+          "fighterA": 36,
+          "fighterB": 39
+        },
+        "ref_3": {
+          "fighterA": 37,
+          "fighterB": 38
+        }
+      }
+    },
+    "is_draft": true,
+    "createdAt": {
+      "$date": "2026-01-20T10:00:00Z"
+    },
+    "updatedAt": {
+      "$date": "2026-01-20T11:00:00Z"
+    }
+  },
+  {
+    "bout_id": 3,
+    "event": {
+      "id": 2
+    },
+    "scheduled_rounds": 4,
+    "fighters": {
+      "fighterA": {
+        "id": 5,
+        "first_name": "ana",
+        "last_name": "Alpha",
+        "nickname": "",
+        "record": {
+          "won": 11,
+          "lost": 0,
+          "draws": 0,
+          "nc": 0,
+          "kos": 6
+        },
+        "weight": 146.5,
+        "weight_unit": "lbs",
+        "colors": "Gold"
+      },
+      "fighterB": {
+        "id": 6,
+        "first_name": "Eve",
+        "last_name": "Echo",
+        "nickname": "",
+        "record": {
+          "won": 6,
+          "lost": 2,
+          "draws": 0,
+          "nc": 0,
+          "kos": 4
+        },
+        "weight": 147,
+        "weight_unit": "lbs",
+        "colors": null
+      }
+    },
+    "rounds": [
+      {
+        "fighterA": {
+          "round_score": 10,
+          "total_score": 10,
+          "deductions": []
+        },
+        "fighterB": {
+          "round_score": 9,
+          "total_score": 9,
+          "deductions": []
+        }
+      },
+      {
+        "fighterA": {
+          "round_score": 9,
+          "total_score": 9,
+          "deductions": []
+        },
+        "fighterB": {
+          "round_score": 10,
+          "total_score": 10,
+          "deductions": []
+        }
+      },
+      {
+        "fighterA": {
+          "round_score": 10,
+          "total_score": 10,
+          "deductions": []
+        },
+        "fighterB": {
+          "round_score": 9,
+          "total_score": 9,
+          "deductions": []
+        }
+      },
+      {
+        "fighterA": {
+          "round_score": 9,
+          "total_score": 9,
+          "deductions": []
+        },
+        "fighterB": {
+          "round_score": 10,
+          "total_score": 10,
+          "deductions": []
+        }
+      }
+    ],
+    "result": {
+      "time": "",
+      "round": 0,
+      "decision": {
+        "type": "T",
+        "winner": "draw"
+      },
+      "judges_scores": {
+        "ref_1": {
+          "fighterA": 0,
+          "fighterB": 0
+        },
+        "ref_2": {
+          "fighterA": 0,
+          "fighterB": 0
+        },
+        "ref_3": {
+          "fighterA": 0,
+          "fighterB": 0
+        }
+      }
+    },
+    "is_draft": false,
+    "createdAt": {
+      "$date": "2026-07-01T10:00:00Z"
+    },
+    "updatedAt": {
+      "$date": "2026-07-01T11:00:00Z"
+    }
+  },
+  {
+    "bout_id": 4,
+    "event": {
+      "id": 2
+    },
+    "scheduled_rounds": 4,
+    "fighters": {
+      "fighterA": {
+        "id": 7,
+        "first_name": "Fay",
+        "last_name": "Fox",
+        "nickname": "",
+        "record": {
+          "won": 3,
+          "lost": 0,
+          "draws": 0,
+          "nc": 0,
+          "kos": 3
+        },
+        "weight": 147,
+        "weight_unit": "lbs",
+        "colors": null
+      },
+      "fighterB": {
+        "id": 8,
+        "first_name": "Gia",
+        "last_name": "Golf",
+        "nickname": "",
+        "record": {
+          "won": 2,
+          "lost": 1,
+          "draws": 0,
+          "nc": 0,
+          "kos": 0
+        },
+        "weight": null,
+        "weight_unit": null,
+        "colors": null
+      }
+    },
+    "rounds": [
+      {
+        "fighterA": {
+          "round_score": 10,
+          "total_score": 10,
+          "deductions": []
+        },
+        "fighterB": {
+          "round_score": 9,
+          "total_score": 9,
+          "deductions": []
+        }
+      },
+      {
+        "fighterA": {
+          "round_score": 10,
+          "total_score": 10,
+          "deductions": []
+        },
+        "fighterB": {
+          "round_score": 9,
+          "total_score": 8,
+          "deductions": [
+            "Punch"
+          ]
+        }
+      },
+      {
+        "fighterA": {
+          "round_score": 10,
+          "total_score": 10,
+          "deductions": []
+        },
+        "fighterB": {
+          "round_score": 9,
+          "total_score": 9,
+          "deductions": []
+        }
+      },
+      {
+        "fighterA": {
+          "round_score": 10,
+          "total_score": 10,
+          "deductions": []
+        },
+        "fighterB": {
+          "round_score": 9,
+          "total_score": 9,
+          "deductions": []
+        }
+      }
+    ],
+    "result": {
+      "time": "",
+      "round": 0,
+      "decision": {
+        "type": "UD",
+        "winner": "fighterA"
+      },
+      "judges_scores": {
+        "ref_1": {
+          "fighterA": 0,
+          "fighterB": 0
+        },
+        "ref_2": {
+          "fighterA": 0,
+          "fighterB": 0
+        },
+        "ref_3": {
+          "fighterA": 0,
+          "fighterB": 0
+        }
+      }
+    },
+    "is_draft": false,
+    "createdAt": {
+      "$date": "2026-07-01T12:00:00Z"
+    },
+    "updatedAt": {
+      "$date": "2026-07-01T12:30:00Z"
+    }
+  },
+  {
+    "bout_id": 7,
+    "fighters": {
+      "fighterA_id": 6,
+      "fighterB_id": 7
+    },
+    "rounds": [
+      {
+        "fighterA": {
+          "round_score": 10,
+          "total_score": 10,
+          "deductions": []
+        },
+        "fighterB": {
+          "round_score": 9,
+          "total_score": 9,
+          "deductions": []
+        }
+      },
+      {
+        "fighterA": {
+          "round_score": 10,
+          "total_score": 10,
+          "deductions": []
+        },
+        "fighterB": {
+          "round_score": 9,
+          "total_score": 9,
+          "deductions": []
+        }
+      }
+    ],
+    "result": {
+      "time": "1:00",
+      "round": 3,
+      "decision": {
+        "type": "TD",
+        "winner": "fighterA"
+      },
+      "judges_scores": {
+        "ref_1": {
+          "fighterA": 0,
+          "fighterB": 0
+        },
+        "ref_2": {
+          "fighterA": 0,
+          "fighterB": 0
+        },
+        "ref_3": {
+          "fighterA": 0,
+          "fighterB": 0
+        }
+      }
+    },
+    "is_draft": false,
+    "createdAt": {
+      "$date": "2025-12-02T10:00:00Z"
+    },
+    "updatedAt": {
+      "$date": "2025-12-02T10:30:00Z"
+    }
+  }
+]

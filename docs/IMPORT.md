@@ -110,15 +110,30 @@ mongoexport --db boxing-scores --collection boutscores --jsonArray > v1-mongo.js
 
 One tab-separated file per MySQL table, with its header line (task 10's
 decisions). The import is a script, `scripts/import-v1.ts`; there is no
-import endpoint.
+import endpoint. With the chamber stopped:
+
+```
+deno task import-v1            # into BOXING_DB, or data/boxing.db
+```
+
+It prints the batch's counts, each fighter folded and each bout rejected
+with its reason, and stores the same in `import_batch` and
+`import_reject`. The code is `server/import/`: `v1.ts` writes the batch,
+`v1-card.ts` reads a document as a card, `place.ts` reads a location. An
+event is found again by its day and venue, a bout by its day and its two
+fighters, a fighter by name, a title by its four parts, so a second run
+writes only what the first could not. Each bout is written inside a
+savepoint: one the importer or the database refuses goes on the list and
+takes back whatever it had begun, a new fighter included.
 
 The mapping, as measured on 2026-11-22 against v1's code and its 172
 documents (29 events, 27 Jun 2025 → 4 Apr 2026; task 10's decisions):
 
 - **Snapshot.** The document's `fighters.*.record`, `weight` and `colors`
   become the bout's as-of snapshot. 36 documents (bouts 1–38, saved Nov–Dec
-  2025) predate v1 keeping them; those bouts arrive with no snapshot, and
-  their scheduled rounds, class and event come from MySQL.
+  2025) predate v1 keeping them; those bouts arrive with no snapshot and
+  marked `no_snapshot`, so that no later save of the card takes one (D138),
+  and their scheduled rounds, class and event come from MySQL.
 - **Rounds.** `rounds[]` become `round_score` rows. v1 dropped the stoppage
   round, so a stopped card holds rounds 1 to N−1 for a result in round N and
   the importer adds round N at 0–0 (SPEC Scoring §4). A stopped card with
@@ -137,10 +152,16 @@ documents (29 events, 27 Jun 2025 → 4 Apr 2026; task 10's decisions):
 - **Final or draft.** A document with a decision type is final whatever its
   `is_draft` says: v1 moved the records the first time a result was saved.
   One with none is a draft. A bout with no document is an unscored bout.
-- **Records.** v1 moved records on a result only from 2026-05-30. A fighter
-  arrives with v1's row plus the result of each of their bouts whose
-  document was last saved before that day (119 documents; the other 53
-  are already in the rows), counted by SPEC Scoring §6.
+- **Records.** v1 moved records on a result only from 2026-05-30, and its
+  row for a fighter is the record typed for their latest bout: before that
+  day the record going into it, after it that record with the result
+  counted. So a fighter arrives with the record they had going into their
+  latest v1 bout (v1's row, less that bout's result where v1 had counted
+  it), and that one result is added when the importer writes the bout as
+  final. An earlier bout's result is in the row already and is not added
+  again; a latest bout that is rejected adds nothing, so entering it by
+  hand counts it once. A fighter whose row does not hold the result v1
+  counted (taking it off would go below zero) has their bouts rejected.
 - **Who fought.** MySQL says, not Mongo: `bout_detail.id` is the key that
   Mongo's `bout_id` matches (`bout_detail.bout_id` is only the bout's number
   on its card), and in 14 documents a fighter id names a row a v1 merge

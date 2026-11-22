@@ -146,22 +146,19 @@ const recordOf = (f: Fighter): FightRecord => ({
   kos: f.kos,
 });
 
-// §7: each fighter as they stood before this fight was counted. Normally
-// the bout is not counted yet. A bout finalised with no snapshot (an import)
-// already counts in the record, so its own result is taken off first
-// (`uncount`). The TBRB rank is read from the bout's own class only, the
+// §7: each fighter as they stood before this fight was counted. Only a bout
+// never saved before gets here, so it is not counted yet. The TBRB rank is read from the bout's own class only, the
 // last list on or before the fight day (D32, D58, D59): a fighter ranked in
 // another class is unranked here. A bout at a contracted weight has no
 // class, so it has no rank (D59).
 function snapshotOf(
   db: Database,
   f: Fighter,
-  uncount: FightRecord,
   bout: Bout,
   date: string,
 ): SideSnapshot {
   return {
-    ...applyDelta(recordOf(f), uncount),
+    ...recordOf(f),
     weight: f.weight,
     weight_unit: f.weight_unit,
     colors: f.colors,
@@ -210,14 +207,16 @@ export function cardRoutes(db: GetDb): Hono {
       // §7: the first save of any kind takes the snapshot, before this
       // bout's result is counted; later saves leave it alone.
       // Each side on its own: a replaced fighter's side is retaken while the
-      // other keeps the snapshot it has (D32).
+      // other keeps the snapshot it has (D32). A bout marked no_snapshot
+      // came from v1 without one, and keeps none: the record on a night
+      // long past cannot be worked back from today's (D128, D138).
       const date = getEvent(db(), bout.event_id)!.date;
-      const already = recordChange(counted(bout), null); // this result off, if counted
-      if (bout.a_won === null) {
-        setSideSnapshot(db(), bout.id, 'a', snapshotOf(db(), a, already.a, bout, date));
+      const takes = bout.no_snapshot === 0;
+      if (takes && bout.a_won === null) {
+        setSideSnapshot(db(), bout.id, 'a', snapshotOf(db(), a, bout, date));
       }
-      if (bout.b_won === null) {
-        setSideSnapshot(db(), bout.id, 'b', snapshotOf(db(), b, already.b, bout, date));
+      if (takes && bout.b_won === null) {
+        setSideSnapshot(db(), bout.id, 'b', snapshotOf(db(), b, bout, date));
       }
       deleteRoundScores(db(), bout.id); // its deductions go with it
       for (const r of card.rounds) {

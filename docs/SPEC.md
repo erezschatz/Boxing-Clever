@@ -144,7 +144,7 @@ none. All ids are `INTEGER PRIMARY KEY`.
 | `fighter_alias` | fighter_id, alias text | names as TBRB and the sheet spell them; merge keeps aliases; an alias names one fighter (D19) |
 | `event` | date, venue_id | the place is a venue, typed once (D117) |
 | `venue` | name, city, region, country | one row per place, unique on all four; region (a state or province) may be null; migration 007 split the location strings typed before it at their commas, leaving `''` where one did not split, for the venue form to fill in (D117, D118) |
-| `bout` | event_id, card_order, weight_class_id **or** contracted_weight (pounds; exactly one of the two, D26, D45), scheduled_rounds, fighter_a_id, fighter_b_id, **corner_a** (`red`/`blue`, null when not recorded), **missed_weight_a/b** (0/1, marked by the user, never computed; D26), a/b **as-of snapshot** (record ×5, weight, unit, colors, tbrb_rank), result (decision_type, winner `A`/`B`/`draw`/`none`, round, time), judges ×3 ×2, is_draft | there is no catchweight class: a bout fought at a weight that is no class's limit records that weight (migration 004); the snapshot is what v1's Mongo document was for and is kept on purpose (D4); its columns are `a_won` … `a_tbrb_rank`, `b_won` …, null until first save; result columns `decision_type`, `winner`, `result_round`, `result_time`; judges `judge1_a` … `judge3_b` |
+| `bout` | event_id, card_order, weight_class_id **or** contracted_weight (pounds; exactly one of the two, D26, D45), scheduled_rounds, fighter_a_id, fighter_b_id, **corner_a** (`red`/`blue`, null when not recorded), **missed_weight_a/b** (0/1, marked by the user, never computed; D26), a/b **as-of snapshot** (record ×5, weight, unit, colors, tbrb_rank), result (decision_type, winner `A`/`B`/`draw`/`none`, round, time), judges ×3 ×2, is_draft, no_snapshot | there is no catchweight class: a bout fought at a weight that is no class's limit records that weight (migration 004); the snapshot is what v1's Mongo document was for and is kept on purpose (D4); its columns are `a_won` … `a_tbrb_rank`, `b_won` …, null until first save, and for good on a bout marked `no_snapshot` (0/1), which is one of v1's that arrived without one (D128, D138); result columns `decision_type`, `winner`, `result_round`, `result_time`; judges `judge1_a` … `judge3_b` |
 | `round_score` | bout_id, round_no, side, points | one row per fighter per round actually scored; the stoppage round has points `0`, except a retirement's (a TKO at 3:00, D55), which is scored (see Scoring) |
 | `deduction` | bout_id, round_no, side, points, reason | reasons: knockdown, low blow, holding, headbutt, other — a free text alongside |
 | `title` | sanctioning_body, area (`World`, `World Silver`, `European`…), weight_class_id, interim (0/1) | unique on the four; a belt is regular or interim, nothing else; vacancy is the fight's, by `bout_title.holder_side` (D42) |
@@ -214,8 +214,10 @@ origin; the three stoppage defects there are fixed by construction here.
    afterwards; the fighter row does. The exceptions: the TBRB rank, which
    is re-derived when TBRB history is back-filled (D25), and a draft whose
    fighter is replaced, whose side is cleared and taken again at the next
-   save (D32). A bout already finalised and counted without a snapshot (an
-   import) is snapshotted with its own result taken off. The rank is read
+   save (D32). A bout marked `no_snapshot`, which is how v1's oldest bouts
+   arrive (D128), keeps none however often its card is saved, as a draft
+   or as final: the record on a night long past is not worked back from
+   today's (D138). The rank is read
    from the bout's own class only, the last list on or before the fight
    day (D32, D58, D59); a bout at a contracted weight has no class, so its
    rank is null (D45, D59).

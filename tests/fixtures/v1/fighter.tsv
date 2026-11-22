@@ -1,0 +1,10 @@
+id	first_name	last_name	nickname	won	lost	draws	nc	kos	weight	weight_unit	colors
+1	Ana	Alpha		10	0	0	0	5	147	lbs	Red
+2	Bea	Bravo		8	1	0	0	3	NULL	NULL	NULL
+3	Cy 	Charlie	The Sea	5	0	0	0	2	66.5	kg	Blue/White
+4	Dee	Delta		3	0	0	0	1	10.7	st	NULL
+5	ana	Alpha	Ace	11	0	1	0	6	146.5	lbs	Gold
+6	Eve	Echo		6	2	1	0	4	147	lbs	NULL
+7	Fay	Fox		4	0	0	0	4	147	lbs	NULL
+8	Gia	Golf		2	2	0	0	0	NULL	NULL	NULL
+9	Hal	Hotel		1	0	0	0	1	NULL	NULL	NULL

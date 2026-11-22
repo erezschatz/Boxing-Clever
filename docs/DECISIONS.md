@@ -1714,3 +1714,28 @@ Source: [tasks/holder-not-recorded.md](../tasks/holder-not-recorded.md)
 **Why** — `PATCH /api/bouts/:id` replaces the whole title list, so a form that could not send null back would force Erez to pick a holder for every belt on an imported bout before he could change anything else about it.
 
 Source: [tasks/holder-not-recorded.md](../tasks/holder-not-recorded.md)
+
+## D137 · 2026-11-22 · A fighter arrives with the record going into their latest v1 bout, and that bout's result is added once
+
+**Decision** — v1's row for a fighter is the record typed for their latest bout: the record going into it where the document was last saved before 2026-05-30, and that record with the result counted where it was saved after. A fighter is created with the record going into their latest v1 bout, which is the row, less that bout's result where v1 had counted it. The result is added when the importer writes that bout as final, in this batch or a later one. No earlier bout adds anything. Where the latest bout is rejected or unscored the record stays as it went in, so a bout Erez then enters by hand is counted once.
+**Rejected** — D132's rule, the row plus the result of every bout saved before 2026-05-30. It is right for a fighter with one bout and wrong for the 17 with more: Naoya Inoue's row, 31–0, is the record typed for his third bout here, so adding all three results gives 34–0 where he is 32–0. Rebuilding from the latest snapshot, which the oldest documents do not have.
+**Why** — Found on the dumps while building, 2026-11-22: for each of the 17 fighters with more than one bout, the row equals the latest bout's snapshot where that document was saved before the day, and the snapshot plus the result where after. On a scratch database the import leaves Inoue 32–0, Saul Alvarez 63–3–2, Norman 28–1, and a second run changes nothing. Claude's finding; Erez accepted D132 on the one-bout evidence and has not seen this one.
+Supersedes: D132
+
+Source: [tasks/10-import-v1.md](../tasks/10-import-v1.md)
+
+## D138 · 2026-11-22 · A v1 bout with a card and no snapshot is marked, and no later save takes one (supersedes D32 in part)
+
+**Decision** — Migration 009 adds `bout.no_snapshot` (0/1, 0 for every bout made in the app). The import sets it on a bout that arrives with a card and no record on the night. `PUT /api/bouts/:id/card` takes the as-of snapshot of a side that has none unless the bout is marked, whether it is saved as a draft or as final. SPEC Scoring §7 says so.
+**Rejected** — §7's rule until now (D32): snapshot a finalised bout that has none with today's record less its own result. Telling these bouts apart without a column, as "final with no snapshot", which was built first: the reader of the diff showed that one such bout reopened as a draft is then an ordinary draft with no snapshot, and its next save takes today's record.
+**Why** — This is the point D128 left open. The 34 bouts concerned are a year old, and today's record less one result is not the record on that night; the first correction of such a card in the app would have written it as if it were. The unscored bout with no document is not marked: nothing was ever saved for it, so its first save here is its first save, as for a bout made in the app.
+
+Source: [tasks/10-import-v1.md](../tasks/10-import-v1.md)
+
+## D139 · 2026-11-22 · A fighter whose v1 record cannot hold the result v1 counted has their bouts rejected
+
+**Decision** — Where taking the latest bout's counted result off v1's row would leave a number below zero, the importer does not make the fighter, and each bout of theirs goes on the rejects list with that reason.
+**Rejected** — Stopping at zero. Using the row as it is and adding nothing.
+**Why** — It means the row was changed by hand after v1 counted the result, and then nothing says what the record going into the bout was. None of v1's fighters is in this state today (96 of 96 checked on the dumps); the refusal is there so that a later dump cannot bring one in quietly.
+
+Source: [tasks/10-import-v1.md](../tasks/10-import-v1.md)

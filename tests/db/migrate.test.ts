@@ -458,7 +458,7 @@ Deno.test('migration 008: every title line is kept as it was, and a holder may t
   const lines = () =>
     db.prepare('SELECT * FROM bout_title ORDER BY id').all().map((l) => ({ ...l }));
   const before = lines();
-  deepStrictEqual(migrate(db), [8]);
+  deepStrictEqual(migrate(db, readMigrations().filter((m) => m.version <= 8)), [8]);
   deepStrictEqual(lines(), before);
   deepStrictEqual(db.prepare('PRAGMA foreign_key_check').all(), []);
 
@@ -480,4 +480,20 @@ Deno.test('migration 008: every title line is kept as it was, and a holder may t
   // And a bout still takes its title lines with it.
   db.exec('DELETE FROM bout WHERE id = 1');
   assertEquals(db.prepare('SELECT count(*) AS n FROM bout_title').get()!.n, 0);
+});
+
+Deno.test('migration 009: every bout is snapshotted as before; only a marked one is not (D138)', () => {
+  const db = openDatabase(':memory:');
+  migrate(db, readMigrations().filter((m) => m.version <= 8));
+  db.exec(`
+    INSERT INTO venue (id, name, city, country) VALUES (1, 'O2', 'London', 'UK');
+    INSERT INTO event (id, date, venue_id) VALUES (1, '2026-01-01', 1);
+    INSERT INTO fighter (id, first_name, last_name) VALUES (1, 'Jono', 'Carroll'), (2, 'Colm', 'Murphy');
+    INSERT INTO bout (id, event_id, card_order, weight_class_id, scheduled_rounds, fighter_a_id, fighter_b_id)
+      VALUES (1, 1, 1, 9, 12, 1, 2);
+  `);
+  const before = { ...db.prepare('SELECT * FROM bout').get() };
+  deepStrictEqual(migrate(db), [9]);
+  deepStrictEqual({ ...db.prepare('SELECT * FROM bout').get() }, { ...before, no_snapshot: 0 });
+  throws(() => db.exec('UPDATE bout SET no_snapshot = 2'), /CHECK/);
 });

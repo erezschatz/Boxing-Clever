@@ -30,3 +30,12 @@ export function updateVenue(db: Database, id: number, fields: VenueFields): bool
   ).run({ ...fields, id });
   return changes > 0;
 }
+
+// The venue with these four parts, as the import looks a place up before
+// making it (IMPORT.md, "Places"). The same comparison as the unique index.
+export function findVenue(db: Database, place: VenueFields): Venue | undefined {
+  return db.prepare(
+    `SELECT * FROM venue WHERE name = :name AND city = :city
+       AND coalesce(region, '') = coalesce(:region, '') AND country = :country`,
+  ).get(place) as Venue | undefined;
+}

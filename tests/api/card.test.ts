@@ -3,7 +3,7 @@
 // leaves behind — the snapshot, the records, the stoppage card, a rollback.
 import { deepStrictEqual, strictEqual as assertEquals } from 'node:assert/strict';
 import { type Api, HEAVYWEIGHT, recordOf, testApi, usyk, usykFury } from '../helpers/api.ts';
-import { getBout, setBoutResult } from '../../server/db/bout.ts';
+import { getBout, markNoSnapshot, setBoutResult } from '../../server/db/bout.ts';
 import { setFighterRecord } from '../../server/db/fighter.ts';
 import { insertTbrbRow } from '../../server/db/tbrb-snapshot.ts';
 
@@ -282,9 +282,9 @@ Deno.test("D32: replacing a draft's fighter clears their side of the snapshot, r
   deepStrictEqual([retaken.a_won, retaken.a_lost, retaken.b_won], [28, 3, 34]);
 });
 
-Deno.test('§7: a bout finalised without a snapshot (an import) is snapshotted as before its result', async () => {
-  // What tasks 10–11 will leave: a finalised bout already counted in both
-  // records, with no snapshot. Set up through the db modules, as an importer would.
+Deno.test('§7: a bout finalised without a snapshot (an import from v1) keeps none when its card is saved again', async () => {
+  // What task 10 leaves for v1's oldest bouts: finalised, counted in both
+  // records, with no snapshot (D128). Set up through the db modules, as the importer does.
   const api = testApi();
   const { boutId, aId, bId } = await usykFury(api);
   setBoutResult(api.db, boutId, {
@@ -296,10 +296,25 @@ Deno.test('§7: a bout finalised without a snapshot (an import) is snapshotted a
   });
   setFighterRecord(api.db, aId, { ...usykBefore, won: 22 });
   setFighterRecord(api.db, bId, { ...furyBefore, lost: 1 });
+  markNoSnapshot(api.db, boutId);
+  const snapshot = () => {
+    const bout = getBout(api.db, boutId)!;
+    return [bout.a_won, bout.a_weight, bout.b_won, bout.b_lost];
+  };
 
   const { status } = await put(api, boutId, { rounds: twelve, result: ud, is_draft: false });
   assertEquals(status, 200);
-  const bout = getBout(api.db, boutId)!;
-  deepStrictEqual([bout.a_won, bout.b_lost], [21, 0]); // as they stood before the fight
+  // Today's record less this result is not the record on the night (D138).
+  deepStrictEqual(snapshot(), [null, null, null, null]);
   deepStrictEqual(recordOf(api.db, aId), { ...usykBefore, won: 22 }); // counted once, still
+
+  // Reopened as a draft, the result comes off the records, and still no
+  // snapshot is taken, at that save or at the ones after it.
+  await put(api, boutId, { rounds: twelve, result: ud, is_draft: true });
+  deepStrictEqual(recordOf(api.db, aId), { ...usykBefore, won: 21 });
+  deepStrictEqual(snapshot(), [null, null, null, null]);
+  await put(api, boutId, { rounds: twelve, result: null, is_draft: true });
+  await put(api, boutId, { rounds: twelve, result: ud, is_draft: false });
+  deepStrictEqual(snapshot(), [null, null, null, null]);
+  deepStrictEqual(recordOf(api.db, aId), { ...usykBefore, won: 22 });
 });

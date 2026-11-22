@@ -33,3 +33,10 @@ export function updateEvent(db: Database, id: number, fields: EventFields): bool
 export function deleteEvent(db: Database, id: number): boolean {
   return db.prepare('DELETE FROM event WHERE id = ?').run(id).changes > 0;
 }
+
+// The event on this day at this venue, if there is one: the import's key
+// for an event (IMPORT.md), since two events can share a day.
+export function findEvent(db: Database, date: string, venueId: number): Event | undefined {
+  return db.prepare('SELECT * FROM event WHERE date = ? AND venue_id = ? ORDER BY id LIMIT 1')
+    .get(date, venueId) as Event | undefined;
+}

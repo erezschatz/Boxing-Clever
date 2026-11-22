@@ -63,3 +63,17 @@ export function setFighterRecord(db: Database, id: number, record: FightRecord):
 export function deleteFighter(db: Database, id: number): boolean {
   return db.prepare('DELETE FROM fighter WHERE id = ?').run(id).changes > 0;
 }
+
+// The fighter with this name, compared trimmed and without case, as the
+// import matches one (IMPORT.md, D133). The lowest id when two share it.
+export function findFighterByName(
+  db: Database,
+  firstName: string,
+  lastName: string,
+): Fighter | undefined {
+  return db.prepare(
+    `SELECT * FROM fighter
+     WHERE lower(trim(first_name)) = lower(trim(:first)) AND lower(trim(last_name)) = lower(trim(:last))
+     ORDER BY id LIMIT 1`,
+  ).get({ first: firstName, last: lastName }) as Fighter | undefined;
+}

@@ -56,6 +56,8 @@ export type Bout = BoutFields & {
   judge3_a: number | null;
   judge3_b: number | null;
   is_draft: 0 | 1;
+  // 1: came from v1 without a snapshot and never gets one (D128, D138).
+  no_snapshot: 0 | 1;
 };
 
 export function insertBout(db: Database, fields: BoutFields): number {
@@ -209,4 +211,21 @@ export function setJudges(db: Database, id: number, judges: Judges): boolean {
      WHERE id = :id`,
   ).run({ j1a: j1.a, j1b: j1.b, j2a: j2.a, j2b: j2.b, j3a: j3.a, j3b: j3.b, id });
   return changes > 0;
+}
+
+// A bout between these two, on either side, at an event of this day: the
+// import's key for a bout it has already written (IMPORT.md).
+export function findBoutOnDay(db: Database, date: string, x: number, y: number): Bout | undefined {
+  return db.prepare(
+    `SELECT bout.* FROM bout JOIN event ON event.id = bout.event_id
+     WHERE event.date = :date
+       AND ((fighter_a_id = :x AND fighter_b_id = :y) OR (fighter_a_id = :y AND fighter_b_id = :x))
+     ORDER BY bout.id LIMIT 1`,
+  ).get({ date, x, y }) as Bout | undefined;
+}
+
+// The v1 import's mark on a bout that arrived with a card and no as-of
+// snapshot: no later save takes one (D138).
+export function markNoSnapshot(db: Database, id: number): boolean {
+  return db.prepare('UPDATE bout SET no_snapshot = 1 WHERE id = ?').run(id).changes > 0;
 }
