@@ -3,16 +3,19 @@
 // one decides: its winner takes it; a draw or a no contest leaves it with
 // whoever brought it in, and a vacant belt stays vacant. A side marked as
 // having missed weight (D26) can neither take nor keep it: the belt goes
-// vacant (Erez, 2026-11-19).
+// vacant (Erez, 2026-11-19). Who brought it in may be not recorded (D127,
+// an import from v1): a winner still takes it, but after a draw or a no
+// contest nobody can say whose it is, so nobody is shown holding it.
 //
 // Pure: imports nothing outside server/rules/.
 import type { Side, Winner } from './decisions.ts';
 
 // One title on the line in one finalised bout, in fight order (event date,
-// then card order). `holder_side` is who brought it in (bout_title).
+// then card order). `holder_side` is who brought it in (bout_title); null
+// is not recorded.
 export type TitleLine = {
   title_id: number;
-  holder_side: Side | 'vacant';
+  holder_side: Side | 'vacant' | null;
   winner: Winner;
   fighter_a_id: number;
   fighter_b_id: number;
@@ -20,7 +23,8 @@ export type TitleLine = {
   missed_weight_b: 0 | 1;
 };
 
-// §8: the fighter a line leaves the title with, or null when it is vacant.
+// §8: the fighter a line leaves the title with, or null when it is vacant
+// or, after a draw with the holder not recorded, not known.
 export function holderAfter(line: TitleLine): number | null {
   const side = line.winner === 'A' || line.winner === 'B' ? line.winner : line.holder_side;
   if (side === 'A') return line.missed_weight_a ? null : line.fighter_a_id;

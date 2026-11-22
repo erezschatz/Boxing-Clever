@@ -1690,3 +1690,27 @@ Source: [tasks/10-import-v1.md](../tasks/10-import-v1.md)
 **Why** — Erez, 2026-11-22: "Importer handles it". The later row was typed when the earlier fight was already history, so it already counts it; adding the earlier row's results again would count that fight twice.
 
 Source: [tasks/10-import-v1.md](../tasks/10-import-v1.md)
+
+## D134 · 2026-11-22 · The holder change has a task file of its own
+
+**Decision** — D127's migration and the changes that go with it are recorded here, not in `tasks/10-import-v1.md` as D127 said.
+**Rejected** — A `## What was done` section in task 10 for this commit.
+**Why** — A task file with a record is compiled as done (tasks/README.md), and task 10 has no importer yet. `tasks/retirement-is-a-tko.md` did the same for a change the import needed first.
+
+Source: [tasks/holder-not-recorded.md](../tasks/holder-not-recorded.md)
+
+## D135 · 2026-11-22 · After a draw with the holder not recorded, nobody is shown holding the title
+
+**Decision** — `holderAfter` gives null for a draw or a no contest whose line has no holder, so the title is in nobody's list of titles held until a later finalised bout with it on the line says otherwise, or Erez fills the holder in.
+**Rejected** — Leaving it with whoever the earlier watched bouts left it with, when that fighter is one of the two. Counting the line as vacant in the pages' wording.
+**Why** — SPEC §8 lets the last finalised bout decide, and this one does not say whose belt it was. The earlier holder may have lost it off-screen and be the challenger here, so carrying it over would state something the app was not told. The pages say "holder not recorded", not "vacant", because the belt was not vacant.
+
+Source: [tasks/holder-not-recorded.md](../tasks/holder-not-recorded.md)
+
+## D136 · 2026-11-22 · The bout form offers "Not recorded" for any title line, and the holder becomes a dropdown
+
+**Decision** — Who brought a title in has a fourth option in the bout form, "Not recorded", on every bout, and the API accepts null from any caller. With four options it is a dropdown, no longer a row of buttons. A title newly put on the line still starts as vacant, as before.
+**Rejected** — Showing the option only on a line that already has no holder. Refusing null over HTTP, so only the importer could write it. Keeping the row of buttons with four on it, against Erez's rule of 2026-11-20 (buttons for two or three, a dropdown for more).
+**Why** — `PATCH /api/bouts/:id` replaces the whole title list, so a form that could not send null back would force Erez to pick a holder for every belt on an imported bout before he could change anything else about it.
+
+Source: [tasks/holder-not-recorded.md](../tasks/holder-not-recorded.md)

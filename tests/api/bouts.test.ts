@@ -103,6 +103,20 @@ Deno.test('PATCH /api/bouts/:id: corners, scheduled rounds, and titles replaced 
   const again = await api.call('PATCH', `/api/bouts/${boutId}`, { corner_a: null });
   assertEquals(again.json.corner_a, null);
   deepStrictEqual(again.json.titles, [{ title_id: ibf, holder_side: 'vacant' }]);
+  // D127: who brought a belt in may be not recorded, sent and answered as null.
+  const unknown = await api.call('PATCH', `/api/bouts/${boutId}`, {
+    titles: [{ title_id: ibf, holder_side: null }, { title_id: wbc, holder_side: 'A' }],
+  });
+  assertEquals(unknown.status, 200);
+  deepStrictEqual(unknown.json.titles, [
+    { title_id: ibf, holder_side: null },
+    { title_id: wbc, holder_side: 'A' },
+  ]);
+  const read = await api.call('GET', `/api/bouts/${boutId}`);
+  deepStrictEqual(read.json.titles, unknown.json.titles);
+  // The holder is still asked for: a line without the field is refused.
+  const missing = await api.call('PATCH', `/api/bouts/${boutId}`, { titles: [{ title_id: ibf }] });
+  assertEquals(missing.status, 400);
 });
 
 Deno.test('PATCH /api/bouts/:id: 404 when missing, 400 on a bad body', async () => {

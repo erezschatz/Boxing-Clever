@@ -75,6 +75,19 @@ export function titleText(t: Title): string {
   return `${t.sanctioning_body} ${t.interim ? 'Interim ' : ''}${t.area}`;
 }
 
+// Who brought a title into a bout, as the event card and the fighter card
+// say it beside the belt: a name, "vacant", or "holder not recorded" for a
+// bout that came from v1, which never stored it (D127).
+export function holderText(
+  holder: 'A' | 'B' | 'vacant' | null,
+  nameA: string,
+  nameB: string,
+): string {
+  if (holder === 'A') return nameA;
+  if (holder === 'B') return nameB;
+  return holder === 'vacant' ? 'vacant' : 'holder not recorded';
+}
+
 // The result as the card reads it: who won and how, with the round and time
 // of a stoppage. The code goes on the page (SPEC §5); the label is the
 // tooltip. A bout with no result says nothing, and the page offers to score

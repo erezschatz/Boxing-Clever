@@ -11,6 +11,7 @@ import {
   boutWeightText,
   dateText,
   fighterName,
+  holderText,
   howItEnded,
   missedWeightNote,
   myCardFor,
@@ -205,8 +206,11 @@ export class FighterPage extends Component<State> {
     const event = events.get(bout.event_id);
     const mark = outcomeFor(bout, side);
     const rank = rankOf(bout, side);
-    const holder = (h: string) =>
-      h === side ? fighter.last_name : h === other ? (opponent?.last_name ?? 'opponent') : 'vacant';
+    const opponentLast = opponent?.last_name ?? 'opponent';
+    const holder = (h: 'A' | 'B' | 'vacant' | null) =>
+      side === 'A'
+        ? holderText(h, fighter.last_name, opponentLast)
+        : holderText(h, opponentLast, fighter.last_name);
     const ownMiss = missedWeightNote(bout, side);
     // The whole row opens the scorecard, as on the event card; the link in
     // it stays for the keyboard.

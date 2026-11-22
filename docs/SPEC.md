@@ -148,7 +148,7 @@ none. All ids are `INTEGER PRIMARY KEY`.
 | `round_score` | bout_id, round_no, side, points | one row per fighter per round actually scored; the stoppage round has points `0`, except a retirement's (a TKO at 3:00, D55), which is scored (see Scoring) |
 | `deduction` | bout_id, round_no, side, points, reason | reasons: knockdown, low blow, holding, headbutt, other — a free text alongside |
 | `title` | sanctioning_body, area (`World`, `World Silver`, `European`…), weight_class_id, interim (0/1) | unique on the four; a belt is regular or interim, nothing else; vacancy is the fight's, by `bout_title.holder_side` (D42) |
-| `bout_title` | bout_id, title_id, holder_side (`A`/`B`/`vacant`) | champion and title-for-title fall out of this |
+| `bout_title` | bout_id, title_id, holder_side (`A`/`B`/`vacant`, or null: not recorded) | champion and title-for-title fall out of this; a bout from v1, which never stored the holder, arrives with it null (D127) |
 | `tbrb_snapshot` | snapshot_date, weight_class_id, rank (0 = champion), fighter_name, fighter_id (nullable) | one row per ranked name per snapshot; resolution to `fighter_id` by alias, never fuzzy (TBRB.md) |
 | `record_adjustment` | fighter_id, opponent_id, won, lost, draws, nc, kos, bout_description, bout_date | a result kept in the record after its bout was deleted with *keep the records*: what it added to that fighter's record, and which fight it was (the opponent, `A vs B, UD`, the event's date). Written for both fighters in the delete's transaction; a merge moves the duplicate's to the target and repoints the duplicate as opponent (D57, D62) |
 | `import_batch`, `import_reject` | source, started_at, counts; row text + reason | the staged importer's audit trail (IMPORT.md) |
@@ -224,7 +224,9 @@ origin; the three stoppage defects there are fixed by construction here.
    taken in fight order (event date, then card order), whoever fought in
    it. Its winner takes every title on the line; a draw or a no contest
    leaves each with the side that brought it in, and a vacant one stays
-   vacant. A side marked as having missed weight (D26) can neither take a
+   vacant. Where who brought it in is not recorded (D127), a winner still
+   takes it, and after a draw or a no contest nobody is shown holding it,
+   since the bout does not say whose it was. A side marked as having missed weight (D26) can neither take a
    title nor keep it: where the belt would go to them, it goes vacant. A
    holder who missed weight and lost loses it to a challenger who made
    weight. A bout not yet final counts for nothing. A belt lost or vacated
@@ -258,7 +260,7 @@ did, and its `409` carries a `preview` of what each choice would do (D31).
 | GET | `/api/events/:id/bouts` | ordered by card_order, each bout as `GET /api/bouts/:id` answers it (D34) |
 | GET/POST | `/api/venues` | listed by country, city, name; name, city and country required, an empty region is none; the same four parts again is `409` (D117) |
 | GET/PATCH | `/api/venues/:id` | a fix shows on every event held there; no delete (D117) |
-| POST | `/api/bouts` | `card_order` left out puts the bout last on its card; `titles` is `[{title_id, holder_side}]`. `weight_class_id` or `contracted_weight` (pounds, positive), one of the two and the other null or left out, else `400`; `missed_weight_a` and `missed_weight_b` are `true`/`false`, false when left out, and answered as the stored 0/1 (D26, D45). A bout is answered as its row with `titles` beside it |
+| POST | `/api/bouts` | `card_order` left out puts the bout last on its card; `titles` is `[{title_id, holder_side}]`, the holder `A`, `B`, `vacant` or null for not recorded (D127). `weight_class_id` or `contracted_weight` (pounds, positive), one of the two and the other null or left out, else `400`; `missed_weight_a` and `missed_weight_b` are `true`/`false`, false when left out, and answered as the stored 0/1 (D26, D45). A bout is answered as its row with `titles` beside it |
 | GET/PATCH/DELETE | `/api/bouts/:id` | GET (and every write that answers a bout) gives the row with its snapshot and result, `titles`, and `card` in PUT's shape plus read-only `totals` (`{rounds: [{round_no, a, b}], a, b}`, from the rules). PATCH covers corners, the class or contracted weight (moving between them sends both, one null; the bout as it would stand must have exactly one, else `400`), the missed-weight marks, titles with holder side (the list sent replaces the old one), scheduled rounds (re-checked against the saved card, `400` if it no longer fits); a finalised bout's fighters cannot change (`409`, D30). DELETE of a finalised bout needs `?records=reverse` (both records lose the result, in the same transaction) or `?records=keep` (both records stay as they are, and each fighter gets a `record_adjustment` row for the kept result in the same transaction, D57), else `409` with a preview of both records before and after a reverse; a reverse that would go below zero is `409` too. Answers `200` with the choice made and both records before and after (D31); a draft's delete is `204`. It never deletes the event, not even its last bout (D23) |
 | PUT | `/api/bouts/:id/card` | the whole scorecard, `{rounds: [{round_no, a, b}], deductions: [{round_no, side, points, reason, note}], result: {decision_type, winner, round, time} \| null, judges: [{a, b}] ×3, is_draft}`; `deductions` (none), `judges` (all null) and a deduction's `note` (null) may be left out. Validated by the rules (`400 {error, problems}`), then written in one transaction with the snapshot (§7) and the record change (§6); finalise = `is_draft:false` with a result. A change that would take a record below zero is `409` (D32). Answers the bout, as GET does |
 | GET/POST | `/api/titles` | |
@@ -289,7 +291,7 @@ reference lists, every fighter, class and title (D34). Pages:
   record on the night (the snapshot, once taken), a missed weight noted
   quietly beside the fighter who missed it (D47), corners, class or "Contracted at
   N lbs" (D26), rounds,
-  titles with who brought each, and the result; the whole row opens the
+  titles with who brought each ("holder not recorded" where it is not, D127), and the result; the whole row opens the
   scorecard; add/edit bout.
   Deleting a bout is always confirmed. A finalised bout takes two dialogs
   (D23): "this is a finalised fight, are you sure?", then one showing what
@@ -367,8 +369,8 @@ made (D37). It is built to `docs/reference/design/Dialogs*.dc.html` (task
 restyle-dialogs): the title, the body and the actions in three bands
 inside a 2px ink border over paper grey, the main action dark and a delete
 red; a choice of two or three options is a row of buttons (`choiceRow`:
-the corner of fighter A, who brought a title in, the weight unit), and one
-of more stays a dropdown. The fighter, bout, event and venue forms ask
+the corner of fighter A, the weight unit), and one
+of more is a dropdown: who brought a title in, which has four with "Not recorded" (D127). The fighter, bout, event and venue forms ask
 before Cancel or Escape discards what was typed (D44, D121; the others do
 not say yet what dirty is).
 The event form finds its venue by any part of it, as the bout form finds a

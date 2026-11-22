@@ -12,6 +12,7 @@ import {
   dayAndMonth,
   fighterCount,
   fighterName,
+  holderText,
   howItEnded,
   initialOf,
   missedWeight,
@@ -392,6 +393,13 @@ Deno.test('the scorecard names the titles fought for under the class, or nothing
   assertEquals(titlesAtStake(fought([]), titles), '');
   assertEquals(titlesAtStake(fought([1]), titles), 'WBC World title');
   assertEquals(titlesAtStake(fought([1, 2]), titles), 'WBC World · IBF World titles');
+});
+
+Deno.test('a title names who brought it in, says vacant, or says the holder was not recorded (D127)', () => {
+  assertEquals(holderText('A', 'Usyk', 'Fury'), 'Usyk');
+  assertEquals(holderText('B', 'Usyk', 'Fury'), 'Fury');
+  assertEquals(holderText('vacant', 'Usyk', 'Fury'), 'vacant');
+  assertEquals(holderText(null, 'Usyk', 'Fury'), 'holder not recorded');
 });
 
 Deno.test('My card says nothing for a draft holding only a round under way, and counts its deduction once rounds are scored', () => {

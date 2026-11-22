@@ -69,3 +69,17 @@ Deno.test('§8: titles held are the ones left with that fighter, in the order fi
   deepStrictEqual(titlesHeld(JOSHUA, lines), []);
   deepStrictEqual(titlesHeld(USYK, []), []);
 });
+
+Deno.test('§8, D127: with the holder not recorded a winner still takes the title, and a draw leaves it with nobody known', () => {
+  assertEquals(holderAfter(line({ holder_side: null, winner: 'A' })), USYK);
+  assertEquals(holderAfter(line({ holder_side: null, winner: 'B' })), FURY);
+  assertEquals(holderAfter(line({ holder_side: null, winner: 'B', missed_weight_b: 1 })), null);
+  for (const winner of ['draw', 'none'] as const) {
+    assertEquals(holderAfter(line({ holder_side: null, winner })), null, winner);
+  }
+  // Usyk won it in a bout that named a holder; a later draw that names none
+  // is the last word on the belt, and it does not say whose it is.
+  const won = line({ holder_side: 'B', winner: 'A' });
+  deepStrictEqual(titlesHeld(USYK, [won]), [WBC]);
+  deepStrictEqual(titlesHeld(USYK, [won, line({ holder_side: null, winner: 'draw' })]), []);
+});

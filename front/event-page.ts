@@ -15,6 +15,7 @@ import {
   cardCounts,
   dateText,
   fighterName,
+  holderText,
   missedWeightNote,
   outcomeText,
   placeLines,
@@ -189,7 +190,7 @@ export class EventPage extends Component<State> {
           <div>${weight ? `${weight} · ` : ''}${bout.scheduled_rounds} rounds</div>
           ${bout.titles.map(({ title_id, holder_side }) => {
             const title = refs.titles.get(title_id);
-            const holder = holder_side === 'A' ? shortA : holder_side === 'B' ? shortB : 'vacant';
+            const holder = holderText(holder_side, shortA, shortB);
             return html`<div class="ec-title">${
               title ? titleText(title) : `title ${title_id}`
             } <span class="muted">(${holder})</span></div>`;

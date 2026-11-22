@@ -44,6 +44,7 @@ import {
   stoppedRound,
 } from '../../front/scorecard.ts';
 import { choiceRow } from '../../front/dialog.ts';
+import { holderChoices, holderOf } from '../../front/bout-titles.ts';
 import { DecisionForm } from '../../front/decision-form.ts';
 import type { BoutView, Fighter, Title } from '../../front/api.ts';
 import { type Api, recordOf, testApi, usykFury } from '../helpers/api.ts';
@@ -781,4 +782,10 @@ Deno.test('the event form finds a venue by any part of it, in any order, accents
   deepStrictEqual(ids('o2 arena'), [2]);
   deepStrictEqual(ids(''), []);
   deepStrictEqual(ids('tokyo'), []);
+});
+
+Deno.test('who brought a title in is a dropdown of four, and each choice is the holder it names (D127)', () => {
+  const choices = holderChoices('Usyk', 'Fury');
+  deepStrictEqual(choices.map((c) => c.label), ['Usyk', 'Fury', 'Vacant', 'Not recorded']);
+  deepStrictEqual(choices.map((c) => holderOf(c.value)), ['A', 'B', 'vacant', null]);
 });

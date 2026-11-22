@@ -5,8 +5,24 @@
 import { api, json, type Title } from './api.ts';
 import type { BoutForm, Holder, Line, NewTitle } from './bout-form.ts';
 import { html, nothing } from './component.ts';
-import { choiceRow } from './dialog.ts';
 import { plainName, titleText } from './format.ts';
+
+// Who brought a title in, as the dropdown offers it: either fighter, vacant,
+// or not recorded, which is how a title bout arrives from v1 (D127). Four
+// options, so a dropdown and not a row of buttons (Erez, 2026-11-20;
+// `choiceRow`). An option's value is text, so not recorded is ''.
+export function holderChoices(nameA: string, nameB: string): { value: string; label: string }[] {
+  return [
+    { value: 'A', label: nameA },
+    { value: 'B', label: nameB },
+    { value: 'vacant', label: 'Vacant' },
+    { value: '', label: 'Not recorded' },
+  ];
+}
+
+export function holderOf(value: string): Holder {
+  return value === 'A' || value === 'B' || value === 'vacant' ? value : null;
+}
 
 // The belts on the line: each a title of this class and who brought it.
 export function titlesField(form: BoutForm) {
@@ -32,16 +48,22 @@ export function titlesField(form: BoutForm) {
         return html`
           <div class="line">
             <span>${title ? titleText(title) : `title ${line.title_id}`}</span>
-            ${choiceRow<Holder>(
-              `${title ? titleText(title) : 'Title'}, brought in by`,
-              [
-                { value: 'A', label: name('A') },
-                { value: 'B', label: name('B') },
-                { value: 'vacant', label: 'Vacant' },
-              ],
-              line.holder_side,
-              (holder_side) => setLine(i, { ...line, holder_side }),
-            )}
+            <select
+              aria-label="${title ? titleText(title) : 'Title'}, brought in by"
+              @change=${(e: InputEvent) =>
+                setLine(i, {
+                  ...line,
+                  holder_side: holderOf((e.target as HTMLSelectElement).value),
+                })}
+            >
+              ${holderChoices(name('A'), name('B')).map((o) =>
+                html`
+                  <option value=${o.value} ?selected=${holderOf(o.value) === line.holder_side}>
+                    ${o.label}
+                  </option>
+                `
+              )}
+            </select>
             <button type="button" class="quiet" @click=${() =>
               form.set({ titles: s.titles.filter((_, j) => j !== i) })}>remove</button>
           </div>

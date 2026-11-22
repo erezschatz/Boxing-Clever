@@ -61,6 +61,7 @@ Out-of-order work that a decision placed in the sequence, as it stood on
 - [guarded-bout-delete](../tasks/guarded-bout-delete.md) — Guarded bout delete · done
 - [header-logo](../tasks/header-logo.md) — The logo in the header · done
 - [header-to-design](../tasks/header-to-design.md) — The header to the design, and the End bout dialog's labels · done
+- [holder-not-recorded](../tasks/holder-not-recorded.md) — Who brought a title in may be not recorded · done
 - [kd-in-round-under-way](../tasks/kd-in-round-under-way.md) — A knockdown logged before its round is scored is kept · done
 - [kept-result-is-stored](../tasks/kept-result-is-stored.md) — A kept result is stored, so a recompute keeps it · done
 - [marquee-before-save](../tasks/marquee-before-save.md) — The scorecard's marquees before the first save, the titles at stake, and VS at the top · done

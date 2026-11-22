@@ -30,10 +30,11 @@ import { conflict, type GetDb, notFound, pathId, readBody } from './http.ts';
 
 const rowId = z.int().positive();
 
-// Which belts were on the line and who brought each one in (SPEC Data model).
+// Which belts were on the line and who brought each one in (SPEC Data model);
+// a null holder is not recorded (D127).
 const titlesSchema = z.array(z.strictObject({
   title_id: rowId,
-  holder_side: z.enum(['A', 'B', 'vacant']),
+  holder_side: z.enum(['A', 'B', 'vacant']).nullable(),
 })).refine(
   (titles) => new Set(titles.map((t) => t.title_id)).size === titles.length,
   { message: 'a title is listed twice' },

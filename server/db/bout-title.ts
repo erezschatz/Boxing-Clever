@@ -4,7 +4,8 @@ import type { Database } from './connection.ts';
 import type { Side } from '../rules/decisions.ts';
 import type { TitleLine } from '../rules/titles.ts';
 
-export type HolderSide = Side | 'vacant';
+// null: not recorded, which is how a title bout arrives from v1 (D127).
+export type HolderSide = Side | 'vacant' | null;
 export type BoutTitleFields = { bout_id: number; title_id: number; holder_side: HolderSide };
 export type BoutTitle = BoutTitleFields & { id: number };
 

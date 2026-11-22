@@ -357,7 +357,7 @@ Deno.test('migration 007 splits each location into a venue and points its event 
     INSERT INTO bout (id, event_id, card_order, weight_class_id, contracted_weight, scheduled_rounds, fighter_a_id, fighter_b_id)
       VALUES (1, 2, 1, 9, NULL, 12, 1, 2);
   `);
-  deepStrictEqual(migrate(db), [7]);
+  deepStrictEqual(migrate(db, readMigrations().filter((m) => m.version <= 7)), [7]);
   const venues = db.prepare(
     `SELECT e.id AS event, v.name, v.city, v.region, v.country
      FROM event e JOIN venue v ON v.id = e.venue_id ORDER BY e.id`,
@@ -420,7 +420,7 @@ Deno.test('migration 007 keeps every event, whatever its location holds', () => 
     INSERT INTO bout (id, event_id, card_order, weight_class_id, scheduled_rounds, fighter_a_id, fighter_b_id)
       VALUES (1, 7, 1, 9, 12, 1, 2);
   `);
-  deepStrictEqual(migrate(db), [7]);
+  deepStrictEqual(migrate(db, readMigrations().filter((m) => m.version <= 7)), [7]);
   const venues = db.prepare(
     `SELECT e.id AS event, v.name, v.city, v.region, v.country
      FROM event e JOIN venue v ON v.id = e.venue_id ORDER BY e.id`,
@@ -438,4 +438,46 @@ Deno.test('migration 007 keeps every event, whatever its location holds', () => 
   ]);
   assertEquals(db.prepare('SELECT event_id FROM bout WHERE id = 1').get()!.event_id, 7);
   deepStrictEqual(db.prepare('PRAGMA foreign_key_check').all(), []);
+});
+
+Deno.test('migration 008: every title line is kept as it was, and a holder may then be not recorded (D127)', () => {
+  const db = openDatabase(':memory:');
+  migrate(db, readMigrations().filter((m) => m.version <= 7));
+  db.exec(`
+    INSERT INTO venue (id, name, city, country) VALUES (1, 'O2', 'London', 'UK');
+    INSERT INTO event (id, date, venue_id) VALUES (1, '2026-01-01', 1);
+    INSERT INTO fighter (id, first_name, last_name) VALUES (1, 'Jono', 'Carroll'), (2, 'Colm', 'Murphy');
+    INSERT INTO bout (id, event_id, card_order, weight_class_id, scheduled_rounds, fighter_a_id, fighter_b_id)
+      VALUES (1, 1, 1, 9, 12, 1, 2);
+    INSERT INTO title (id, sanctioning_body, area, weight_class_id, interim) VALUES
+      (1, 'IBO', 'World', 9, 0), (2, 'WBC', 'World', 9, 0), (3, 'WBA', 'World', 9, 0), (4, 'IBF', 'World', 9, 0);
+    INSERT INTO bout_title (id, bout_id, title_id, holder_side) VALUES
+      (5, 1, 1, 'A'), (6, 1, 2, 'B'), (9, 1, 3, 'vacant');
+  `);
+  throws(() => db.exec('INSERT INTO bout_title (bout_id, title_id) VALUES (1, 4)'), /NOT NULL/);
+  const lines = () =>
+    db.prepare('SELECT * FROM bout_title ORDER BY id').all().map((l) => ({ ...l }));
+  const before = lines();
+  deepStrictEqual(migrate(db), [8]);
+  deepStrictEqual(lines(), before);
+  deepStrictEqual(db.prepare('PRAGMA foreign_key_check').all(), []);
+
+  db.exec('INSERT INTO bout_title (id, bout_id, title_id, holder_side) VALUES (10, 1, 4, NULL)');
+  assertEquals(
+    db.prepare('SELECT holder_side FROM bout_title WHERE id = 10').get()!.holder_side,
+    null,
+  );
+  // What the table refused before, it still refuses.
+  throws(() => db.exec("UPDATE bout_title SET holder_side = 'C' WHERE id = 10"), /CHECK/);
+  throws(
+    () => db.exec("INSERT INTO bout_title (bout_id, title_id, holder_side) VALUES (1, 1, 'B')"),
+    /UNIQUE/,
+  );
+  throws(
+    () => db.exec("INSERT INTO bout_title (bout_id, title_id, holder_side) VALUES (1, 999, 'A')"),
+    /FOREIGN KEY/,
+  );
+  // And a bout still takes its title lines with it.
+  db.exec('DELETE FROM bout WHERE id = 1');
+  assertEquals(db.prepare('SELECT count(*) AS n FROM bout_title').get()!.n, 0);
 });

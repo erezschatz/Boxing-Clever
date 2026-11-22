@@ -17,7 +17,8 @@ import { FighterForm } from './fighter-form.ts';
 import { classText, fighterName, recordText, titleText } from './format.ts';
 import { MAX_ROUNDS } from '../server/rules/scoring.ts';
 
-export type Holder = 'A' | 'B' | 'vacant';
+// null: not recorded, as a title bout arrives from v1 (D127).
+export type Holder = 'A' | 'B' | 'vacant' | null;
 export type Line = { title_id: number; holder_side: Holder };
 export type NewTitle = { sanctioning_body: string; area: string; interim: boolean };
 type State = DialogState & {
