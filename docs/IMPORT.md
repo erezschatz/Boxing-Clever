@@ -137,11 +137,27 @@ documents (29 events, 27 Jun 2025 → 4 Apr 2026; task 10's decisions):
 - **Final or draft.** A document with a decision type is final whatever its
   `is_draft` says: v1 moved the records the first time a result was saved.
   One with none is a draft. A bout with no document is an unscored bout.
-- **Records.** Each fighter arrives with v1's record as it stands, which
-  already counts every result, and the finalised bouts are written without
-  moving it again.
+- **Records.** v1 moved records on a result only from 2026-05-30. A fighter
+  arrives with v1's row plus the result of each of their bouts whose
+  document was last saved before that day (119 documents; the other 53
+  are already in the rows), counted by SPEC Scoring §6.
+- **Who fought.** MySQL says, not Mongo: `bout_detail.id` is the key that
+  Mongo's `bout_id` matches (`bout_detail.bout_id` is only the bout's number
+  on its card), and in 14 documents a fighter id names a row a v1 merge
+  has since deleted, while MySQL was repointed.
+- **Fighters.** Names are trimmed (two carry a trailing space). v1 rows
+  with the same name, compared without case, are one fighter: the row with
+  the latest bout is kept and the other's typed record dropped. One pair
+  today, Brian Norman Jr.
 - **Every card passes the rules** `PUT /api/bouts/:id/card` applies before
   it is written; one that fails is rejected with the rules' problems.
+
+The MySQL side, as dumped on 2026-11-22: 173 bouts on 37 events, 323
+fighters (every one of them in a bout), 101 titles that become 98 belts
+under the mapping below, and 120 title rows on 86 bouts, 17 under a Vacant
+title and 103 with the holder not recorded. Every reference resolves. One
+bout has no document. Events 1–8 (34 bouts) are in no Mongo document, so
+their dates and places come from `event.tsv` alone.
 
 v1 had the 18 classes and no contracted
 weight, so every v1 bout arrives with its class (matched by name) and no

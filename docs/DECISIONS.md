@@ -1674,3 +1674,19 @@ Source: [tasks/10-import-v1.md](../tasks/10-import-v1.md)
 **Why** — A tab-separated file is read with a split. Claude's choice; Erez takes the dumps.
 
 Source: [tasks/10-import-v1.md](../tasks/10-import-v1.md)
+
+## D132 · 2026-11-22 · A fighter's record is v1's row plus the results v1 never counted (supersedes D125 in part)
+
+**Decision** — v1 began moving records on a result on 2026-05-30 (its commit 1630ec2). Before that a result changed nothing in the fighter table, so the row still holds the record Erez typed before the fight. A fighter therefore arrives with v1's row plus the result of each of their bouts whose document was last saved before 2026-05-30, counted by SPEC Scoring §6. A result saved on or after that day is already in the row and is not counted again. This replaces the *Records* line of D125, which said v1's rows count every result; the rest of D125 stands, and so does "a document with a decision type is final", whose reason is now that the result is a result, not that v1 counted it.
+**Rejected** — Copying v1's rows as they are, which leaves 119 results out of the records: Brian Norman Jr. would arrive 28–0 after the loss to Haney that is in his bouts. Rebuilding every record from the latest snapshot plus results since (D13's recompute rule), which gives the same answer where there is a snapshot and has none to start from for the 36 bouts without one.
+**Why** — Measured on the dumps, 2026-11-22: 119 documents were last saved before 2026-05-30 and 53 were created on or after it, with none between. Of the fighters with one bout, all 146 sides in the first group have a row equal to the document's pre-fight record, and all 96 in the second a row equal to that record plus the result. No exception either way. Claude's finding and rule; Erez accepted it, 2026-11-22.
+
+Source: [tasks/10-import-v1.md](../tasks/10-import-v1.md)
+
+## D133 · 2026-11-22 · Two v1 fighters with the same name are one fighter
+
+**Decision** — Names are compared trimmed and without regard to case. v1 rows with the same first and last name become one fighter, and every bout of theirs points to it. The row kept is the one whose latest bout is the latest, by event date and card order: its nickname, weight, colours and record are the fighter's, with the results v1 never counted added from that row's own bouts only. The other row's typed record is dropped, as a merge drops the duplicate's (D28). The report names each fold. Today that is one pair: Brian Norman Jr., ids 71 (27–0, one bout) and 215 (28–0, one later bout), who arrives 28–1.
+**Rejected** — Erez merging them in v1 before the dump. Rejecting both rows' bouts. Importing two fighters with one name, which the exact-name match of a re-run or of the sheet's import could not tell apart.
+**Why** — Erez, 2026-11-22: "Importer handles it". The later row was typed when the earlier fight was already history, so it already counts it; adding the earlier row's results again would count that fight twice.
+
+Source: [tasks/10-import-v1.md](../tasks/10-import-v1.md)
