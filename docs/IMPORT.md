@@ -157,7 +157,13 @@ fighters (every one of them in a bout), 101 titles that become 98 belts
 under the mapping below, and 120 title rows on 86 bouts, 17 under a Vacant
 title and 103 with the holder not recorded. Every reference resolves. One
 bout has no document. Events 1–8 (34 bouts) are in no Mongo document, so
-their dates and places come from `event.tsv` alone.
+their dates and places come from `event.tsv` alone. The 37 events run from
+5 Apr 2025 to 4 Apr 2026; the first three (5, 6 and 19 Apr 2025) are inside
+the sheet's range, so task 11 will meet their bouts already imported. An
+event's `date` is a date and a time of day, as MySQL printed it in the
+machine's own time; the date part is the fight day, and it agrees with
+Mongo's for all 29 events Mongo has. Three days have two events each, at
+different places.
 
 v1 had the 18 classes and no contracted
 weight, so every v1 bout arrives with its class (matched by name) and no

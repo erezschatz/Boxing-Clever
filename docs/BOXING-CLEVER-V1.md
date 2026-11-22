@@ -70,8 +70,10 @@ denormalised `event`, `weight_class`, `titles`, `fighters.fighterA/B`
 (with `record`), `scheduled_rounds`, `rounds[]` (`fighterA/B.round_score`,
 `total_score`, `deductions[]` as strings), `bout_totals`, `result`
 (`time`, `round`, `decision.{type,winner}`, `judges_scores.ref_1..3`),
-`is_draft`. v1 data starts after the sheet ends: the sheet's last event is
-19 Apr 2025 and v1's first 27 Jun 2025, so no bout is in both.
+`is_draft`. v1's first event is 5 Apr 2025 and the sheet's last 19 Apr
+2025, so three v1 events (5, 6 and 19 Apr 2025) fall inside the sheet's
+range. Bouts present in both sources: the sheet wins for the record
+snapshot, v1 for the scorecard — see IMPORT.md.
 
 What the documents really hold differs from this schema in several ways
 (deductions are a reason with no points, the stoppage round is missing,
