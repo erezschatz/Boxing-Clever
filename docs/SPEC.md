@@ -311,7 +311,8 @@ reference lists, every fighter, class and title (D34). Pages:
   "Champion" chip with the belts brought in, name and nickname, and the
   record, TBRB rank, weight and colours on the night (before the first
   save, the fighter's record, weight and colours as they stand, and no
-  rank); under the class and rounds, the titles fought for, VS level with
+  rank), the two sides' figures on one line whatever stands above them;
+  under the class and rounds, the titles fought for, VS level with
   the names; the crumb, the save
   line (its first words, the rest in its tooltip) and the page's buttons
   sit in the header's row, in place of its sections, the crumb naming the

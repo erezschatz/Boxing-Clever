@@ -1071,11 +1071,16 @@ dialog.form {
   font-size: 0.9rem;
 }
 
+/* The two sides' figures stand on one line (Erez, task
+   marquee-stats-level): the marquees are one height, and each side's
+   figures sit at its foot, so a name on two lines or a nickname on one
+   side only does not lift the other's. */
 .bp-stats {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem 2rem;
-  margin: 0.25rem 0 0;
+  margin: auto 0 0;
+  padding-top: 0.25rem;
 }
 
 .bp-marquee.side-b .bp-stats {

@@ -446,3 +446,16 @@ Deno.test('a venue reads with its name large and the city, region and country un
   assertEquals(venueAndCity(twoParts), 'O2 Arena, London');
   assertEquals(venueText(unsplit), 'Riyadh');
 });
+
+Deno.test("the two sides' record, weight and colours stand on one line, whatever is above them", () => {
+  const css = read('front/style.css');
+  const rule = (selector: string) => {
+    const at = css.indexOf(`\n${selector} {`);
+    return at < 0 ? '' : css.slice(at, css.indexOf('}', at));
+  };
+  // Both marquees are the height of the taller, and each side's figures are
+  // pushed to its foot.
+  match(rule('.bp-marquees'), /align-items: stretch;/);
+  match(rule('.bp-marquee'), /flex-direction: column;/);
+  match(rule('.bp-stats'), /margin: auto 0 0;/);
+});

@@ -65,6 +65,7 @@ Out-of-order work that a decision placed in the sequence, as it stood on
 - [kd-in-round-under-way](../tasks/kd-in-round-under-way.md) — A knockdown logged before its round is scored is kept · done
 - [kept-result-is-stored](../tasks/kept-result-is-stored.md) — A kept result is stored, so a recompute keeps it · done
 - [marquee-before-save](../tasks/marquee-before-save.md) — The scorecard's marquees before the first save, the titles at stake, and VS at the top · done
+- [marquee-stats-level](../tasks/marquee-stats-level.md) — The two sides' figures on one line · done
 - [merge-asks-before-records-move](../tasks/merge-asks-before-records-move.md) — Merge asks before records move · done
 - [questions-2026-11-03](../tasks/questions-2026-11-03.md) — Open questions, 2026-11-03 · done
 - [quiet-missed-weight](../tasks/quiet-missed-weight.md) — A missed weight is noted quietly · done
@@ -74,6 +75,7 @@ Out-of-order work that a decision placed in the sequence, as it stood on
 - [restyle-fighters](../tasks/restyle-fighters.md) — The fighters page, restyled · done
 - [restyle-scorecard](../tasks/restyle-scorecard.md) — The scorecard, restyled · done
 - [retirement-is-a-tko](../tasks/retirement-is-a-tko.md) — A retirement is a TKO at 3:00, with its round scored · done
+- [search-and-more-information](../tasks/search-and-more-information.md) — Search and more information
 - [sheet-deduction-colours](../tasks/sheet-deduction-colours.md) — The sheet's colours: knockdown or foul · done
 - [short-save-line](../tasks/short-save-line.md) — The scorecard's save line, short · done
 - [sticky-header](../tasks/sticky-header.md) — The header stays at the top · done
