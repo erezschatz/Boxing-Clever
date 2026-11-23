@@ -11,7 +11,7 @@ and every row the importer could not read is listed for me to fix.
 - [x] Rejects for every ambiguity named in IMPORT.md; nothing guessed
 - [x] Fighter aliases seeded from the sheet's spellings
 - [x] Tier-3: a fixture CSV of a dozen representative bouts (points win, KO with time, draw, title line, `(c)`, st-lbs-oz weight, typo record) imports and reads back correctly
-- [ ] Verified by Erez on the full export; rejects reviewed and the source or aliases fixed until the list is acceptable
+- [x] Verified by Erez on the full export; rejects reviewed and the source or aliases fixed until the list is acceptable (Erez, 2026-11-23, after the real run: "1105 bouts read: 741 written, 4 already here, 360 rejected", and of the rejects: "The list is acceptable as it stands")
 
 ## Decisions
 
