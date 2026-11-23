@@ -19,7 +19,7 @@ later from the bout form.
 - [x] Claude: `PATCH /api/bouts/:id` takes and answers a null holder, and still refuses a line with the field left out (`tests/api/bouts.test.ts`)
 - [x] Claude: the rules give the title to a winner whatever the holder, and to nobody after a draw or no contest with the holder not recorded (`tests/rules/titles.test.ts`)
 - [x] Claude: the event card and the fighter card say "holder not recorded" for such a line (`tests/front/shell.test.ts`)
-- [ ] Erez: in the browser, the bout form's dropdown for who brought a title in offers "Not recorded", saves it, and the event card and fighter card read "holder not recorded"
+- [x] Erez: in the browser, the bout form's dropdown for who brought a title in offers "Not recorded", saves it, and the event card and fighter card read "holder not recorded" (Erez, 2026-11-23: "Looking very good, all is in")
 
 ## Decisions
 
