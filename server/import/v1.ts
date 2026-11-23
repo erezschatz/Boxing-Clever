@@ -7,28 +7,21 @@
 //
 // MySQL says who fought, where and over how many rounds; Mongo holds the
 // card and, in the newer documents, the record on the night (D125, D128).
-import { type Database, transaction } from '../db/connection.ts';
-import { finishImportBatch, startImportBatch } from '../db/import-batch.ts';
-import { insertImportReject } from '../db/import-reject.ts';
+import type { Database } from '../db/connection.ts';
 import {
   findBoutOnDay,
   insertBout,
   markNoSnapshot,
-  setBoutResult,
-  setJudges,
   setSideSnapshot,
   type SideSnapshot,
 } from '../db/bout.ts';
 import { insertBoutTitle } from '../db/bout-title.ts';
-import { insertDeduction } from '../db/deduction.ts';
-import { findEvent, insertEvent } from '../db/event.ts';
 import { findFighterByName, getFighter, insertFighter, setFighterRecord } from '../db/fighter.ts';
-import { insertRoundScore } from '../db/round-score.ts';
 import { findTitle, insertTitle } from '../db/title.ts';
-import { findVenue, insertVenue } from '../db/venue.ts';
 import { listWeightClasses } from '../db/weight-class.ts';
 import { applyDelta, type FightRecord, isNegative, recordDelta } from '../rules/records.ts';
 import type { WeightUnit } from '../rules/weight.ts';
+import { type BatchReport, eventAt, Reject, runBatch, writeCard } from './batch.ts';
 import { placeFromLocation } from './place.ts';
 import { v1Card, v1Decision, type V1Doc, v1Winner } from './v1-card.ts';
 
@@ -45,12 +38,7 @@ export type V1Dumps = {
   docs: V1Doc[]; // Mongo's boutscores
 };
 
-export type ImportReport = {
-  batch_id: number;
-  read: number;
-  written: number;
-  already: number; // here before this batch ran
-  rejects: { row_text: string; reason: string }[];
+export type ImportReport = BatchReport & {
   folded: string[]; // v1 fighters with one name, made one (D133)
 };
 
@@ -74,8 +62,6 @@ export function parseTsv(text: string): Row[] {
     return Object.fromEntries(header.map((name, i) => [name, unescape(fields[i] ?? 'NULL')]));
   });
 }
-
-class Reject extends Error {}
 
 const text = (row: Row, column: string): string => row[column] ?? '';
 const nameKey = (row: Row) =>
@@ -198,11 +184,7 @@ export function importV1(db: Database, dumps: V1Dumps, now: string): ImportRepor
     const date = dayOf(bout);
     const place = placeFromLocation(text(event, 'location'));
     if ('problem' in place) throw new Reject(place.problem);
-    const venueId = findVenue(db, place)?.id ?? insertVenue(db, place);
-    return {
-      id: findEvent(db, date, venueId)?.id ?? insertEvent(db, { date, venue_id: venueId }),
-      date,
-    };
+    return { id: eventAt(db, date, place), date };
   };
 
   // D42, as migration 003: Active and Vacant are the regular belt, Interim
@@ -292,21 +274,7 @@ export function importV1(db: Database, dumps: V1Dumps, now: string): ImportRepor
     if (!snapA || !snapB) markNoSnapshot(db, id);
 
     const { card, judges } = read;
-    for (const r of card.rounds) {
-      insertRoundScore(db, { bout_id: id, round_no: r.round_no, side: 'A', points: r.a });
-      insertRoundScore(db, { bout_id: id, round_no: r.round_no, side: 'B', points: r.b });
-    }
-    for (const d of card.deductions) {
-      insertDeduction(db, { bout_id: id, ...d, note: d.note ?? null });
-    }
-    setBoutResult(db, id, {
-      decision_type: card.result?.decision_type ?? null,
-      winner: card.result?.winner ?? null,
-      result_round: card.result?.round ?? null,
-      result_time: card.result?.time ?? null,
-      is_draft: card.is_draft ? 1 : 0,
-    });
-    setJudges(db, id, judges);
+    writeCard(db, id, card, judges);
 
     // D137: a fighter arrives with the record they had going into their
     // latest v1 bout, and that bout's result is added here, once, when it
@@ -332,41 +300,12 @@ export function importV1(db: Database, dumps: V1Dumps, now: string): ImportRepor
     return 'written';
   };
 
-  return transaction(db, () => {
-    const batchId = startImportBatch(db, 'v1', now);
-    const report: ImportReport = {
-      batch_id: batchId,
-      read: bouts.length,
-      written: 0,
-      already: 0,
-      rejects: [],
-      folded,
-    };
-    for (const bout of bouts) {
-      const names = ['fighterA_id', 'fighterB_id'].map((c) => {
-        const f = fighters.get(bout[c]);
-        return f ? fullName(f) : `fighter ${bout[c]}`;
-      });
-      db.exec('SAVEPOINT v1_bout');
-      try {
-        report[place(bout)]++;
-        db.exec('RELEASE v1_bout');
-      } catch (err) {
-        db.exec('ROLLBACK TO v1_bout');
-        db.exec('RELEASE v1_bout');
-        // A Reject is the importer's own; anything else is the database
-        // refusing the row, and is reported with its message.
-        const reason = err instanceof Error ? err.message : String(err);
-        const row_text = `v1 bout ${bout.id}, ${dayOf(bout) || 'no date'}: ${names.join(' v ')}`;
-        insertImportReject(db, batchId, row_text, reason);
-        report.rejects.push({ row_text, reason });
-      }
-    }
-    finishImportBatch(db, batchId, now, {
-      rows_read: report.read,
-      rows_written: report.written,
-      rows_rejected: report.rejects.length,
+  const describe = (bout: Row) => {
+    const names = ['fighterA_id', 'fighterB_id'].map((c) => {
+      const f = fighters.get(bout[c]);
+      return f ? fullName(f) : `fighter ${bout[c]}`;
     });
-    return report;
-  });
+    return `v1 bout ${bout.id}, ${dayOf(bout) || 'no date'}: ${names.join(' v ')}`;
+  };
+  return { ...runBatch(db, 'v1', now, bouts, place, describe), folded };
 }

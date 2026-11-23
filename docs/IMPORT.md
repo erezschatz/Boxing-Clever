@@ -13,39 +13,73 @@ not a column on the row (D27).
 ## Source A — the Numbers sheet (task 11)
 
 `docs/reference/boxing.numbers` (3.5 MB; sheet *Matches*, table *Up to 12
-rounds*, 3,315 rows × 23 columns, Nov 2021 → 19 Apr 2025). Exported to CSV
-by hand (D8) as `data/import/sheet.csv`, gitignored.
+rounds*, 3,315 rows × 23 columns). Two files are written from a copy of it by
+`scripts/sheet-export.jxa.js`, which opens Numbers (task 11's decisions):
+`data/import/sheet.csv`, the table as Numbers itself exports it to CSV, and
+`data/import/sheet-colours.csv` (below). Both are gitignored.
 
-Layout, as measured on 2026-10-31:
+```
+cp docs/reference/boxing.numbers /tmp/boxing-copy.numbers
+osascript -l JavaScript scripts/sheet-export.jxa.js /tmp/boxing-copy.numbers "$PWD/data/import"
+deno task import-sheet
+```
+
+Stop the chamber first and copy `data/boxing.db` aside: this batch goes into
+the database v1's import filled. The script prints the counts, the v1 bouts
+it gave a record on the night, and every reject with its line in `sheet.csv`
+and the reason. Running it again writes nothing twice; a row fixed in the
+sheet and exported again comes in on the next run.
+
+Layout, as measured on the export of 2026-11-23:
 
 | Column | Content | What was seen |
 |---|---|---|
-| `Date/Location` | one cell per event, blank on the event's other rows (merged cell) | 218 events. `DD/MM/YYYY` then venue, city, region, separated by `.` or `,` inconsistently: `13/11/2021. Honda Center. Anaheim. CA`, `22/02/2025, The Venue Riyadh Season, Riyadh, Saudi Arabia` |
-| `Category/Title` | one cell per bout, on the row above the two fighter rows | 1,103 bouts. Either a weight class (`Heavyweight`, `Junior Lightweight` = Super Featherweight alternate name) or a title line (`WBO/WBA/IBF/WBC World Super Middleweight Championship`, `WBO European Super-Welterweight…`) — the class must then be parsed out of the title |
-| `Boxer Name` | per fighter row | 2,211 rows. `(c)` suffix marks the champion coming in → `bout_title.holder_side` |
+| `Date/Location` | one cell per event, on the category row of its first bout | 217 cells. `DD/MM/YYYY` then venue, city, region, separated by `.` or `,` inconsistently: `13/11/2021. Honda Center. Anaheim. CA`, `22/02/2025, The Venue Riyadh Season, Riyadh, Saudi Arabia`. **The first 240 bouts (lines 2–720) stand under no date cell.** 20 events are older fights (1996–98, 2011, 2015, 2018, 2019); one date is `07/06/1014`; one is `25/05/2025`, after the sheet's last night (19 Apr 2025) |
+| `Category/Title` | one cell per bout, on the row above the two fighter rows | 1,102 cells for 1,105 bouts (the first three have none). A weight class (`Heavyweight`, `Junior Lightweight`, `W Featherweight` for a women's bout), a contracted weight (`Catchweight (150)`, `179lbs catchweight`), or a title line (534 of them, 433 distinct): `WBO/WBA/IBF/WBC World Super Middleweight Championship`, `Vacant WBO Intercontinental Lightweight Title`, `Commonwealth/Vacant British/Vacant WBO Intercontinental Super Bantamweight Title`. 35 are eliminators |
+| `Boxer Name` | per fighter row | 2,210 rows, 1,677 distinct names. `(c)` marks the champion coming in (284 rows). 251 rows carry more: `Canelo Alvarez (WBC/WBA/WBO) #1`, `Jack Cattarall #5`, `George Kambosos Jr. (8)` |
 | `Colors` | `White/Black/Gold` | free text, kept as is |
-| `Weight` | `125.4lbs`, `14st 4lbs`, `10st 12lbs 8oz`, `72kg`; typos `lba`, `lb`, `ox`, `N oz` | parse with `rules/weight.ts`; reject on failure |
-| `Record` | `W(KO)-L-D`, `W-L-D`, `W(KO)-L`, `W(KO)-L-D-NC`, one `W(KO)N-L` typo | 2,015 of the first shape. This is the **as-of record** (SPEC §7) |
-| `1` … `12` | points per round | `x` = round not scheduled (6,099 cells); a stoppage time (`2:44`) or `KO`/`TKO` in the stoppage round's cell; numbers otherwise. A value under 9 is a 9 less deductions the sheet never itemised; see D24 |
-| `Total` | sum | checked against the parsed rounds; mismatch → reject |
-| `Decision` | 30+ spellings | `UD MD SD DEC TKO KO RSC RTD RET NC TD DQ D DRAW ND TUD MTD TSD KBO`; digits (`0 1 2 3 72 80 99 2.5`) are judge-count or stray; `Z\`che` is a typo. Mapping table in `server/import/decisions.ts`; anything unmapped → reject |
+| `Weight` | `125.4lbs`, `14st 4lbs`, `10st 12lbs 8oz`, `18st 6oz`, `16st`, `72kg`; typos `lba`, `lb`, `ox` | 7 are blank |
+| `Record` | `W(KO)-L-D`, `W(KO)-L`, `W(KO)-L-D-NC`; `W-L-D` with no bracket on 109 rows, 93 of them `0-…` | the **as-of record** (SPEC §7). 4 blank, 3 that are none of these |
+| `1` … `12` | points per round | blank after the scheduled distance; `x` for a scheduled round not fought (6,099 cells); a stoppage time (`2:44`, 504 cells) or `KO`/`TKO` (19) in the round it ended in; numbers otherwise. A value under 9 (424 cells) is a 9 less deductions the sheet never itemised; see D24 |
+| `Total` | sum | checked against the rounds; one row does not add up |
+| `Decision` | on one row of the bout in 1,039 bouts, on both in 42, on neither in 24 | `UD MD SD DEC TKO KO RSC RTD RET NC TD DQ D DRAW ND TUD MTD TSD KBO`, digits (`3`/`0`, `2`/`1`, the totals again), ``Z`che`` |
 | `Ref 1..3` | judges' totals, on 1,008 rows | optional |
 
-Bout structure: a `Category/Title` row, then fighter A row, then fighter B
-row, then a blank spacer. Which fighter won is **not a column**: it is
-inferred from totals for points decisions and from which row carries the
-`KO`/`TKO` cell for stoppages (the stopper's row has the marker; the
-stopped fighter's row has the time). Draws by total equality and a draw
-decision. When the inference is ambiguous → reject.
+Bout structure: a `Category/Title` row, then fighter A's row, then fighter
+B's row, then a blank one.
 
-### What the sheet cannot give, and the one thing inferred
+How each cell is read (`server/import/sheet-*.ts`, one pure module per kind
+of cell; task 11's decisions). A cell that is none of the shapes below
+rejects its bout; nothing is guessed, with the one marked exception of D24.
 
-- Corners (not recorded before v2) → `corner_a` null.
-- Deductions as such, which the sheet folds into the round's number. A
-  side written below 9 is stored as points 9 with 9 − n one-point
-  deductions (D24), so `10`/`8` becomes 10–9 with one deduction and `10`/`7`
-  two. Their reason comes from the cell's text colour, which a CSV does not
-  carry, so it is read from the `.numbers` file separately (D64):
+- **Who won.** The winner's row carries the `Decision` cell. The sheet's own
+  rounds are Erez's card and often go the other way (in 80 of 466 points
+  decisions his total for the winner is lower or level), so the totals are
+  not asked. Where the sheet has all three judges' totals they must give the
+  same winner, or the bout is rejected; a decision typed on both rows is
+  settled by them, and rejected without them; a stoppage typed on both rows
+  is the row's that carries the stoppage's cell. A draw or a no-contest may
+  be on either row or both.
+- **The decision.** `UD MD SD DEC KO TKO DQ NC` are the app's codes. `RSC`
+  is a `TKO`. `D` and `DRAW` are `D`. `3` on one row and `0` on the other is
+  a `UD` for the 3. `TD`, `TUD`, `TSD`, `MTD` are rejected for Erez to enter
+  by hand with the last round scored (D53). Anything else, and no decision at
+  all, is rejected.
+- **A stoppage.** The winner's row has the time, or `KO`/`TKO` when no time
+  was noted, in the cell of the round it ended in, and the other row has `x`
+  there. That round is stored 0–0 (SPEC Scoring §4) with the time, or with
+  none. A `KO`, `TKO` or `DQ` with no such cell is rejected, since the sheet
+  does not say in which round. A time on the loser's row is rejected.
+- **A corner retirement** (`RTD`, `RET`): there is no RTD code. It is a `TKO`
+  at 3:00 of the last round scored (D55), which is where both rows turn to
+  `x`.
+- **Scheduled rounds**: the cells that are not blank, which the two rows must
+  agree on.
+- **Deductions**, which the sheet folds into the round's number. A side
+  written below 9 is stored as points 9 with 9 − n one-point deductions
+  (D24), so `10`/`8` becomes 10–9 with one deduction and `10`/`7` two. Their
+  reason comes from the cell's text colour, which a CSV does not carry, so
+  it is read from the `.numbers` file separately (D64):
   - **red** text: a foul. Each point is a deduction with reason `other`
     and the note `foul (red in the sheet)`;
   - **blue** text: a knockdown, as Erez marked it;
@@ -61,41 +95,83 @@ decision. When the inference is ambiguous → reject.
   and the other side 9 as above. With neither side or both red, it does not
   say who won → reject; Erez fixes the sheet or enters the round by hand.
 
-  The colours come from `data/import/sheet-colours.csv` (gitignored), written
-  once by a JavaScript for Automation script run on a copy of the `.numbers`
-  file (D64): one line per coloured round cell, `row,round,colour,boxer`.
-  `row` is the Numbers table row with the header as row 1, which is the line
-  in `sheet.csv` exported with its header; `boxer` checks the match. The
-  importer refuses to run without this file.
+  The colours come from `data/import/sheet-colours.csv`: one line per
+  coloured round cell, `row,round,colour,boxer`. `row` is the Numbers table
+  row with the header as row 1, which is the line in `sheet.csv`; `boxer` is
+  that row's `Boxer Name`, and the import stops before writing anything if
+  the two files disagree on it. There is no run without this file. In the
+  sheet as read: 39 red cells and 16 blue; of 424 round cells under 9, 22
+  are red, 10 blue and 392 have no colour, and 15 red 9s each sit in a round
+  with no 10 and an uncoloured other side.
+- **The category.** A class by its name, its "Junior" name or an older name
+  (`Light Middleweight`); the women's `W` is dropped. A weight
+  (`Catchweight (150)`, `179lbs catchweight`) is the bout's
+  `contracted_weight` in pounds, with no class (D26, D45); "Catchweight"
+  with no weight is rejected. An eliminator or a tournament bout is its
+  class alone, for no title.
+- **A title line** is the class and the belts written before it, split at
+  `/`, `&`, `,` and `. `. Each belt's spelling is looked up in
+  `server/import/sheet-belts.ts`, which gives the sanctioning body and area
+  the title is filed under (`WBC Silver` → WBC, World Silver;
+  `Commonwealth` → CBC, Commonwealth); a spelling not in that table rejects
+  the bout. "Interim" and "Vacant" are read per belt. A body alone (`WBO/
+  WBA/IBF/WBC World`) takes the area of the next belt on the line that is
+  written as a world body and its area (`WBC World`, `WBC International`;
+  not `NABF`, which is filed under the WBC but is not written so), or
+  "World" when the line says world after the class; otherwise the bout is
+  rejected.
+- **Who held a belt** (`bout_title.holder_side`): nobody when the line marks
+  it vacant; the fighter whose name carries the body in brackets
+  (`(WBC/WBA)`); else the one fighter marked `(c)`; else not recorded
+  (D127). In the sheet, of 499 title bouts 279 have one `(c)`, 129 none and
+  a vacant belt, 91 neither; none has `(c)` on both.
+- **A name** is what is left when `(c)`, the brackets and `#N` are taken
+  out. `#N` and a bracketed number are a ranking, which is not kept.
+- **A record** with no bracket has no knockouts. **A weight** is kept in
+  pounds with the unit it was written in (D36); an empty one is no weight.
+- **The place** is split as below ("Places"), at `.` and `,`.
 
-  Measured on 2026-11-16 (`tasks/sheet-deduction-colours.md`): of 424 round
-  cells under 9, 22 are red, 10 are blue and 392 have no colour, and every
-  coloured one is in a round with a 10. 15 red 9s each sit in a round with
-  no 10 and an uncoloured other side, 14 against a 9 and one against an 8.
-- Technical decisions and draws (`TD`, `T`): D22 scores their last round,
-  but the sheet's stopped-round cell holds a time or a marker, and v1 did
-  not store it → reject, from either source; Erez enters them by hand. v1's
-  own `T` is not one of these: it is a draw over the distance (Source B).
-- Corner retirements (`RTD`, `RET`): there is no RTD code. A retirement
-  after round X becomes a `TKO` at 3:00 of round X, with round X scored
-  (`tasks/retirement-is-a-tko.md`). Where the source has no score for round
-  X (v1 stored it 0–0), the bout is rejected, like a TD.
-- The exact weight class when only a title line is present and the class
-  name inside it does not match a known class or alternate name → reject.
-- A contracted weight (D26, D45). A `Category/Title` cell that is a weight
-  rather than a class or a title line ("150lbs", "Catchweight 150 lbs", "10st
-  10lbs") becomes the bout's `contracted_weight` in pounds, with no class.
-  It is read by the same parser task 11 writes for the `Weight` column's
-  forms (`rules/weight.ts` reads only a bare number and "S L O" stone, so
-  that parser turns the sheet's spellings into one of those first). Since there is no catchweight
-  class, "Catchweight" with no weight that can be read → reject. A title line
-  is always a class, since a title is fought for at its class's limit.
-- Missed weight. The sheet has no mark for it, and the `Weight` column is
-  the fighter's figure, which D26 says not to judge by, so every imported
-  bout has both sides unmarked. Erez marks the ones he remembers by hand.
-- Fighters are matched by exact full name after trimming `(c)`; a new name
-  creates a fighter and an alias. Duplicates created this way are what the
-  merge feature is for.
+What the importer writes:
+
+- **Fighters** are matched on the whole name, ignoring case, against the
+  fighters here, and exactly against their aliases (D14); `Juan Carlos
+  Abreu` is the same however the app splits him between its two boxes. A name that matches nobody
+  makes a fighter, the first word the first name and the rest the last, and
+  every spelling the sheet uses becomes an alias (D14, D19). Two spellings
+  of one man (`Canelo Alvarez` and v1's `Saul Alvarez`, `Olexandr Usyk` and
+  `Oleksandr Usyk`) are two fighters, which is what the merge is for.
+- **A new fighter's record** is the one the sheet wrote for their latest
+  night, and that night's result is added when its bout is written, as D137
+  does for v1. A night whose record or weight cannot be read is passed over
+  for this, so a slip in one cell rejects that bout and not the fighter's
+  others. A fighter who was here already keeps their record: the
+  result is added only while the record is still the one the sheet wrote.
+- **A bout already here** (same day, same two fighters) is v1's, and stays
+  as it is: v1 holds the card. Where a side of it has no record on the
+  night (D128) and the sheet's cells for that fighter can be read, they
+  become that side's snapshot; a side that has one keeps it. The
+  `no_snapshot` mark comes off once both sides have one. Only the card of 19 April 2025 is in both sources (4
+  bouts).
+- Corners are not recorded (`corner_a` null), and no side is marked as
+  having missed weight: the sheet has no mark for it, and the `Weight`
+  column is the fighter's figure, which D26 says not to judge by.
+- A bout's place on its card is its place under the date cell, kept when a
+  bout above it is rejected, so that one comes in at its place later.
+
+On the export of 2026-11-23, into a copy of the database after v1's import:
+1,105 bouts read, 741 written, 4 already there (3 of them given their record
+on the night), 360 rejected. 240 of the rejects are the bouts with no date
+above them. The rest: no decision (19), a stoppage with no cell (18), a place
+that does not give a venue, a city and a country (14), a points decision on both
+rows and no judges (17), a round with no 10 and no red (9), cells out of
+order (7), technical decisions (7), the date `07/06/1014` (5), a stoppage on
+the other row (5), rounds the rules refuse (5), title lines (5), records
+(3), a retirement with a time in a round (2), a decision the import does not
+know (2), a time that is no time, and a total that does not add up. The 5
+bouts with other digits for a decision are among the undated. Places that import without being rejected and are wrong,
+because their parts are not venue, city, country: the countries `Nevada`,
+`Las Vegas`, `CN`, `C` and `Québec`; and the UK is `UK`, `England`, `Wales`,
+`Northern Ireland` and `North Ireland` as typed.
 
 ## Source B — v1 databases (task 10)
 
@@ -179,8 +255,9 @@ under the mapping below, and 120 title rows on 86 bouts, 17 under a Vacant
 title and 103 with the holder not recorded. Every reference resolves. One
 bout has no document. Events 1–8 (34 bouts) are in no Mongo document, so
 their dates and places come from `event.tsv` alone. The 37 events run from
-5 Apr 2025 to 4 Apr 2026; the first three (5, 6 and 19 Apr 2025) are inside
-the sheet's range, so task 11 will meet their bouts already imported. An
+5 Apr 2025 to 4 Apr 2026. The sheet's last night is 19 Apr 2025 and it has
+that card only (4 bouts), not the two before it, so task 11 meets those four
+already imported. An
 event's `date` is a date and a time of day, as MySQL printed it in the
 machine's own time; the date part is the fight day, and it agrees with
 Mongo's for all 29 events Mongo has. Three days have two events each, at

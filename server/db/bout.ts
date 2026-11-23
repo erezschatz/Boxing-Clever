@@ -229,3 +229,9 @@ export function findBoutOnDay(db: Database, date: string, x: number, y: number):
 export function markNoSnapshot(db: Database, id: number): boolean {
   return db.prepare('UPDATE bout SET no_snapshot = 1 WHERE id = ?').run(id).changes > 0;
 }
+
+// The sheet had the record v1 never kept for this bout: it has a snapshot
+// now, and is a bout like any other (task 11's decisions).
+export function unmarkNoSnapshot(db: Database, id: number): boolean {
+  return db.prepare('UPDATE bout SET no_snapshot = 0 WHERE id = ?').run(id).changes > 0;
+}

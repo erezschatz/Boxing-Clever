@@ -71,8 +71,8 @@ denormalised `event`, `weight_class`, `titles`, `fighters.fighterA/B`
 `total_score`, `deductions[]` as strings), `bout_totals`, `result`
 (`time`, `round`, `decision.{type,winner}`, `judges_scores.ref_1..3`),
 `is_draft`. v1's first event is 5 Apr 2025 and the sheet's last 19 Apr
-2025, so three v1 events (5, 6 and 19 Apr 2025) fall inside the sheet's
-range. Bouts present in both sources: the sheet wins for the record
+2025. The sheet has the card of 19 Apr 2025 (4 bouts) and not those of 5
+and 6 Apr. Bouts present in both sources: the sheet wins for the record
 snapshot, v1 for the scorecard — see IMPORT.md.
 
 What the documents really hold differs from this schema in several ways

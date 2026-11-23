@@ -77,3 +77,14 @@ export function findFighterByName(
      ORDER BY id LIMIT 1`,
   ).get({ first: firstName, last: lastName }) as Fighter | undefined;
 }
+
+// The fighter whose whole name this is, however it is split between the two
+// boxes: the sheet's import has one name per fighter ("Oscar De La Hoya").
+// Ignores case and the spaces around; the lowest id when two share it.
+export function findFighterByFullName(db: Database, name: string): Fighter | undefined {
+  return db.prepare(
+    `SELECT * FROM fighter
+     WHERE lower(trim(trim(first_name) || ' ' || trim(last_name))) = lower(trim(?))
+     ORDER BY id LIMIT 1`,
+  ).get(name) as Fighter | undefined;
+}
