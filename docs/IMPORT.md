@@ -161,7 +161,7 @@ What the importer writes:
 On the export of 2026-11-23, into a copy of the database after v1's import:
 1,105 bouts read, 741 written, 4 already there (3 of them given their record
 on the night), 360 rejected. 240 of the rejects are the bouts with no date
-above them. The rest: no decision (19), a stoppage with no cell (18), a place
+above them, which are left out for good (task 11's decisions). The rest: no decision (19), a stoppage with no cell (18), a place
 that does not give a venue, a city and a country (14), a points decision on both
 rows and no judges (17), a round with no 10 and no red (9), cells out of
 order (7), technical decisions (7), the date `07/06/1014` (5), a stoppage on

@@ -1813,3 +1813,11 @@ Source: [tasks/11-import-sheet.md](../tasks/11-import-sheet.md)
 **Why** — IMPORT.md's rule is that a location which does not give a venue, a city and a country is refused, never guessed; which words are a country is not something the split can know. The wrong ones are few and are listed in IMPORT.md.
 
 Source: [tasks/11-import-sheet.md](../tasks/11-import-sheet.md)
+
+## D149 · 2026-11-23 · The sheet's 240 undated bouts are left out
+
+**Decision** — The first 240 bouts of the sheet (lines 2–720 of the export), which stand under no `Date/Location` cell, are not imported. They stay on the rejects list of every run, and no date is added to the sheet for them.
+**Rejected** — Erez adding dates to the Numbers file and exporting again (offered, not chosen). Importing them under an event with no date, or a date worked out from the fighters' records: a bout belongs to an event on a day, and nothing is guessed.
+**Why** — Erez, 2026-11-23, asked whether those bouts have dates he can add or should stay out: "Leave them out".
+
+Source: [tasks/11-import-sheet.md](../tasks/11-import-sheet.md)
