@@ -75,6 +75,12 @@ Supersedes: D152
 **Why** — Erez, 2026-11-26: "Drop the Safari, not gonna bother with it for something that is a personal project."
 Not in scope: checking the app in Safari
 
+### 2026-11-26 · The click that comes back from another window is told by the box's own blur and focus
+
+**Decision** — A box that is still the document's focused element at its own blur was left with the window, not for another control (`#away`). The focus event that follows on that box is the return, and its time is kept (`#back`). A mouse press on the box is taken as the one bringing the focus, so its mouseup does not put the caret down over the selected name, when the box did not have the focus, or the return was less than 250 ms before the press (`pressEnters` in `front/entry.ts`), or the return's focus event has not arrived yet. All of it is inside `fighterField`. A return by the keyboard followed by a later click places the caret, as any click in a focused box does.
+**Rejected** — Listening to the window's own blur and focus: a listener outside the dialog to add and remove, for what the box's events already say. Selecting the name on every click in a chosen box: there would be no way to put the caret in the name to mend a letter. `document.hasFocus()` at the press: the window already has the focus again by then.
+**Why** — Erez, 2026-11-26, having tried the review's open line: "I left the mouse in the middle of the name, went out and back, clicked and it just placed the caret at the start so anything I typed went in front of the name, so replacing joe with james became 'jajoe'". The 250 ms is the span of one click: the return and the press are the same act of the hand.
+
 ## What was done
 
 2026-11-26. `front/bout-form.ts`: `fighterField` draws one box per side at all times; with a fighter chosen it holds their name (class `chosen`) and their record is under it, the matches list is drawn only while nobody is chosen, and the "change" button is gone. Going into a chosen box selects its text; `search` passes what is typed through `sideTyped` and lets go of the fighter unless the box still holds their name; `choose` empties the search text; Enter in a chosen box does nothing. On a finalised bout the box is read-only and `search` returns at once (D30). `front/entry.ts` gains `sideText`, `sideTyped` and `winnerChoices`. `front/decision-form.ts`: the winner fieldset is first, a `button.win` per choice with `aria-pressed`, a single-answer decision shown pressed as "Draw" or "No winner" (they showed as "draw" and "none"); a new `noWinner` state marks the fieldset when Finalise finds no winner, with the message "pick the winner" in place of "who won?", and is cleared by picking a winner, changing the decision or the cards filling it in. `front/style.css`: `input.chosen`, `.record.of-chosen`, `.winner-row`, `button.win` and the `missing` mark; the old chosen-line rules now name `div.chosen`, which the event form's venue still uses; the radio row's rule is removed. The chosen name is 1.2rem, not the old line's 1.5rem, so a name with a nickname fits the box. `docs/SPEC.md` says both. `tests/front/forms.test.ts`: what the box makes of typing, and the winner choices per decision.
@@ -271,3 +277,44 @@ Reviewed by: a read-only Claude subagent (Explore), cold, on the staged diff, ca
 2026-11-26, answering the item above in the same commit. `front/bout-form.ts`: the rows of the dropped list, the matches and its "+ Fighter", carry `tabindex="-1"`, so Tab from the box goes to the "+ Fighter" line under it, which is drawn whether the list is open or not, and the list's rows are reached by the mouse and the arrows as before. `deno task test`: 283 passed; `deno task check` and format clean. This one attribute was added after the reader's read and has not been read cold or seen in a browser; the boxes above are ticked from the code.
 
 Reviewed by: the same reader named above read everything in this commit but this last fix, which answers its own finding.
+
+## What was done
+
+2026-11-26, answering the open line of the review item "A chosen box that keeps the focus while the window is away is not selected by the click that brings the window back", which Erez tried and found to fail ("jajoe"). `front/bout-form.ts`, `fighterField`: the box's blur notes a box left with the window (`#away`), its focus notes the return (`#back`) and selects the name as before, and the mousedown takes the press as entering by `pressEnters` (`front/entry.ts`, with `SAME_CLICK_MS`) or while `#away` is still set, so that click's mouseup is prevented and the selection stands. Nothing outside `fighterField` listens to the window. `docs/SPEC.md` says the name is selected by that click too; `tests/front/forms.test.ts` states `pressEnters`. `deno task test`: 284 passed; `deno task check` and format clean. Leaving the window cannot be done from the browser pane, so this was not seen running by Claude: the review line stays unticked until Erez has tried it.
+
+Reviewed by: a read-only Claude subagent (Explore), cold, on the staged diff, carrying out docs/reviewer.md. It found the record to describe the diff and the item's other lines to hold, and two findings, below, on the fix as it then stood.
+
+## Review · 2026-11-26 · the cold reader, on the click that returns to the window
+
+### The return click's own press can undo the selection when the focus event comes first
+
+**Found** — `front/bout-form.ts`, `fighterField`: with the focus event before the mousedown, the name was selected and then the press's own default put the caret down and collapsed it; preventing the mouseup could not bring it back.
+
+**Done when**
+
+- [x] Chosen box focused, window left, back by clicking in the middle of the name, focus event before the mousedown → the whole name is selected and the first key replaces it
+- [x] The same, mousedown before the focus event → the whole name is selected and the first key replaces it
+- [x] The same click held and dragged across the name → no partial selection replaces the whole-name selection; the whole name stays selected
+- [x] Back by keyboard, then a click 250 ms or more later → the caret goes where clicked
+- [x] A click in a box focused within the page, by click or Tab → the caret goes where clicked, as now
+- [x] A box with search text, or a finalised bout's box → nothing selected, as now
+
+**Not asked** — Listening to the window's focus or blur. Selecting on every click. A change to `sideTyped`, `choose` or D38.
+
+### "Or tab" in Done-when line 1 cannot hold as written
+
+**Found** — the earlier item's first line promises the whole name selected on coming back from another browser tab and clicking the box; coming back to the tab is its own click, outside the page, so the click into the box is a later one and places the caret, as after a return by keyboard.
+
+**Done when**
+
+- [x] Chosen box focused, another browser tab shown, back by clicking this tab, then a click in the box → the name is selected on the return and the click places the caret, the same as a keyboard return
+- [x] Chosen box focused, another application's window shown, back by one click straight into the box → the whole name is selected
+- [x] Back by keyboard, then a later click → the caret goes where clicked
+
+**Not asked** — Tracking tab visibility (`visibilitychange`) or window focus outside `fighterField`.
+
+## What was done
+
+2026-11-26, answering the two items above in the same commit. `front/bout-form.ts`, `fighterField`: a press taken as entering has its default prevented and the box is focused and its name selected there, in the mousedown, so the press neither puts a caret down nor starts a drag, whichever of the focus event and the press came first; the mouseup guard stays. The second item changes no code: coming back from another browser tab is as coming back by the keyboard, the name selected on the return and a later click placing the caret, and the earlier line's "or tab" is to be read so. `deno task test`: 284 passed; `deno task check` and format clean. In the browser pane, one Chromium, on a scratch database: a real click into a chosen name from elsewhere selected all of it, and a second click placed the caret; the window's leaving and return could only be imitated there, by sending the box its blur, focus and mousedown from a script, in both orders, which left the whole name selected and the press prevented, and a press 400 ms after the return not prevented. The real thing, leaving the window and clicking back, is Erez's to try. This fix was made after the reader's read and has not been read cold.
+
+Reviewed by: the same reader named above read this commit but for this last fix, which answers its own findings.

@@ -17,6 +17,7 @@ import {
   namedFighters,
   newFighterLabel,
   patchForFound,
+  pressEnters,
   readBoutWeight,
   readDetails,
   readJudge,
@@ -424,6 +425,20 @@ Deno.test("a side's matches show only while its list is open, nobody is chosen a
   assertEquals(listShown(true, null, '  '), false);
   // A chosen fighter has no list under their name.
   assertEquals(listShown(true, fury, ''), false);
+});
+
+Deno.test('the click that brings the focus to a chosen name keeps it selected; a later click places the caret', () => {
+  // Into a box that did not have the focus.
+  assertEquals(pressEnters(false, null), true);
+  // In a box that has it, from an earlier click or from Tab: an ordinary click.
+  assertEquals(pressEnters(true, null), false);
+  // Back from another window by clicking on the name: the box was focused
+  // all along, and the press comes with the return ("jajoe", Erez 2026-11-26).
+  assertEquals(pressEnters(true, 0), true);
+  assertEquals(pressEnters(true, 40), true);
+  // Back by the keyboard, and a click some time after: an ordinary click.
+  assertEquals(pressEnters(true, 250), false);
+  assertEquals(pressEnters(true, 5000), false);
 });
 
 Deno.test('the winner buttons name each answer a decision allows (§5)', () => {

@@ -1888,3 +1888,11 @@ Source: [tasks/fighter-name-and-winner-up-front.md](../tasks/fighter-name-and-wi
 Not in scope: checking the app in Safari
 
 Source: [tasks/fighter-name-and-winner-up-front.md](../tasks/fighter-name-and-winner-up-front.md)
+
+## D158 · 2026-11-26 · The click that comes back from another window is told by the box's own blur and focus
+
+**Decision** — A box that is still the document's focused element at its own blur was left with the window, not for another control (`#away`). The focus event that follows on that box is the return, and its time is kept (`#back`). A mouse press on the box is taken as the one bringing the focus, so its mouseup does not put the caret down over the selected name, when the box did not have the focus, or the return was less than 250 ms before the press (`pressEnters` in `front/entry.ts`), or the return's focus event has not arrived yet. All of it is inside `fighterField`. A return by the keyboard followed by a later click places the caret, as any click in a focused box does.
+**Rejected** — Listening to the window's own blur and focus: a listener outside the dialog to add and remove, for what the box's events already say. Selecting the name on every click in a chosen box: there would be no way to put the caret in the name to mend a letter. `document.hasFocus()` at the press: the window already has the focus again by then.
+**Why** — Erez, 2026-11-26, having tried the review's open line: "I left the mouse in the middle of the name, went out and back, clicked and it just placed the caret at the start so anything I typed went in front of the name, so replacing joe with james became 'jajoe'". The 250 ms is the span of one click: the return and the press are the same act of the hand.
+
+Source: [tasks/fighter-name-and-winner-up-front.md](../tasks/fighter-name-and-winner-up-front.md)

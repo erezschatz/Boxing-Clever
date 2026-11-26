@@ -380,6 +380,19 @@ export function sideTyped(
   return { chosen: null, query: text };
 }
 
+// Whether a mouse press on a chosen fighter's box is the one that brings
+// the focus to it, so that the name it selects must survive that click
+// (task fighter-name-and-winner-up-front). It is when the box does not have
+// the focus; and when it has only just been given it back, which is the
+// click that returns to the window from another one: the box was the
+// focused element all the while, and the focus event comes with the press.
+// `sinceBack` is the milliseconds since that return, null when there was
+// none. A press later than that is an ordinary click, and places the caret.
+export const SAME_CLICK_MS = 250;
+export function pressEnters(hasFocus: boolean, sinceBack: number | null): boolean {
+  return !hasFocus || (sinceBack !== null && sinceBack >= 0 && sinceBack < SAME_CLICK_MS);
+}
+
 // Whether a side's matches are showing in the bout dialog: only while its
 // list is open, nobody is chosen there and something is typed. Closed, the
 // text stays, and Enter judges it as Save does (D38).

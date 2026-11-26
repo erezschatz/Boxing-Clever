@@ -397,7 +397,7 @@ the spot, before the name is known if need be (D38, D43);
 the matches drop over the form, and Escape or leaving the box closes them
 with the text kept;
 a chosen fighter's name stays in the box it was searched for in, selected
-on the way in, and typing over it searches again, except on a finalised
+on the way in (also by the click that comes back to it from another window), and typing over it searches again, except on a finalised
 bout; "Edit" beside their record opens the fighter's own form;
 the class, each shown with its limit as v1 did, "Flyweight (112 lbs /
 50.802 kg)", or "Contracted weight (no class)" and the pounds typed;

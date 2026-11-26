@@ -9,6 +9,7 @@ import {
   findFighters,
   listShown,
   newFighterLabel,
+  pressEnters,
   readBoutWeight,
   resolveTyped,
   sideText,
@@ -46,6 +47,8 @@ type Lists = { fighters: Fighter[]; classes: WeightClass[]; titles: Title[] };
 
 export class BoutForm extends DialogForm<State, BoutView> {
   readonly #opened: string; // what the form held when it opened, for dirty()
+  #away: HTMLInputElement | null = null; // the box left focused when the window was left
+  #back: number | null = null; // when the window came back to that box, by performance.now()
   #entered: HTMLInputElement | null = null; // a chosen box the mouse is pressing its way into
 
   constructor(
@@ -266,12 +269,32 @@ export class BoutForm extends DialogForm<State, BoutView> {
                 // A press that is about to bring the focus to a chosen box;
                 // a press in a box that has it already is an ordinary click.
                 const box = e.target as HTMLInputElement;
-                const entering = chosen !== null && !locked && document.activeElement !== box;
+                const sinceBack = this.#back === null ? null : performance.now() - this.#back;
+                // `#away` still set: the press came before the focus event
+                // of the same return, whichever order the browser sends them.
+                const entering = chosen !== null && !locked &&
+                  (this.#away === box || pressEnters(document.activeElement === box, sinceBack));
                 this.#entered = entering ? box : null;
+                this.#back = null;
+                if (entering) {
+                  // The press itself would put the caret down, or start a
+                  // drag, over the name the focus selects (and has already
+                  // selected, when the focus came back first): it is given
+                  // nothing to do but bring the focus, and the name is
+                  // selected here whichever came first.
+                  e.preventDefault();
+                  box.focus();
+                  box.select();
+                  return;
+                }
                 // A click back into a box that holds text shows its matches.
                 if (!chosen && query.trim()) this.set({ listOpen: side });
               }}
               @focus=${(e: FocusEvent) => {
+                // Back from another window, where the box was left focused:
+                // noted, so the click that did it keeps the selection.
+                this.#back = this.#away === e.target ? performance.now() : null;
+                this.#away = null;
                 if (chosen && !locked) (e.target as HTMLInputElement).select();
                 else if (!chosen && query.trim()) this.set({ listOpen: side });
               }}
@@ -282,8 +305,13 @@ export class BoutForm extends DialogForm<State, BoutView> {
                 if (this.#entered === e.target) e.preventDefault();
                 this.#entered = null;
               }}
-              @blur=${() => {
+              @blur=${(e: FocusEvent) => {
                 this.#entered = null;
+                // Still the focused element after its blur: it is the
+                // window that was left, not the box.
+                this.#away = document.activeElement === e.target
+                  ? e.target as HTMLInputElement
+                  : null;
                 if (this.state.listOpen === side) this.set({ listOpen: null });
               }}
               @input=${(e: InputEvent) => this.search(side, (e.target as HTMLInputElement).value)}
