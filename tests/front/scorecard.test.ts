@@ -16,6 +16,7 @@ import {
   readPoints,
   runningTotals,
   scoredRounds,
+  typedCardStands,
 } from '../../front/scorecard.ts';
 import { rankText } from '../../front/format.ts';
 import type { BoutView } from '../../front/api.ts';
@@ -354,4 +355,12 @@ Deno.test('a knockdown logged before its round is scored is kept by a save and a
   const done = await get(api, boutId);
   deepStrictEqual(done.card.rounds, [{ round_no: 1, a: 10, b: 9 }, { round_no: 2, a: 0, b: 0 }]);
   deepStrictEqual(done.card.deductions.map((d) => [d.round_no, d.side]), [[2, 'B']]);
+});
+
+Deno.test('after Edit bout the points as typed stand, unless the scheduled rounds changed', () => {
+  // Another fighter, corner, weight or title: the card has the rows it had.
+  assertEquals(typedCardStands({ scheduled_rounds: 12 }, { scheduled_rounds: 12 }), true);
+  // Ten rounds, not twelve: another card, read again from what is stored.
+  assertEquals(typedCardStands({ scheduled_rounds: 12 }, { scheduled_rounds: 10 }), false);
+  assertEquals(typedCardStands({ scheduled_rounds: 4 }, { scheduled_rounds: 6 }), false);
 });

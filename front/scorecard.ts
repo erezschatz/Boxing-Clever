@@ -339,3 +339,14 @@ export function rankOf(bout: BoutView, side: Side): number | null {
     ? (bout.a_won === null ? null : bout.a_tbrb_rank)
     : (bout.b_won === null ? null : bout.b_tbrb_rank);
 }
+
+// After the bout was edited from its scorecard ("Edit bout"): whether the
+// points in the boxes still belong to the card. They do while the card has
+// the rows it had; a change of scheduled rounds is another card, read again
+// from what is stored.
+export function typedCardStands(
+  before: { scheduled_rounds: number },
+  after: { scheduled_rounds: number },
+): boolean {
+  return before.scheduled_rounds === after.scheduled_rounds;
+}

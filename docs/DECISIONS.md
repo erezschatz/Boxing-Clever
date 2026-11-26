@@ -1854,3 +1854,28 @@ Source: [tasks/fighter-name-and-winner-up-front.md](../tasks/fighter-name-and-wi
 Supersedes: D103
 
 Source: [tasks/fighter-name-and-winner-up-front.md](../tasks/fighter-name-and-winner-up-front.md)
+
+## D154 · 2026-11-26 · The bout dialog's matches drop over the form; Escape or leaving the box closes them
+
+**Decision** — In the bout dialog the matches for a side are drawn over what is below the box (`ul.found.drop`, as the fighter form's are, D44), and only while that side's list is open: typing, Down, or going back into a box that holds text opens it; Escape, leaving the box, or choosing closes it and keeps the text. Escape with no list open is the dialog's Cancel, as before. With the list closed, Enter judges the text as Save does (D38) and never takes a match that is not showing. "+ Fighter" is the list's last row and also a line of its own under the box, so it is there either way.
+**Rejected** — A close button on the list: Escape and a click elsewhere are how every other list closes, and the list's corner is where the last match's record is. Leaving the list in the flow with fewer matches: five still push the form.
+**Why** — Erez, 2026-11-26: "the dialog breaks when the dropdown is large", and "how do I close the dropdown? there's no X or whatever, I have to backspace".
+
+Source: [tasks/fighter-name-and-winner-up-front.md](../tasks/fighter-name-and-winner-up-front.md)
+
+## D155 · 2026-11-26 · A chosen fighter stays in the search box, typed over to change; "Edit" beside the record opens their own form
+
+**Decision** — D152 as it stood, restated: each side of the bout dialog is one box at all times; with a fighter chosen it holds their name in bold with their record under it; going into the box, or choosing with the cursor in it, selects the name; typing that leaves anything but that name un-chooses and searches (`sideTyped`); a name typed back in full is the fighter again on Save (D38); a finalised bout's box is read-only (D30). Added: "Edit" beside the record opens the fighter form on that fighter (`new FighterForm(chosen, …)`, the form the fighters page opens), over the bout dialog; what it saves is shown at once, the fighter still chosen. It is there on a finalised bout too, since it changes the fighter and not who fought.
+**Rejected** — What D152 rejected and still does: a "change" button, and choosing as you type. Leaving the fighter's details to the fighters page, which D152 chose: Erez asked for the opposite once he had used it. Editing the details inline in the bout dialog: a second copy of the fighter form.
+**Why** — Erez, 2026-11-26: the record "is incorrect, I want to change, or maybe her colors or weight is different as it 99% always is. no where do open the dialog". The weight and colours are tonight's, so the moment they are known is while the bout is being made.
+Supersedes: D152
+
+Source: [tasks/fighter-name-and-winner-up-front.md](../tasks/fighter-name-and-winner-up-front.md)
+
+## D156 · 2026-11-26 · "Edit bout" on the scorecard; the card as typed stands unless the rounds change
+
+**Decision** — The scorecard's bar has "Edit bout", final or not, opening the same bout dialog the event page opens. Before it opens, a card with unsaved points is saved as Save progress would. When the dialog closes, whatever its answer, the bout and the reference lists are read again; the points in the boxes are kept as typed when the scheduled rounds are what they were (`typedCardStands` in `front/scorecard.ts`), and read again from what is stored when they changed, since the card then has other rows. The API is unchanged: a draft's fighters may change and its rounds stand, the changed side's snapshot being retaken at the next save (D32); a finalised bout's may not (D30).
+**Rejected** — Reading the whole card again every time: a round with one box typed, which the rules will not save yet, would be lost for having fixed a name. Refusing to open until every box can be saved: the wrong fighter is noticed in the middle of a round. A link to the event page's dialog: that is the trip he asked not to make.
+**Why** — Erez, 2026-11-26: "that's not Takoma Inoue I want but his Brother, but I can't edit the name other than closing the fight and going back to the event page".
+
+Source: [tasks/fighter-name-and-winner-up-front.md](../tasks/fighter-name-and-winner-up-front.md)

@@ -2141,6 +2141,7 @@ dialog.form legend * {
 
 dialog.form .field > .label,
 dialog.form .field > label,
+dialog.form .field > .combo > label,
 dialog.form label > .label {
   font-weight: 600;
   letter-spacing: 0.12em;
@@ -2260,13 +2261,31 @@ dialog.form input.chosen[readonly] {
   background: transparent;
 }
 
-dialog.form .record.of-chosen {
+/* Under a side's box: the chosen fighter's record and the way to their own
+   form, or the way to add a fighter. One line either way, so choosing moves
+   nothing. The matches drop from the box over this line and the form below
+   (.combo is what they hang from). */
+dialog.form .combo {
+  position: relative;
+}
+
+dialog.form .of-chosen,
+dialog.form .add-line {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   min-height: 2.75rem;
-  padding-top: 0.35rem;
+}
+
+dialog.form .of-chosen .record {
   font-size: 0.8rem;
   font-weight: 400;
   letter-spacing: normal;
   text-transform: none;
+}
+
+dialog.form ul.found.drop {
+  background: #fff;
 }
 
 /* The winner, first in the decision dialog: a square block per answer, the

@@ -13,6 +13,7 @@ import {
   fillFromCards,
   findFighters,
   findVenues,
+  listShown,
   namedFighters,
   newFighterLabel,
   patchForFound,
@@ -411,6 +412,18 @@ Deno.test("a chosen fighter's name can be typed over: the box searches again, an
   const all = [fury, fighter(4, 'Oleksandr', 'Usyk')];
   deepStrictEqual(findFighters(all, 'Tyson "The Gypsy King" Fur').map((f) => f.id), [3]);
   deepStrictEqual(resolveTyped(all, 'Tyson "The Gypsy King" Fury', null), { fighter: fury });
+});
+
+Deno.test("a side's matches show only while its list is open, nobody is chosen and something is typed", () => {
+  const fury = fighter(3, 'Tyson', 'Fury');
+  assertEquals(listShown(true, null, 'jes'), true);
+  // Closed with Escape or by leaving the box: the text stays, the list goes.
+  assertEquals(listShown(false, null, 'jes'), false);
+  // Nothing typed, or spaces: nothing to list.
+  assertEquals(listShown(true, null, ''), false);
+  assertEquals(listShown(true, null, '  '), false);
+  // A chosen fighter has no list under their name.
+  assertEquals(listShown(true, fury, ''), false);
 });
 
 Deno.test('the winner buttons name each answer a decision allows (§5)', () => {

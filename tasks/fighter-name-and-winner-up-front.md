@@ -32,7 +32,7 @@ plainest thing in the decision dialog, so it is not missed.
 - [x] Finalise with no winner picked marks the winner buttons as well as saying so, read in the diff
 - [x] `deno task test` and `deno task check` run green by Claude
 - [ ] Erez: in the browser, in a new bout and in a bout with rounds scored, he picks a fighter, goes back into the name and types another without backspacing through the first
-- [ ] Erez: in the browser, the decision dialog's winner is where and how he wants it, and Finalise without one shows him what is missing
+- [x] Erez: in the browser, the decision dialog's winner is where and how he wants it, and Finalise without one shows him what is missing
 
 ## Decisions
 
@@ -48,6 +48,25 @@ plainest thing in the decision dialog, so it is not missed.
 **Rejected** — Leaving the winner under the decision and only restyling the radios: he missed it there twice. Drawing it with `choiceRow`: that row is small by design, and a press on its chosen button does nothing, where here it confirms what the cards filled in. Arrow keys moving between the two as they did between the radios: two buttons are one Tab apart, and it is more code than the dialog needs. Colouring the buttons by corner: the dialog is not told the corners, and a corner may be unrecorded. Refusing the dialog's other fields until a winner is picked: the judges' cards can pick the winner (D41), so they must stay open.
 **Why** — Erez, 2026-11-26: it should be "more up-front", "more square and significant", like "the bold type in the scorecard". The winner is the one thing in the dialog that cannot be defaulted, so it goes first and largest. D103 said the winner "stays" radio buttons; that sentence is what this reverses, and the decision is superseded whole because a decision is not reversed in part.
 Supersedes: D103
+
+### 2026-11-26 · The bout dialog's matches drop over the form; Escape or leaving the box closes them
+
+**Decision** — In the bout dialog the matches for a side are drawn over what is below the box (`ul.found.drop`, as the fighter form's are, D44), and only while that side's list is open: typing, Down, or going back into a box that holds text opens it; Escape, leaving the box, or choosing closes it and keeps the text. Escape with no list open is the dialog's Cancel, as before. With the list closed, Enter judges the text as Save does (D38) and never takes a match that is not showing. "+ Fighter" is the list's last row and also a line of its own under the box, so it is there either way.
+**Rejected** — A close button on the list: Escape and a click elsewhere are how every other list closes, and the list's corner is where the last match's record is. Leaving the list in the flow with fewer matches: five still push the form.
+**Why** — Erez, 2026-11-26: "the dialog breaks when the dropdown is large", and "how do I close the dropdown? there's no X or whatever, I have to backspace".
+
+### 2026-11-26 · A chosen fighter stays in the search box, typed over to change; "Edit" beside the record opens their own form
+
+**Decision** — D152 as it stood, restated: each side of the bout dialog is one box at all times; with a fighter chosen it holds their name in bold with their record under it; going into the box, or choosing with the cursor in it, selects the name; typing that leaves anything but that name un-chooses and searches (`sideTyped`); a name typed back in full is the fighter again on Save (D38); a finalised bout's box is read-only (D30). Added: "Edit" beside the record opens the fighter form on that fighter (`new FighterForm(chosen, …)`, the form the fighters page opens), over the bout dialog; what it saves is shown at once, the fighter still chosen. It is there on a finalised bout too, since it changes the fighter and not who fought.
+**Rejected** — What D152 rejected and still does: a "change" button, and choosing as you type. Leaving the fighter's details to the fighters page, which D152 chose: Erez asked for the opposite once he had used it. Editing the details inline in the bout dialog: a second copy of the fighter form.
+**Why** — Erez, 2026-11-26: the record "is incorrect, I want to change, or maybe her colors or weight is different as it 99% always is. no where do open the dialog". The weight and colours are tonight's, so the moment they are known is while the bout is being made.
+Supersedes: D152
+
+### 2026-11-26 · "Edit bout" on the scorecard; the card as typed stands unless the rounds change
+
+**Decision** — The scorecard's bar has "Edit bout", final or not, opening the same bout dialog the event page opens. Before it opens, a card with unsaved points is saved as Save progress would. When the dialog closes, whatever its answer, the bout and the reference lists are read again; the points in the boxes are kept as typed when the scheduled rounds are what they were (`typedCardStands` in `front/scorecard.ts`), and read again from what is stored when they changed, since the card then has other rows. The API is unchanged: a draft's fighters may change and its rounds stand, the changed side's snapshot being retaken at the next save (D32); a finalised bout's may not (D30).
+**Rejected** — Reading the whole card again every time: a round with one box typed, which the rules will not save yet, would be lost for having fixed a name. Refusing to open until every box can be saved: the wrong fighter is noticed in the middle of a round. A link to the event page's dialog: that is the trip he asked not to make.
+**Why** — Erez, 2026-11-26: "that's not Takoma Inoue I want but his Brother, but I can't edit the name other than closing the fight and going back to the event page".
 
 ## What was done
 
@@ -160,3 +179,88 @@ By the third cold reader, on the answer to the item above. Left open in this com
 `deno task test`: 280 passed; `deno task check` and format clean. Not seen in a browser after these fixes, and never in Safari: the Safari line above is left open, and is covered by Erez's first open acceptance box if Safari is where he scores.
 
 Reviewed by: three read-only Claude subagents (Explore), each cold, on the staged diff, carrying out docs/reviewer.md. The first is named on the record above. The second read the answer to its round and found the click swallowed after Tab, which was fixed and is the review's second item. The third read that fix, found every ticked line to hold and the record to describe the diff, and found the window-away case, which is the review's third item and is left open with the Safari line.
+
+## Review · 2026-11-26 · Erez, in the browser
+
+Erez, the same day, with three screenshots (the list open under "jes", Jessica Camara chosen, and the scorecard of Takuma Inoue v Kazuto Ioka): "Winner redesign is indeed a winner, as to the second thing, let me explain. I open the dialog and type, you can see that the dialog breaks when the dropdown is large (unlike how a dropdown shouldnt be part of the actual rendered parts) But wait, none of these options is right, how do I close the dropdown? there's no X or whatever, I have to backspace. Next, I pick Jessica Camara, but her record is incorrect, I want to change, or maybe her colors or weight is different as it 99% always is. no where do open the dialog. What I want here is basically the same ability as I have in clicking on the URL and picking a new fighter or editing, just with the name I already choosen. So I settle on the fighters and start the bout, but wait, that's not Takoma Inoue I want but his Brother, but I can't edit the name other than closing the fight and going back to the event page." The winner's acceptance box is ticked on his word. Written into the form by Claude.
+
+### The list of matches pushes the bout dialog apart, and cannot be closed
+
+**Found** — `front/bout-form.ts`, `fighterField`: the matches are drawn in the form's flow, so eight of them push the corner, the weight and the rest down; and the list is there for as long as the box holds text, so the only way to be rid of it is to delete the text.
+
+**Done when**
+
+- [x] A name typed with eight matches → the list lies over the fields below it, and nothing in the form moves
+- [x] The list open, Escape → the list closes, the text stays, the dialog stays open
+- [x] The list open, a click anywhere outside it and its box, or Tab → the list closes, the text stays
+- [x] The list closed with text in the box, a letter typed or Down pressed, or the box clicked back into → the list opens again
+- [x] The list closed, Escape → the dialog's own Cancel, asking first when something was typed, as before
+- [x] A match clicked, or Enter on the highlighted one → that fighter is chosen, as before
+- [x] The list closed with a part of a name in the box, Enter → no fighter is chosen unseen; it says to pick from the list, or opens the new fighter form when nobody has the name, as Save does (D38)
+- [x] "+ Fighter" → there with the list open and with it closed, opening the fighter form with what was typed, as before
+
+**Not asked** — A change to which fighters a name finds, or their order. A close button drawn on the list.
+
+### A chosen fighter's details cannot be opened from the bout dialog
+
+**Found** — `front/bout-form.ts`: once a fighter is chosen there is their name and record and nothing that opens their form, so a wrong record, tonight's weight or colours wait for the fighters page.
+
+**Done when**
+
+- [x] A fighter chosen, "Edit" beside their record → the fighter dialog opens over the bout dialog with their details, as from the fighters page
+- [x] Saved there → the bout dialog shows the name and record as saved, the fighter still chosen, the rest of the bout dialog as it was
+- [x] Cancelled there → nothing changes
+- [x] Renamed there to the other side's fighter's name → refused, as from the fighters page
+- [x] A finalised bout → "Edit" is there too: it changes the fighter, not who fought
+
+**Not asked** — A change to the fighter form itself. A change to what a finalised bout keeps of the record on the night.
+
+### The bout cannot be edited from its scorecard
+
+**Found** — `front/bout-page.ts`: the scorecard has no way to the bout dialog, so the wrong fighter found while scoring means leaving for the event page.
+
+**Done when**
+
+- [x] The scorecard of a bout not finalised, "Edit bout" → the bout dialog opens over the card, with the bout as stored
+- [x] A fighter changed there and saved → the marquee and the column heads show the new fighter, and the rounds scored so far stand
+- [x] Points typed and not yet saved, then "Edit bout" → they are saved first as Save progress would, and are in the boxes afterwards
+- [x] Points the rules will not save yet (one box of a round), "Edit bout", the rounds left as scheduled → they are still in the boxes afterwards
+- [x] The scheduled rounds changed there → the card is read again from what is stored, with that many rows
+- [x] Cancelled → the card is as it was
+- [x] A finalised bout, "Edit bout" → the dialog opens with the fighters read-only (D30), and the corner, weight, rounds and titles can change
+- [x] The event page's Edit → as before
+
+**Not asked** — Changing a finalised bout's fighters. An endpoint or a schema change.
+
+## What was done
+
+2026-11-26, answering Erez's round above. Every line of it is ticked as read in the code; the ones Claude also saw in the browser pane are named below, and seeing them is still Erez's.
+
+`front/bout-form.ts`: a new `listOpen` state names the side whose matches show (`listShown` in `front/entry.ts`). `fighterField` wraps the label and the list in `.combo` and draws the list as `ul.found.drop` over the form, only while open; typing, Down, a press or a focus in a box that holds text open it; Escape (stopped there, so the dialog does not take it), leaving the box and choosing close it; a press inside the list is kept from taking the focus, so a click on a match is not lost to the list closing. `searchKey` is given only the matches showing, so Enter with the list closed judges the text as Save does. "+ Fighter" is the list's last row and a line of its own under the box. Under a chosen name are the record and "Edit", which calls the new `editFighter`: the fighter form on that fighter, its answer put into the dialog's list and the side. `front/bout-page.ts`: `editBout` and an "Edit bout" button in the bar, draft and final: it saves a dirty card in turn, waits for the saves, opens `BoutForm` on the stored bout, then reads the bout and the lists again and keeps the entries and deductions as typed when `typedCardStands` (`front/scorecard.ts`), else takes them from the stored card. `front/style.css`: `.combo`, `.of-chosen`, `.add-line`, a white ground for the dropped list in a dialog, and the Fighter label's small capitals reached inside `.combo`. `docs/SPEC.md` says each. No server change.
+
+Tests: `listShown` and `typedCardStands` stated in `tests/front/`; `tests/api/card.test.ts` holds that a draft's fighter replaced by PATCH leaves the rounds scored. `deno task test`: 283 passed; `deno task check` and format clean. In the browser pane, standalone on a scratch database, one Chromium, Claude saw: eight matches lying over the form; Escape and a click elsewhere closing them with the text kept; Down opening them; from a scorecard with round 1 scored and one box of round 2 typed, "Edit bout" saving round 1, the fighter changed by typing over the selected name, "Edit" opening the fighter form and its saved record shown in the bout dialog, and the scorecard afterwards with the new fighter, round 1 and the lone box of round 2. Not seen: a finalised bout, a change of rounds, Cancel, Safari.
+
+Reviewed by: a read-only Claude subagent (Explore), cold, on the staged diff, carrying out docs/reviewer.md. It found every line of the three items to hold against the code and the record to describe the diff, with one finding, below. It also noted that when the card cannot be saved yet the bar keeps its "Not saved" message after the dialog closes, and that "Edit" is now a Tab stop between the two boxes.
+
+## Review · 2026-11-26 · the cold reader, on the answer to Erez's round
+
+### Tab out of a box with its matches open loses the focus
+
+**Found** — `front/bout-form.ts`, `fighterField`: the dropped list's rows came after the box in the Tab order, so Tab went to the first match, and the box's blur removed the list and that row with it; the focus was left on the page.
+
+**Done when**
+
+- [x] Fighter A's box with its matches open, Tab → the list closes, the text stays, and the focus is on the next control after the box ("+ Fighter" under it, then Fighter B's box), never on the page
+- [x] The same in Fighter B's box, Tab → the list closes, the text stays, and the focus moves on to the corner choice
+- [x] A box with its matches open, Shift+Tab → the list closes, the text stays, and the focus is on the control before the box
+- [x] A box with its matches closed, or holding a chosen fighter, Tab → the focus moves to the next control, as now ("+ Fighter", or "Edit" beside the record)
+- [x] Matches open, a match clicked, Enter on the highlighted one, Up and Down, Escape → as now
+- [x] The fighter form's name matches (D44), Tab and Escape → as now
+
+**Not asked** — Tab stepping through the matches one by one. Any change to which fighters a name finds, to Escape, to the arrows or to Enter. A change to `front/fighter-form.ts`.
+
+## What was done
+
+2026-11-26, answering the item above in the same commit. `front/bout-form.ts`: the rows of the dropped list, the matches and its "+ Fighter", carry `tabindex="-1"`, so Tab from the box goes to the "+ Fighter" line under it, which is drawn whether the list is open or not, and the list's rows are reached by the mouse and the arrows as before. `deno task test`: 283 passed; `deno task check` and format clean. This one attribute was added after the reader's read and has not been read cold or seen in a browser; the boxes above are ticked from the code.
+
+Reviewed by: the same reader named above read everything in this commit but this last fix, which answers its own finding.

@@ -9,6 +9,7 @@ import { api, type BoutView, type Event, references } from './api.ts';
 import { inTurn, putCard, saves } from './card-saves.ts';
 import { resultBand, sideHead } from './side-head.ts';
 import { render } from 'lit-html';
+import { BoutForm } from './bout-form.ts';
 import { Component, html, nothing } from './component.ts';
 import { DeductionForm } from './deduction-form.ts';
 import { DecisionForm } from './decision-form.ts';
@@ -38,6 +39,7 @@ import {
   runningTotals,
   scoredRounds,
   stoppedRound,
+  typedCardStands,
 } from './scorecard.ts';
 import { messageOf, navigate } from './router.ts';
 import { stepKey, steppedPoints } from './entry.ts';
@@ -254,6 +256,30 @@ export class BoutPage extends Component<State> {
     if (next) navigate(next);
   }
 
+  // "Edit bout": the bout dialog the event page opens, over the card, so
+  // the wrong fighter found while scoring is put right here (Erez,
+  // 2026-11-26). Unsaved points are saved first, in turn. Afterwards the
+  // bout and the lists are read again whatever the answer (a fighter made
+  // or mended in the dialog stays, even on Cancel); the boxes keep what was
+  // typed unless the scheduled rounds changed (typedCardStands).
+  async editBout() {
+    const before = this.state.bout;
+    const refs = this.state.refs;
+    if (!before || !refs) return;
+    if (!this.finalised && this.dirty()) await this.save();
+    await saves;
+    const lists = {
+      fighters: [...refs.fighters.values()],
+      classes: [...refs.classes.values()],
+      titles: [...refs.titles.values()],
+    };
+    await new BoutForm(before.event_id, lists, this.state.bout).open();
+    const [bout, fresh] = await Promise.all([api<BoutView>(`/bouts/${this.id}`), references()]);
+    this.#stored = scoredRounds(bout.card);
+    if (typedCardStands(before, bout)) return this.set({ bout, refs: fresh });
+    this.set({ bout, refs: fresh, entries: entriesOf(bout), deductions: bout.card.deductions });
+  }
+
   // The card the result implies (finalCard, by the rules), saved in turn
   // with any draft save. A refusal goes back to the dialog.
   finalise(result: Result, judges: BoutView['card']['judges']): Promise<BoutView> {
@@ -388,12 +414,18 @@ export class BoutPage extends Component<State> {
               <button type="button" class="quiet" @click=${() => this.reopen()}>
                 Reopen scoring
               </button>
+              <button type="button" class="quiet" @click=${() => this.editBout()}>
+                Edit bout
+              </button>
             </p>
           `
           : html`
             <p class="actions">
               <button type="button" ?disabled=${this.state.saving} @click=${() => this.save()}>
                 ${this.state.saving ? 'Saving…' : 'Save progress'}
+              </button>
+              <button type="button" class="quiet" @click=${() => this.editBout()}>
+                Edit bout
               </button>
               <button type="button" class="bp-end" @click=${() =>
                 this.decide({ A: nameA, B: nameB })}>

@@ -7,6 +7,7 @@ import { html, nothing } from './component.ts';
 import { arrowStep, choiceRow, DialogForm, type DialogState, FRESH } from './dialog.ts';
 import {
   findFighters,
+  listShown,
   newFighterLabel,
   readBoutWeight,
   resolveTyped,
@@ -30,6 +31,7 @@ type State = DialogState & {
   queryB: string;
   pickA: number; // the highlighted match, which Enter takes
   pickB: number;
+  listOpen: 'A' | 'B' | null; // the side whose matches are showing; Escape or leaving closes
   corner_a: 'red' | 'blue' | '';
   weightBy: 'class' | 'contracted';
   weight_class_id: number; // kept while a contracted weight is chosen, for going back
@@ -61,6 +63,7 @@ export class BoutForm extends DialogForm<State, BoutView> {
       queryB: '',
       pickA: 0,
       pickB: 0,
+      listOpen: null,
       corner_a: b?.corner_a ?? 'red',
       weightBy: b?.contracted_weight != null ? 'contracted' : 'class',
       weight_class_id: b?.weight_class_id ?? lists.classes.at(-1)?.id ?? 0,
@@ -220,76 +223,108 @@ export class BoutForm extends DialogForm<State, BoutView> {
   // name is typed over like any text: going into the box, or choosing with
   // the cursor in it, selects the name, and typing searches again
   // (sideTyped; Erez, 2026-11-26). A second click in the box puts the caret
-  // where clicked, to mend a letter. A finalised bout's
+  // where clicked, to mend a letter. "Edit" beside the record opens the
+  // fighter's own form, for a record to mend or tonight's weight and colours. A finalised bout's
   // fighters cannot change, so its boxes are read-only (D30).
   fighterField(side: 'A' | 'B', chosen: Fighter | null, query: string) {
     const locked = this.fightersLocked;
-    const found = chosen ? [] : this.found(side, query);
+    // The matches lie over the form and can be closed (listShown; Erez,
+    // 2026-11-26); closed, the keys see no matches.
+    const listed = listShown(this.state.listOpen === side, chosen, query);
+    const found = listed ? this.found(side, query) : [];
     const pick = Math.min(this.pickOf(side), Math.max(0, found.length - 1));
     // "(Enter)" only where Enter does add: nobody has the name typed (D38).
-    const typed = !chosen && found.length === 0 && query.trim() ? this.resolve(side, query) : null;
+    const none = !chosen && query.trim() !== '' && this.found(side, query).length === 0;
+    const typed = none ? this.resolve(side, query) : null;
     const enterAdds = typed !== null && 'absent' in typed && typed.absent;
+    // The rows of the dropped list are for the mouse and the arrows, not
+    // Tab: the list goes as the box is left, and the focus must not be on
+    // its way to a row that is going with it.
+    const add = (tabindex: 0 | -1) =>
+      html`
+        <button type="button" class="quiet" tabindex=${tabindex} @click=${() =>
+          this.addFighter(side, query)}>
+          ${newFighterLabel(query)}${enterAdds
+            ? html`
+              <span class="muted">(Enter)</span>
+            `
+            : nothing}
+        </button>
+      `;
     return html`
       <div class="field">
-        <label>Fighter ${side}
-          <input
-            class=${chosen ? 'chosen' : ''}
-            placeholder="Type a name, then Enter"
-            autocomplete="off"
-            .value=${sideText(chosen, query)}
-            ?readonly=${locked}
-            data-side=${side}
-            @mousedown=${(e: MouseEvent) => {
-              // A press that is about to bring the focus to a chosen box;
-              // a press in a box that has it already is an ordinary click.
-              const box = e.target as HTMLInputElement;
-              const entering = chosen !== null && !locked && document.activeElement !== box;
-              this.#entered = entering ? box : null;
-            }}
-            @focus=${(e: FocusEvent) => {
-              if (chosen && !locked) (e.target as HTMLInputElement).select();
-            }}
-            @mouseup=${(e: MouseEvent) => {
-              // The click that brought the focus must not put the caret
-              // down and undo the selection, as Safari's does. Only that
-              // click: after Tab, or once in the box, a click places the caret.
-              if (this.#entered === e.target) e.preventDefault();
-              this.#entered = null;
-            }}
-            @blur=${() => (this.#entered = null)}
-            @input=${(e: InputEvent) => this.search(side, (e.target as HTMLInputElement).value)}
-            @keydown=${(e: KeyboardEvent) => this.searchKey(e, side, found, pick, query)}
-          >
-        </label>
+        <div class="combo">
+          <label>Fighter ${side}
+            <input
+              class=${chosen ? 'chosen' : ''}
+              placeholder="Type a name, then Enter"
+              autocomplete="off"
+              .value=${sideText(chosen, query)}
+              ?readonly=${locked}
+              data-side=${side}
+              @mousedown=${(e: MouseEvent) => {
+                // A press that is about to bring the focus to a chosen box;
+                // a press in a box that has it already is an ordinary click.
+                const box = e.target as HTMLInputElement;
+                const entering = chosen !== null && !locked && document.activeElement !== box;
+                this.#entered = entering ? box : null;
+                // A click back into a box that holds text shows its matches.
+                if (!chosen && query.trim()) this.set({ listOpen: side });
+              }}
+              @focus=${(e: FocusEvent) => {
+                if (chosen && !locked) (e.target as HTMLInputElement).select();
+                else if (!chosen && query.trim()) this.set({ listOpen: side });
+              }}
+              @mouseup=${(e: MouseEvent) => {
+                // The click that brought the focus must not put the caret
+                // down and undo the selection, as Safari's does. Only that
+                // click: after Tab, or once in the box, a click places the caret.
+                if (this.#entered === e.target) e.preventDefault();
+                this.#entered = null;
+              }}
+              @blur=${() => {
+                this.#entered = null;
+                if (this.state.listOpen === side) this.set({ listOpen: null });
+              }}
+              @input=${(e: InputEvent) => this.search(side, (e.target as HTMLInputElement).value)}
+              @keydown=${(e: KeyboardEvent) => this.searchKey(e, side, found, pick, query, listed)}
+            >
+          </label>
+          ${listed
+            ? html`
+              <!-- A press in the list must not take the focus from the box,
+                  or leaving the box would close the list under the click. -->
+              <ul class="found listed drop" role="listbox" @mousedown=${(e: Event) =>
+                e.preventDefault()}>
+                ${found.map((f, i) =>
+                  html`
+                    <li>
+                      <button
+                        type="button"
+                        class="pick ${i === pick ? 'highlighted' : ''}"
+                        tabindex="-1"
+                        @click=${() => this.choose(side, f)}
+                      >
+                        ${fighterName(f)} <span class="record">${recordText(f)}</span>
+                      </button>
+                    </li>
+                  `
+                )}
+                <li>${add(-1)}</li>
+              </ul>
+            `
+            : nothing}
+        </div>
         ${chosen
           ? html`
-            <span class="record of-chosen">${recordText(chosen)}</span>
+            <div class="of-chosen">
+              <span class="record">${recordText(chosen)}</span>
+              <button type="button" class="quiet" @click=${() =>
+                this.editFighter(side, chosen)}>Edit</button>
+            </div>
           `
           : html`
-            <ul class="found ${found.length > 0 || query.trim() ? 'listed' : ''}" role="listbox">
-              ${found.map((f, i) =>
-                html`
-                  <li>
-                    <button
-                      type="button"
-                      class="pick ${i === pick ? 'highlighted' : ''}"
-                      @click=${() => this.choose(side, f)}
-                    >
-                      ${fighterName(f)} <span class="record">${recordText(f)}</span>
-                    </button>
-                  </li>
-                `
-              )}
-              <li>
-                <button type="button" class="quiet" @click=${() => this.addFighter(side, query)}>
-                  ${newFighterLabel(query)}${enterAdds
-                    ? html`
-                      <span class="muted">(Enter)</span>
-                    `
-                    : nothing}
-                </button>
-              </li>
-            </ul>
+            <div class="add-line">${add(0)}</div>
           `}
       </div>
     `;
@@ -311,8 +346,8 @@ export class BoutForm extends DialogForm<State, BoutView> {
     const now = sideTyped(side === 'A' ? this.state.a : this.state.b, text);
     this.set(
       side === 'A'
-        ? { a: now.chosen, queryA: now.query, pickA: 0 }
-        : { b: now.chosen, queryB: now.query, pickB: 0 },
+        ? { a: now.chosen, queryA: now.query, pickA: 0, listOpen: side }
+        : { b: now.chosen, queryB: now.query, pickB: 0, listOpen: side },
     );
   }
 
@@ -326,8 +361,8 @@ export class BoutForm extends DialogForm<State, BoutView> {
     // The box now holds their name; the text that found them is done with.
     this.set(
       side === 'A'
-        ? { a: fighter, queryA: '', pickA: 0, error: null }
-        : { b: fighter, queryB: '', pickB: 0, error: null },
+        ? { a: fighter, queryA: '', pickA: 0, listOpen: null, error: null }
+        : { b: fighter, queryB: '', pickB: 0, listOpen: null, error: null },
     );
     // Chosen with Enter, the cursor is still in the box, and no focus event
     // will select the name: select it here, so the next key replaces it.
@@ -335,10 +370,28 @@ export class BoutForm extends DialogForm<State, BoutView> {
     if (box instanceof HTMLInputElement && box.dataset.side === side) box.select();
   }
 
-  searchKey(e: KeyboardEvent, side: 'A' | 'B', found: Fighter[], pick: number, query: string) {
+  // `found` is what is showing: nothing while the list is closed, so Enter
+  // then judges the text as Save does and takes no match unseen (D38).
+  searchKey(
+    e: KeyboardEvent,
+    side: 'A' | 'B',
+    found: Fighter[],
+    pick: number,
+    query: string,
+    listed: boolean,
+  ) {
     const move = (to: number) =>
       this.set({ [side === 'A' ? 'pickA' : 'pickB']: to } as Partial<State>);
-    if (e.key === 'ArrowDown' && found.length > 0) {
+    const chosen = side === 'A' ? this.state.a : this.state.b;
+    if (e.key === 'Escape' && listed) {
+      // Closes the list and nothing else; the next Escape is the dialog's.
+      e.preventDefault();
+      e.stopPropagation();
+      this.set({ listOpen: null });
+    } else if (e.key === 'ArrowDown' && !listed && !chosen && query.trim()) {
+      e.preventDefault();
+      this.set({ listOpen: side });
+    } else if (e.key === 'ArrowDown' && found.length > 0) {
       e.preventDefault();
       move(Math.min(pick + 1, found.length - 1));
     } else if (e.key === 'ArrowUp' && found.length > 0) {
@@ -346,13 +399,24 @@ export class BoutForm extends DialogForm<State, BoutView> {
       move(Math.max(pick - 1, 0));
     } else if (e.key === 'Enter' && !e.isComposing) {
       e.preventDefault(); // Enter here chooses; it never saves the bout
-      if (side === 'A' ? this.state.a : this.state.b) return; // already chosen
+      if (chosen) return; // already chosen
       if (found.length > 0) return this.choose(side, found[pick]);
       const typed = this.resolve(side, query);
       if ('fighter' in typed) this.choose(side, typed.fighter);
       else if (typed.absent) this.addFighter(side, query);
       else this.set({ error: `Fighter ${side}: ${typed.error}` });
     }
+  }
+
+  // The chosen fighter's own form, over this one: the record to mend, or
+  // tonight's weight and colours. What it saves is shown here at once.
+  async editFighter(side: 'A' | 'B', chosen: Fighter) {
+    const other = side === 'A' ? this.state.b : this.state.a;
+    const saved = await new FighterForm(chosen, '', this.lists.fighters, other?.id ?? null).open();
+    if (!saved) return;
+    const at = this.lists.fighters.findIndex((f) => f.id === saved.id);
+    if (at >= 0) this.lists.fighters[at] = saved;
+    this.set((side === 'A' ? { a: saved } : { b: saved }) as Partial<State>);
   }
 
   async addFighter(side: 'A' | 'B', typed: string) {

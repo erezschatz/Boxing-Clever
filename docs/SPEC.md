@@ -322,7 +322,9 @@ reference lists, every fighter, class and title (D34). Pages:
   that box is scored (D39); Up and Down step a score box between 10 and 9,
   and a number box in a dialog by one, the boxes staying text with no
   spinner; deductions open a small
-  dialog; "End bout" opens the decision dialog (the winner first, as one
+  dialog; "Edit bout" opens the bout dialog over the card, saving unsaved
+  points first and keeping the boxes as typed unless the scheduled rounds
+  change; "End bout" opens the decision dialog (the winner first, as one
   large button per fighter in the scorecard's type, the chosen one in ink,
   marked when Finalise finds none picked; then type, round, time,
   three judges; a stoppage is offered the round after the last one scored,
@@ -392,9 +394,11 @@ leave; only Save writes, never the other side's fighter, D43, D44),
 `bout-form.ts` (fighters by search: Enter takes the highlighted match, a
 name typed in full is taken on Save, and a fighter is found or added on
 the spot, before the name is known if need be (D38, D43);
+the matches drop over the form, and Escape or leaving the box closes them
+with the text kept;
 a chosen fighter's name stays in the box it was searched for in, selected
 on the way in, and typing over it searches again, except on a finalised
-bout;
+bout; "Edit" beside their record opens the fighter's own form;
 the class, each shown with its limit as v1 did, "Flyweight (112 lbs /
 50.802 kg)", or "Contracted weight (no class)" and the pounds typed;
 "Missed weight" ticked per side on one plain line (D26, D45, D46, D47); titles with holder side,

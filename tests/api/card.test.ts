@@ -282,6 +282,24 @@ Deno.test("D32: replacing a draft's fighter clears their side of the snapshot, r
   deepStrictEqual([retaken.a_won, retaken.a_lost, retaken.b_won], [28, 3, 34]);
 });
 
+Deno.test("replacing a draft's fighter from the scorecard leaves the rounds scored so far as they are", async () => {
+  const api = testApi();
+  const { boutId } = await usykFury(api);
+  await put(api, boutId, { rounds: [r(1, 10, 9), r(2, 9, 10)], result: null, is_draft: true });
+  const { json: brother } = await api.call('POST', '/api/fighters', {
+    ...usyk,
+    first_name: 'Naoya',
+    last_name: 'Inoue',
+  });
+  const { status, json: bout } = await api.call('PATCH', `/api/bouts/${boutId}`, {
+    fighter_a_id: brother.id,
+  });
+  assertEquals(status, 200);
+  assertEquals(bout.fighter_a_id, brother.id);
+  assertEquals(bout.is_draft, 1);
+  deepStrictEqual(bout.card.rounds, [r(1, 10, 9), r(2, 9, 10)]);
+});
+
 Deno.test('§7: a bout finalised without a snapshot (an import from v1) keeps none when its card is saved again', async () => {
   // What task 10 leaves for v1's oldest bouts: finalised, counted in both
   // records, with no snapshot (D128). Set up through the db modules, as the importer does.

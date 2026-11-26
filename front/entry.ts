@@ -380,6 +380,13 @@ export function sideTyped(
   return { chosen: null, query: text };
 }
 
+// Whether a side's matches are showing in the bout dialog: only while its
+// list is open, nobody is chosen there and something is typed. Closed, the
+// text stays, and Enter judges it as Save does (D38).
+export function listShown(open: boolean, chosen: Fighter | null, query: string): boolean {
+  return open && chosen === null && query.trim() !== '';
+}
+
 function squash(text: string): string {
   return fold(text).replace(/"/g, '').split(/\s+/).filter(Boolean).join(' ');
 }
