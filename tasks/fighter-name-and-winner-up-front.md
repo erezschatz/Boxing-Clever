@@ -136,7 +136,7 @@ By the third cold reader, on the answer to the item above. Left open in this com
 
 **Done when**
 
-- [ ] A chosen box focused, the user switches to another window or tab, then clicks back into that box → the whole name is selected and the first key replaces it
+- [x] A chosen box focused, the user switches to another window or tab, then clicks back into that box → the whole name is selected and the first key replaces it
 - [x] The same, but coming back by clicking elsewhere in the page and then into the box → the whole name is selected
 - [x] A chosen box focused by a click and clicked again, the window never left → the caret goes where clicked, as now
 - [x] A chosen box entered by Tab or Shift+Tab, or focused when the dialog opens, then one click → the caret goes where clicked, as now
