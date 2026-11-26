@@ -31,7 +31,7 @@ plainest thing in the decision dialog, so it is not missed.
 - [x] The winner is the first thing in the decision dialog, as two square buttons with the names in the scorecard's bold type, the chosen one in ink with `aria-pressed`; a drawn or no-contest result shows its one answer the same way, already chosen; held by a test of the choices each decision gives
 - [x] Finalise with no winner picked marks the winner buttons as well as saying so, read in the diff
 - [x] `deno task test` and `deno task check` run green by Claude
-- [ ] Erez: in the browser, in a new bout and in a bout with rounds scored, he picks a fighter, goes back into the name and types another without backspacing through the first
+- [x] Erez: in the browser, in a new bout and in a bout with rounds scored, he picks a fighter, goes back into the name and types another without backspacing through the first
 - [x] Erez: in the browser, the decision dialog's winner is where and how he wants it, and Finalise without one shows him what is missing
 
 ## Decisions
