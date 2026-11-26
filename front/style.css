@@ -309,9 +309,13 @@ dialog.form fieldset.counts {
   gap: 0.5rem;
 }
 
-dialog.form fieldset.winner {
+dialog.form div.chosen {
   display: flex;
-  gap: 1.5rem;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+  color: var(--ink);
+  font-size: 1rem;
 }
 
 dialog.form .judge {
@@ -345,15 +349,6 @@ dialog.form .new-title {
 
 dialog.form .titles .line > span {
   min-width: 10rem;
-}
-
-dialog.form .chosen {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.5rem;
-  color: var(--ink);
-  font-size: 1rem;
 }
 
 ul.found,
@@ -2152,12 +2147,6 @@ dialog.form label > .label {
   text-transform: uppercase;
 }
 
-/* The chosen fighter's name, in a <strong> the reset above also reaches. */
-dialog.form .chosen strong {
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
 dialog.form label.inline {
   color: var(--ds-ink);
   font-size: 0.95rem;
@@ -2230,7 +2219,13 @@ dialog.form .typed-record {
   color: var(--ds-muted);
 }
 
-dialog.form .chosen {
+/* The event form's chosen venue, in a <strong> the reset above also reaches. */
+dialog.form div.chosen strong {
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+dialog.form div.chosen {
   min-height: 3rem;
   border-bottom: 2px solid var(--ds-ink);
   font-family: var(--ds-display);
@@ -2240,11 +2235,83 @@ dialog.form .chosen {
   text-transform: uppercase;
 }
 
-dialog.form .chosen .record {
+dialog.form div.chosen .record {
   font-family: var(--font);
   font-size: 0.8rem;
   font-weight: 400;
   text-transform: none;
+}
+
+/* A chosen fighter's name, in the box it was searched for in: the bold type
+   says it is chosen, the box that it can be typed over (task
+   fighter-name-and-winner-up-front). */
+dialog.form input.chosen {
+  border-color: var(--ds-ink);
+  border-bottom-width: 3px;
+  font-family: var(--ds-display);
+  font-size: 1.2rem; /* a name with its nickname has to fit half the dialog */
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+dialog.form input.chosen[readonly] {
+  border-color: var(--ds-border);
+  border-bottom-color: var(--ds-ink);
+  background: transparent;
+}
+
+dialog.form .record.of-chosen {
+  min-height: 2.75rem;
+  padding-top: 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 400;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+/* The winner, first in the decision dialog: a square block per answer, the
+   name in the scorecard's type, the chosen one in ink. Outlined red when
+   Finalise found none picked. */
+dialog.form .winner-row {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 0.75rem;
+}
+
+dialog.form button.win {
+  min-height: 4.5rem;
+  padding: 0.5rem 0.75rem;
+  border: 2px solid var(--ds-ink);
+  border-radius: 0;
+  background: #fff;
+  color: var(--ds-ink);
+  font-family: var(--ds-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: normal;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+
+dialog.form button.win[aria-pressed='true'] {
+  background: var(--ds-ink);
+  color: #fff;
+}
+
+dialog.form button.win:focus-visible {
+  outline: 2px solid var(--ds-ink);
+  outline-offset: 2px;
+}
+
+dialog.form fieldset.winner.missing button.win {
+  border-color: var(--ds-danger);
+  box-shadow: inset 0 0 0 2px var(--ds-danger);
+}
+
+dialog.form fieldset.winner.missing legend {
+  color: var(--ds-danger);
 }
 
 dialog.form .record {
@@ -2324,7 +2391,7 @@ dialog.form .seg .swatch.blue {
 
 /* The body's own buttons (Add deduction, a pick in a list) are quiet
    outlines; the main action is only in the actions band. */
-dialog.form .dialog-body button:not(.quiet):not(.link):not(.pick):not(.seg button) {
+dialog.form .dialog-body button:not(.quiet):not(.link):not(.pick):not(.win):not(.seg button) {
   min-height: 2.75rem;
   padding: 0 1rem;
   border: 1.5px solid var(--ds-border);

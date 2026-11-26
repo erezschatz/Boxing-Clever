@@ -25,6 +25,8 @@ import {
   renameProblem,
   resolveTyped,
   roundAsked,
+  sideText,
+  sideTyped,
   stepKey,
   stepped,
   steppedPoints,
@@ -32,6 +34,7 @@ import {
   updatesForExisting,
   weightText,
   winnerAfter,
+  winnerChoices,
   winnersFor,
 } from '../../front/entry.ts';
 import {
@@ -384,6 +387,41 @@ Deno.test('what a typed name comes to on Save is judged against every fighter (D
     absent: true,
   });
   deepStrictEqual(pick('  '), { error: 'type a name and pick from the list', absent: false });
+});
+
+Deno.test("a chosen fighter's name can be typed over: the box searches again, and never guesses", () => {
+  const fury = fighter(3, 'Tyson', 'Fury', 'The Gypsy King');
+  // The box holds the chosen name as the list shows it, or the search text.
+  assertEquals(sideText(fury, ''), 'Tyson "The Gypsy King" Fury');
+  assertEquals(sideText(null, 'tys'), 'tys');
+  // Nothing typed over it: still chosen, with no search text left behind.
+  deepStrictEqual(sideTyped(fury, 'Tyson "The Gypsy King" Fury'), { chosen: fury, query: '' });
+  // The whole name replaced by one key, a letter rubbed out, or the box
+  // emptied: a search for what the box holds now, and nobody chosen.
+  deepStrictEqual(sideTyped(fury, 'u'), { chosen: null, query: 'u' });
+  deepStrictEqual(sideTyped(fury, 'Tyson "The Gypsy King" Fur'), {
+    chosen: null,
+    query: 'Tyson "The Gypsy King" Fur',
+  });
+  deepStrictEqual(sideTyped(fury, ''), { chosen: null, query: '' });
+  // With nobody chosen, typing is the search it always was.
+  deepStrictEqual(sideTyped(null, 'usyk'), { chosen: null, query: 'usyk' });
+  // What is left after an edit still finds them, and the name typed back in
+  // full is theirs again on Save (D38).
+  const all = [fury, fighter(4, 'Oleksandr', 'Usyk')];
+  deepStrictEqual(findFighters(all, 'Tyson "The Gypsy King" Fur').map((f) => f.id), [3]);
+  deepStrictEqual(resolveTyped(all, 'Tyson "The Gypsy King" Fury', null), { fighter: fury });
+});
+
+Deno.test('the winner buttons name each answer a decision allows (§5)', () => {
+  const names = { A: 'Tyson Fury', B: 'Oleksandr Usyk' };
+  const sides = [{ value: 'A', label: 'Tyson Fury' }, { value: 'B', label: 'Oleksandr Usyk' }];
+  deepStrictEqual(winnerChoices('UD', names), sides);
+  deepStrictEqual(winnerChoices('TKO', names), sides);
+  // One answer, said in words rather than left out.
+  deepStrictEqual(winnerChoices('D', names), [{ value: 'draw', label: 'Draw' }]);
+  deepStrictEqual(winnerChoices('MT', names), [{ value: 'draw', label: 'Draw' }]);
+  deepStrictEqual(winnerChoices('NC', names), [{ value: 'none', label: 'No winner' }]);
 });
 
 Deno.test('the decision dialog offers the winners and asks for the round each code allows (§5)', () => {

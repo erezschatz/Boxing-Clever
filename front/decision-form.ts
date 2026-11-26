@@ -4,7 +4,14 @@
 // result through shapeForResult and validateCard before it saves (§4).
 import { html, nothing } from './component.ts';
 import { arrowStep, DialogForm, type DialogState, FRESH } from './dialog.ts';
-import { fillFromCards, readJudge, roundAsked, winnerAfter, winnersFor } from './entry.ts';
+import {
+  fillFromCards,
+  readJudge,
+  roundAsked,
+  winnerAfter,
+  winnerChoices,
+  winnersFor,
+} from './entry.ts';
 import {
   DECISION_TYPES,
   decisionLabel,
@@ -24,6 +31,7 @@ type State = DialogState & {
   judges: string[]; // a1, b1, a2, b2, a3, b3
   fromCards: string | null; // what the cards decided, said under the decision (D41)
   chosen: boolean; // the decision is the user's (picked, or the bout's own): cards leave it
+  noWinner: boolean; // Finalise was pressed with no winner picked: the buttons say so
 };
 
 export type Finalise = (result: Result, judges: Judges) => Promise<BoutView>;
@@ -50,6 +58,7 @@ export class DecisionForm extends DialogForm<State, BoutView> {
       judges: current.judges.flatMap((j) => [j.a, j.b]).map((n) => (n === null ? '' : String(n))),
       fromCards: null,
       chosen: r !== null, // a stored result was somebody's choice; the cards do not redo it
+      noWinner: false,
     });
   }
 
@@ -72,9 +81,8 @@ export class DecisionForm extends DialogForm<State, BoutView> {
 
   body() {
     const s = this.state;
-    const winners = winnersFor(s.code);
+    const choices = winnerChoices(s.code, this.names);
     const asked = roundAsked(s.code);
-    const winnerLabel = (w: Winner) => (w === 'A' || w === 'B' ? this.names[w] : w);
     // A judge's total steps down from the most a card can give, ten a round
     // (task arrow-keys).
     const most = 10 * this.scheduled;
@@ -86,14 +94,41 @@ export class DecisionForm extends DialogForm<State, BoutView> {
         e.preventDefault();
         this.save();
       }}>
+        <!-- First and largest: the one answer the dialog cannot default, and
+            the one that was missed under the dropdown (Erez, 2026-11-26). -->
+        <fieldset class="wide winner ${s.noWinner ? 'missing' : ''}">
+          <legend>Winner</legend>
+          <div class="winner-row">
+            ${choices.map((c) =>
+              html`
+                <button
+                  type="button"
+                  class="win"
+                  aria-pressed=${s.winner === c.value || choices.length === 1}
+                  @click=${() =>
+                    this.set({
+                      winner: c.value,
+                      fromCards: null,
+                      chosen: true,
+                      ...this.answered(),
+                    })}
+                >${c.label}</button>
+              `
+            )}
+          </div>
+        </fieldset>
         <label class="wide">Decision
           <select @change=${(e: InputEvent) => {
             const code = (e.target as HTMLSelectElement).value as DecisionType;
+            // A decision with one answer has its winner; one with two and
+            // none picked still lacks it, and stays marked if it was.
+            const winner = winnerAfter(code, this.state.winner);
             this.set({
               code,
-              winner: winnerAfter(code, this.state.winner),
+              winner,
               fromCards: null,
               chosen: true,
+              ...(winner ? this.answered() : {}),
             });
           }}>
             ${DECISION_TYPES.map((c) =>
@@ -102,19 +137,6 @@ export class DecisionForm extends DialogForm<State, BoutView> {
           </select>
         </label>
         ${s.fromCards ? html`<p class="wide muted from-cards">${s.fromCards}</p>` : nothing}
-        <fieldset class="wide winner">
-          <legend>Winner</legend>
-          ${winners.map((w) =>
-            html`<label class="inline">
-              <input
-                type="radio"
-                name="winner"
-                .checked=${s.winner === w || winners.length === 1}
-                @change=${() => this.set({ winner: w, fromCards: null, chosen: true })}
-              > ${winnerLabel(w)}
-            </label>`
-          )}
-        </fieldset>
         <label><span class="label">Round ${asked === 'optional'
           ? html`<small class="muted">(if stopped)</small>`
           : nothing}</span>
@@ -174,6 +196,12 @@ export class DecisionForm extends DialogForm<State, BoutView> {
     `;
   }
 
+  // There is a winner now: the mark Finalise left on the buttons goes, and
+  // its message with it. They come and go together; any other error stays.
+  answered(): Pick<State, 'noWinner' | 'error'> {
+    return { noWinner: false, error: this.state.noWinner ? null : this.state.error };
+  }
+
   // Typing the cards: once all six totals are in, a points decision is
   // filled in from them (fillFromCards, D41), with a line saying so. Once
   // the user picks a decision or a winner, or the bout already had one, the
@@ -197,6 +225,7 @@ export class DecisionForm extends DialogForm<State, BoutView> {
       judges,
       code: decided.decision_type,
       winner: decided.winner,
+      ...this.answered(),
       fromCards: `${decided.decision_type}${who}, from the cards (${forA}–${forB}${
         3 - forA - forB > 0 ? `, ${3 - forA - forB} even` : ''
       })`,
@@ -215,7 +244,7 @@ export class DecisionForm extends DialogForm<State, BoutView> {
     const s = this.state;
     const winners = winnersFor(s.code);
     const winner = winners.length === 1 ? winners[0] : s.winner;
-    if (!winner) return this.set({ error: 'who won?' });
+    if (!winner) return this.set({ error: 'pick the winner', noWinner: true });
     const roundText = this.roundShown().trim();
     const round = roundText === '' ? null : Number(roundText);
     if (round !== null && !Number.isInteger(round)) {

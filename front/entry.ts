@@ -361,6 +361,25 @@ export function resolveTyped(
   return { error: `"${text}" is not in the list; add them with + New fighter`, absent: true };
 }
 
+// One side's box in the bout dialog: the chosen fighter's name, or the text
+// being searched for. The box is the same box either way, so a chosen name
+// can be typed over (task fighter-name-and-winner-up-front).
+export function sideText(chosen: Fighter | null, query: string): string {
+  return chosen ? fighterName(chosen) : query;
+}
+
+// What typing in that box comes to. A box that still holds the chosen
+// fighter's name as the list shows it keeps them; anything else is a search
+// for what it holds now, and nobody is chosen until one is picked or the
+// name is typed in full and saved (D38). Never a guess from a part of a name.
+export function sideTyped(
+  chosen: Fighter | null,
+  text: string,
+): { chosen: Fighter | null; query: string } {
+  if (chosen && text === fighterName(chosen)) return { chosen, query: '' };
+  return { chosen: null, query: text };
+}
+
 function squash(text: string): string {
   return fold(text).replace(/"/g, '').split(/\s+/).filter(Boolean).join(' ');
 }
@@ -379,6 +398,17 @@ export function winnersFor(code: DecisionType): Winner[] {
     case 'none':
       return ['none'];
   }
+}
+
+// The winner buttons of the decision dialog: one per winner the decision
+// allows, a side by the fighter's name. A draw or a no-contest has one
+// answer, shown so the dialog says who won in every case.
+export function winnerChoices(
+  code: DecisionType,
+  names: { A: string; B: string },
+): { value: Winner; label: string }[] {
+  const label = (w: Winner) => w === 'draw' ? 'Draw' : w === 'none' ? 'No winner' : names[w];
+  return winnersFor(code).map((value) => ({ value, label: label(value) }));
 }
 
 // The winner once the decision changes: the only one it allows, or the one

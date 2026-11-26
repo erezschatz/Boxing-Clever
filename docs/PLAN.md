@@ -58,6 +58,7 @@ Out-of-order work that a decision placed in the sequence, as it stood on
 - [contracted-weight-and-missed-weight](../tasks/contracted-weight-and-missed-weight.md) — Contracted weight and missed weight · done
 - [delete-finalised-bout](../tasks/delete-finalised-bout.md) — Deleting a finalised bout · done
 - [fighter-card](../tasks/fighter-card.md) — The fighter card · done
+- [fighter-name-and-winner-up-front](../tasks/fighter-name-and-winner-up-front.md) — A chosen fighter's name stays editable; the winner is up front · done
 - [guarded-bout-delete](../tasks/guarded-bout-delete.md) — Guarded bout delete · done
 - [header-logo](../tasks/header-logo.md) — The logo in the header · done
 - [header-to-design](../tasks/header-to-design.md) — The header to the design, and the End bout dialog's labels · done

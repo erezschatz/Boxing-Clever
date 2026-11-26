@@ -10,6 +10,8 @@ import {
   newFighterLabel,
   readBoutWeight,
   resolveTyped,
+  sideText,
+  sideTyped,
   titlesOffClass,
 } from './entry.ts';
 import { titlesField } from './bout-titles.ts';
@@ -42,6 +44,7 @@ type Lists = { fighters: Fighter[]; classes: WeightClass[]; titles: Title[] };
 
 export class BoutForm extends DialogForm<State, BoutView> {
   readonly #opened: string; // what the form held when it opened, for dirty()
+  #entered: HTMLInputElement | null = null; // a chosen box the mouse is pressing its way into
 
   constructor(
     readonly eventId: number,
@@ -207,69 +210,87 @@ export class BoutForm extends DialogForm<State, BoutView> {
     `;
   }
 
-  // One side: the chosen fighter, or a search box with what it finds and a
+  // One side: one box, always. It holds the chosen fighter's name, their
+  // record under it, or the text being searched for with what it finds and a
   // way to add the fighter, there from the start: at ringside the name often
   // comes last, so the fighter form can be opened blank and the name typed
   // in it whenever it is known (Erez, 2026-11-07). Typing searches; a
   // click, or Enter on the highlighted match (arrows move it), chooses. Enter
-  // with no match opens the new fighter form with the name typed.
+  // with no match opens the new fighter form with the name typed. A chosen
+  // name is typed over like any text: going into the box, or choosing with
+  // the cursor in it, selects the name, and typing searches again
+  // (sideTyped; Erez, 2026-11-26). A second click in the box puts the caret
+  // where clicked, to mend a letter. A finalised bout's
+  // fighters cannot change, so its boxes are read-only (D30).
   fighterField(side: 'A' | 'B', chosen: Fighter | null, query: string) {
-    const key = side === 'A' ? 'a' : 'b';
-    if (chosen) {
-      return html`
-        <div class="field">
-          <span class="label">Fighter ${side}</span>
-          <div class="chosen">
-            <strong>${fighterName(chosen)}</strong>
-            <span class="record">${recordText(chosen)}</span>
-            ${this.fightersLocked ? nothing : html`
-              <button type="button" class="quiet" @click=${() =>
-                this.set({ [key]: null } as Partial<State>)}>change</button>
-            `}
-          </div>
-        </div>
-      `;
-    }
-    const found = this.found(side, query);
+    const locked = this.fightersLocked;
+    const found = chosen ? [] : this.found(side, query);
     const pick = Math.min(this.pickOf(side), Math.max(0, found.length - 1));
     // "(Enter)" only where Enter does add: nobody has the name typed (D38).
-    const typed = found.length === 0 && query.trim() ? this.resolve(side, query) : null;
+    const typed = !chosen && found.length === 0 && query.trim() ? this.resolve(side, query) : null;
     const enterAdds = typed !== null && 'absent' in typed && typed.absent;
     return html`
       <div class="field">
         <label>Fighter ${side}
           <input
+            class=${chosen ? 'chosen' : ''}
             placeholder="Type a name, then Enter"
             autocomplete="off"
-            .value=${query}
+            .value=${sideText(chosen, query)}
+            ?readonly=${locked}
+            data-side=${side}
+            @mousedown=${(e: MouseEvent) => {
+              // A press that is about to bring the focus to a chosen box;
+              // a press in a box that has it already is an ordinary click.
+              const box = e.target as HTMLInputElement;
+              const entering = chosen !== null && !locked && document.activeElement !== box;
+              this.#entered = entering ? box : null;
+            }}
+            @focus=${(e: FocusEvent) => {
+              if (chosen && !locked) (e.target as HTMLInputElement).select();
+            }}
+            @mouseup=${(e: MouseEvent) => {
+              // The click that brought the focus must not put the caret
+              // down and undo the selection, as Safari's does. Only that
+              // click: after Tab, or once in the box, a click places the caret.
+              if (this.#entered === e.target) e.preventDefault();
+              this.#entered = null;
+            }}
+            @blur=${() => (this.#entered = null)}
             @input=${(e: InputEvent) => this.search(side, (e.target as HTMLInputElement).value)}
             @keydown=${(e: KeyboardEvent) => this.searchKey(e, side, found, pick, query)}
           >
         </label>
-        <ul class="found ${found.length > 0 || query.trim() ? 'listed' : ''}" role="listbox">
-          ${found.map((f, i) =>
-            html`
+        ${chosen
+          ? html`
+            <span class="record of-chosen">${recordText(chosen)}</span>
+          `
+          : html`
+            <ul class="found ${found.length > 0 || query.trim() ? 'listed' : ''}" role="listbox">
+              ${found.map((f, i) =>
+                html`
+                  <li>
+                    <button
+                      type="button"
+                      class="pick ${i === pick ? 'highlighted' : ''}"
+                      @click=${() => this.choose(side, f)}
+                    >
+                      ${fighterName(f)} <span class="record">${recordText(f)}</span>
+                    </button>
+                  </li>
+                `
+              )}
               <li>
-                <button
-                  type="button"
-                  class="pick ${i === pick ? 'highlighted' : ''}"
-                  @click=${() => this.choose(side, f)}
-                >
-                  ${fighterName(f)} <span class="record">${recordText(f)}</span>
+                <button type="button" class="quiet" @click=${() => this.addFighter(side, query)}>
+                  ${newFighterLabel(query)}${enterAdds
+                    ? html`
+                      <span class="muted">(Enter)</span>
+                    `
+                    : nothing}
                 </button>
               </li>
-            `
-          )}
-          <li>
-            <button type="button" class="quiet" @click=${() => this.addFighter(side, query)}>
-              ${newFighterLabel(query)}${enterAdds
-                ? html`
-                  <span class="muted">(Enter)</span>
-                `
-                : nothing}
-            </button>
-          </li>
-        </ul>
+            </ul>
+          `}
       </div>
     `;
   }
@@ -283,9 +304,15 @@ export class BoutForm extends DialogForm<State, BoutView> {
     return side === 'A' ? this.state.pickA : this.state.pickB;
   }
 
-  search(side: 'A' | 'B', query: string) {
+  // Typing in a side's box: a search, which lets go of a fighter chosen
+  // there unless the box still holds their name (sideTyped).
+  search(side: 'A' | 'B', text: string) {
+    if (this.fightersLocked) return;
+    const now = sideTyped(side === 'A' ? this.state.a : this.state.b, text);
     this.set(
-      (side === 'A' ? { queryA: query, pickA: 0 } : { queryB: query, pickB: 0 }) as Partial<State>,
+      side === 'A'
+        ? { a: now.chosen, queryA: now.query, pickA: 0 }
+        : { b: now.chosen, queryB: now.query, pickB: 0 },
     );
   }
 
@@ -296,7 +323,16 @@ export class BoutForm extends DialogForm<State, BoutView> {
   }
 
   choose(side: 'A' | 'B', fighter: Fighter) {
-    this.set({ [side === 'A' ? 'a' : 'b']: fighter, error: null } as Partial<State>);
+    // The box now holds their name; the text that found them is done with.
+    this.set(
+      side === 'A'
+        ? { a: fighter, queryA: '', pickA: 0, error: null }
+        : { b: fighter, queryB: '', pickB: 0, error: null },
+    );
+    // Chosen with Enter, the cursor is still in the box, and no focus event
+    // will select the name: select it here, so the next key replaces it.
+    const box = document.activeElement;
+    if (box instanceof HTMLInputElement && box.dataset.side === side) box.select();
   }
 
   searchKey(e: KeyboardEvent, side: 'A' | 'B', found: Fighter[], pick: number, query: string) {
@@ -310,6 +346,7 @@ export class BoutForm extends DialogForm<State, BoutView> {
       move(Math.max(pick - 1, 0));
     } else if (e.key === 'Enter' && !e.isComposing) {
       e.preventDefault(); // Enter here chooses; it never saves the bout
+      if (side === 'A' ? this.state.a : this.state.b) return; // already chosen
       if (found.length > 0) return this.choose(side, found[pick]);
       const typed = this.resolve(side, query);
       if ('fighter' in typed) this.choose(side, typed.fighter);
