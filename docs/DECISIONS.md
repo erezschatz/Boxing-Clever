@@ -1879,3 +1879,12 @@ Source: [tasks/fighter-name-and-winner-up-front.md](../tasks/fighter-name-and-wi
 **Why** — Erez, 2026-11-26: "that's not Takoma Inoue I want but his Brother, but I can't edit the name other than closing the fight and going back to the event page".
 
 Source: [tasks/fighter-name-and-winner-up-front.md](../tasks/fighter-name-and-winner-up-front.md)
+
+## D157 · 2026-11-26 · The chosen name's selection is not checked in Safari
+
+**Decision** — The review line "A chosen box clicked into in Safari → the whole name is selected" is dropped unchecked and stays unticked. The mouseup guard written for Safari stays in the code; nobody will run it there.
+**Rejected** — Trying it in Safari before calling the task done.
+**Why** — Erez, 2026-11-26: "Drop the Safari, not gonna bother with it for something that is a personal project."
+Not in scope: checking the app in Safari
+
+Source: [tasks/fighter-name-and-winner-up-front.md](../tasks/fighter-name-and-winner-up-front.md)

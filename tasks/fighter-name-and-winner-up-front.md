@@ -68,6 +68,13 @@ Supersedes: D152
 **Rejected** — Reading the whole card again every time: a round with one box typed, which the rules will not save yet, would be lost for having fixed a name. Refusing to open until every box can be saved: the wrong fighter is noticed in the middle of a round. A link to the event page's dialog: that is the trip he asked not to make.
 **Why** — Erez, 2026-11-26: "that's not Takoma Inoue I want but his Brother, but I can't edit the name other than closing the fight and going back to the event page".
 
+### 2026-11-26 · The chosen name's selection is not checked in Safari
+
+**Decision** — The review line "A chosen box clicked into in Safari → the whole name is selected" is dropped unchecked and stays unticked. The mouseup guard written for Safari stays in the code; nobody will run it there.
+**Rejected** — Trying it in Safari before calling the task done.
+**Why** — Erez, 2026-11-26: "Drop the Safari, not gonna bother with it for something that is a personal project."
+Not in scope: checking the app in Safari
+
 ## What was done
 
 2026-11-26. `front/bout-form.ts`: `fighterField` draws one box per side at all times; with a fighter chosen it holds their name (class `chosen`) and their record is under it, the matches list is drawn only while nobody is chosen, and the "change" button is gone. Going into a chosen box selects its text; `search` passes what is typed through `sideTyped` and lets go of the fighter unless the box still holds their name; `choose` empties the search text; Enter in a chosen box does nothing. On a finalised bout the box is read-only and `search` returns at once (D30). `front/entry.ts` gains `sideText`, `sideTyped` and `winnerChoices`. `front/decision-form.ts`: the winner fieldset is first, a `button.win` per choice with `aria-pressed`, a single-answer decision shown pressed as "Draw" or "No winner" (they showed as "draw" and "none"); a new `noWinner` state marks the fieldset when Finalise finds no winner, with the message "pick the winner" in place of "who won?", and is cleared by picking a winner, changing the decision or the cards filling it in. `front/style.css`: `input.chosen`, `.record.of-chosen`, `.winner-row`, `button.win` and the `missing` mark; the old chosen-line rules now name `div.chosen`, which the event form's venue still uses; the radio row's rule is removed. The chosen name is 1.2rem, not the old line's 1.5rem, so a name with a nickname fits the box. `docs/SPEC.md` says both. `tests/front/forms.test.ts`: what the box makes of typing, and the winner choices per decision.

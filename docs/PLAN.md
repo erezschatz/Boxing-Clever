@@ -105,3 +105,4 @@ Out-of-order work that a decision placed in the sequence, as it stood on
 - Automated TBRB history from archive.org. (D49)
 - Other ranking bodies. (D49)
 - Phase 2 is not planned here. (D49)
+- checking the app in Safari (D157)
