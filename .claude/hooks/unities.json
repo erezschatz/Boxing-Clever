@@ -1,0 +1,15 @@
+{
+  "scene": "commit",
+  "rules": {
+    "source":  "^(server/|front/|scripts/|mod\\.ts$)",
+    "test":    "^tests/",
+    "doc":     "^(docs/(?!reference/)|(^|/)(README|CLAUDE|AGENTS)\\.md$)",
+    "task":    "^tasks/(?!README\\.md$)[^/_][^/]*\\.md$",
+    "shared":  "^CHANGELOG\\.md$",
+    "retired": "^$"
+  },
+  "required": ["test", "doc", "task"],
+  "base": "origin/main",
+  "releaseFiles": "^(CHANGELOG\\.md|deno\\.json)$",
+  "run": "deno run --allow-run=git,/bin/sh --allow-read --allow-env"
+}

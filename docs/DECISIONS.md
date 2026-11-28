@@ -1896,3 +1896,35 @@ Source: [tasks/fighter-name-and-winner-up-front.md](../tasks/fighter-name-and-wi
 **Why** — Erez, 2026-11-26, having tried the review's open line: "I left the mouse in the middle of the name, went out and back, clicked and it just placed the caret at the start so anything I typed went in front of the name, so replacing joe with james became 'jajoe'". The 250 ms is the span of one click: the return and the press are the same act of the hand.
 
 Source: [tasks/fighter-name-and-winner-up-front.md](../tasks/fighter-name-and-winner-up-front.md)
+
+## D159 · 2026-11-28 · The gate and the compilers are the plugin's files; this repo's values are in unities.json
+
+**Decision** — Upgrade to the 2026-11-22 runbook (0.6.5) by its 5.5. `.claude/hooks/check-unit.mjs`, `.claude/hooks/check-unit.test.mjs`, `scripts/compile-record.mjs` and `scripts/compile-changelog.mjs` are byte-for-byte copies of the plugin's files, with their hashes in `.claude/hooks/unities.manifest.json`. What was this repo's block in the gate (staging, roles, required roles, base, release files, the Deno invocation of the compilers) is `.claude/hooks/unities.json`. The local `isNew` in the gate and the local test that pinned it are dropped, not carried into the copy.
+
+**Rejected** — Carrying `isNew` into the new copy, which the gate's manifest check would refuse as a planted file edited in place. Raising it as a task in the plugin's repository, since the master already does what D51 asked, by another rule: a section is the scene's unless the base held it word for word. Staying on 0.5.5 with hand-patched copies.
+
+**Why** — D51 said the fix belonged in the master, and it is there now. The old and the new gate were run on the same three scenes in scratch clones of this repo (a source-only probe; a hand-edited `CHANGELOG.md`; a record with no reader appended to this file, which holds earlier records without one) and gave the same refusals, the last naming one record and not the earlier ones. With no local change left, the next upgrade is a copy and not a patch.
+
+Supersedes: D51
+
+Source: [tasks/00-skeleton.md](../tasks/00-skeleton.md)
+
+## D160 · 2026-11-28 · The gate runs both compilers with one Deno invocation
+
+**Decision** — `run` in `.claude/hooks/unities.json` is `deno run --allow-run=git,/bin/sh --allow-read --allow-env`. The gate uses it for the changelog compiler's dry run and for `compile-record.mjs --check` alike, so the record check, which the old copy ran with `--allow-read` alone, now runs with the same line. That line is the old gate's changelog invocation less `--allow-write=CHANGELOG.md`: the gate only ever asks the changelog compiler for a dry run, which writes nothing, so the gate's calls no longer carry a write permission at all. `deno task record` and `deno task changelog` keep their own, narrower lines.
+
+**Rejected** — Leaving `run` out, which makes the gate call the compilers with `node` and so makes every commit here depend on Node. Editing the planted gate to keep two invocations, which the manifest check refuses.
+
+**Why** — The configuration has one `run` for both calls, and it must be enough for the wider of the two. The changelog compiler needs git, and Deno 2.9's `execSync` needs `/bin/sh` and full `--allow-env` (this file's Notes). The record compiler reads `tasks/`, the two compiled files and the configuration and does nothing with the extra permissions. Still no `-A`, and `tests/unities-config.test.ts` says so.
+
+Source: [tasks/00-skeleton.md](../tasks/00-skeleton.md)
+
+## D161 · 2026-11-28 · This scene's test is of the configuration, not of the scripts
+
+**Decision** — `tests/unities-config.test.ts` reads `.claude/hooks/unities.json` and states what it must mean here: the staging is strict; `server/`, `front/`, `scripts/` and `mod.ts` are source; `tests/`, the docs and the task files play their roles; `docs/reference/`, `tasks/README.md`, `tasks/_template.md` and the gate's own files play none, and every path it names is held to exactly its roles, because the gate tests each role on its own and a source path that also matched `test` would be its own test; a release touches `CHANGELOG.md` and `deno.json` only; the compilers are run by Deno without `-A`. It also checks each planted script against its hash in the manifest.
+
+**Rejected** — A test of `"plan": false`, the one setting the record compiler reads, which this repo does not use. Re-testing the gate's behaviour under `tests/`, which the gate's own 84 tests do and which would be a second copy to keep.
+
+**Why** — `scripts/` is source here, so the scene needs a change under `tests/` (D50). What this scene changes that is the repo's own is where its values live; a typo in a regular expression in the JSON would silently change what counts as a complete scene, and nothing else would notice. The hash check is the same comparison the gate makes, but the gate makes it only when a scene touches a planted file; the test makes it on every `deno task test`.
+
+Source: [tasks/00-skeleton.md](../tasks/00-skeleton.md)

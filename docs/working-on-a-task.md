@@ -22,7 +22,16 @@ Claude Code cannot end a turn on one. Turn the git hook on once per clone:
     deno task hooks
 
 Run the gate yourself any time: `deno run --allow-run=git,deno,/bin/sh --allow-read
---allow-env .claude/hooks/check-unit.mjs --branch`.
+--allow-env .claude/hooks/check-unit.mjs --branch </dev/null` (it reads a hook's input
+from stdin, so from a shell give it none).
+
+The gate, its tests and the two compilers in `scripts/` (`compile-record.mjs`,
+`compile-changelog.mjs`) are the Unities plugin's files, copied and never edited here:
+`.claude/hooks/unities.manifest.json` holds their hashes and the gate refuses a copy that
+differs. What is this repo's own is `.claude/hooks/unities.json` — the staging, which
+paths play which role, and how the compilers are run — and `tests/unities-config.test.ts`
+says what it must mean. A fix to a script is made in the plugin and arrives by re-running
+`docs/UNITIES.md`.
 
 `CHANGELOG.md`, `docs/DECISIONS.md` and `docs/PLAN.md` are never edited by hand; the
 last two are compiled from the task files by `deno task record`, run before every

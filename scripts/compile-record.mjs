@@ -4,21 +4,32 @@
 // The only writer docs/DECISIONS.md and docs/PLAN.md have. Both are compiled from the
 // task files: decisions from their `## Decisions` sections, the plan's steps from the
 // task files that exist, its milestones and not-in-scope lines from the decisions.
+// A repository that keeps no plan says "plan": false in the gate's configuration, and
+// docs/PLAN.md is then neither written nor checked.
 // A pure function of the files in the work tree: no git, no clock, so the gate can
 // compare its output with what is committed.
-//   (no flag) : write both files
-//   --check   : exit 0 if both equal the compiler's output, 1 if not, 3 if the record
+//   (no flag) : write the compiled files
+//   --check   : exit 0 if they equal the compiler's output, 1 if not, 3 if the record
 //               itself is invalid (a compiled decision removed or retitled, a duplicate)
+//               or the configuration cannot be read for "plan"
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 
-// ---- per-repo ----
+// Fixed, not per-repo: the gate looks for the compiled files at these paths.
 const TASKS = "tasks";
 const DECISIONS = "docs/DECISIONS.md";
-const PLAN = "docs/PLAN.md";
-// ------------------
 const MARKER = "<!-- Compiled from tasks/ by scripts/compile-record.mjs. Do not edit below this line by hand. -->";
 const check = process.argv.includes("--check");
 const invalid = message => { console.error(`Invalid record: ${message}`); process.exit(3); };
+// Every file is read through this. A Windows checkout hands back CRLF line endings, and
+// some editors put a byte-order mark first; neither is content.
+const read = path => readFileSync(path, "utf8").replace(/^\uFEFF/, "").replace(/\r\n/g, "\n");
+// The one per-repo value here, from the gate's configuration: "plan": false.
+const CONFIG = ".claude/hooks/unities.json";
+const unreadable = message => { console.error(`${CONFIG}: ${message}`); process.exit(3); };
+let config = {};
+if (existsSync(CONFIG)) try { config = JSON.parse(read(CONFIG)); } catch (e) { unreadable(`not valid JSON: ${e.message}`); }
+if (config.plan !== undefined && typeof config.plan !== "boolean") unreadable("plan must be true or false");
+const PLAN = config.plan === false ? null : "docs/PLAN.md";
 const natural = (a, b) => a.localeCompare(b, "en", { numeric: true });
 const trimBlank = lines => {
   let a = 0, b = lines.length;
@@ -34,7 +45,7 @@ const names = existsSync(TASKS)
   ? readdirSync(TASKS).filter(f => /^[^_].*\.md$/.test(f) && f !== "README.md").sort(natural) : [];
 for (const name of names) {
   const file = `${TASKS}/${name}`;
-  const text = readFileSync(file, "utf8");
+  const text = read(file);
   const title = (text.match(/^#\s+(.+)$/m)?.[1] ?? name).trim();
   tasks.push({ file, stem: name.replace(/\.md$/, ""), title, done: /^## What was done/m.test(text) });
   let inDecisions = false, current = null;
@@ -57,7 +68,7 @@ for (const d of decisions) {
 
 // ---- numbers: a compiled decision keeps its number for ever; new ones take the next ----
 const split = (path, fallback) => {
-  const text = existsSync(path) ? readFileSync(path, "utf8") : fallback;
+  const text = path && existsSync(path) ? read(path) : fallback;
   const i = text.indexOf(MARKER);
   return i < 0 ? [text, ""] : [text.slice(0, i), text.slice(i + MARKER.length)];
 };
@@ -101,8 +112,8 @@ for (const [heading, label] of [["Milestones", "Milestone"], ["Not in scope", "N
 }
 
 // ---- write, or compare ----
-const outputs = [[DECISIONS, decisionsOut], [PLAN, planOut]];
-const stale = outputs.filter(([path, out]) => !existsSync(path) || readFileSync(path, "utf8") !== out).map(([path]) => path);
+const outputs = [[DECISIONS, decisionsOut], ...(PLAN ? [[PLAN, planOut]] : [])];
+const stale = outputs.filter(([path, out]) => !existsSync(path) || read(path) !== out).map(([path]) => path);
 if (check) {
   if (stale.length) { console.error(`${stale.join(" and ")} not equal to the compiler's output; run scripts/compile-record.mjs`); process.exit(1); }
   process.exit(0);

@@ -10,30 +10,18 @@
 //
 //   --codex, after the mode: the caller is Codex's hooks, not Claude Code's (4.10). The
 //   checks are the same; only how an adapted Stop reaches the agent differs.
+//
+// This file is the same in every repository. What differs between repositories is read
+// from CONFIG; the hashes of the planted files, from MANIFEST.
 import { execSync, spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-// ---- per-repo: written by the adoption procedure from what it found ----
-// Boxing Clever, 2026-10-31; upgraded to the 2026-11-11 runbook on 2026-11-14,
-// and to the 2026-11-15 runbook (0.5.1) on 2026-11-15.
-// Strict staging: one developer, the commit is the scene.
-const SCENE = process.env.UNITIES_SCENE ?? "commit";
-const RULES = {
-  source:  /^(server\/|front\/|scripts\/|mod\.ts$)/,        // the chamber, the browser, the tools
-  test:    /^tests\//,                                         // all tiers live under tests/
-  doc:     /^(docs\/(?!reference\/)|(^|\/)(README|CLAUDE|AGENTS)\.md$)/, // docs/reference holds binaries, not docs
-  task:    /^tasks\/(?!README\.md$)[^/_][^/]*\.md$/,           // excludes README.md and _template.md
-  shared:  /^CHANGELOG\.md$/,                                   // compiled; never edited or deleted by hand
-  retired: /^$/,                                                // adopted as a new project: no tombstones
-};
-const REQUIRED = ["test", "doc", "task"];
-const BASE = "origin/main";
-const RELEASE_FILES = /^(CHANGELOG\.md|deno\.json)$/;        // what a release commit may touch
-const COMPILER = "deno run --allow-run=git,/bin/sh --allow-read --allow-env --allow-write=CHANGELOG.md scripts/compile-changelog.mjs";
-const RECORD_FILES = /^docs\/(DECISIONS|PLAN)\.md$/;
+const CONFIG = ".claude/hooks/unities.json";            // per-repo values, written at adoption
+const MANIFEST = ".claude/hooks/unities.manifest.json"; // copied from the plugin with the scripts
+const COMPILER = "scripts/compile-changelog.mjs";
 const RECORD_COMPILER = "scripts/compile-record.mjs";
-const RECORD_CHECK = `deno run --allow-read ${RECORD_COMPILER} --check`;   // Deno, as everywhere here (Appendix H)
 const RECORD_MARKER = "<!-- Compiled from tasks/ by scripts/compile-record.mjs.";
 const SELF = ".claude/hooks/check-unit.mjs";
 // An acceptance box names the assignee's check, before the task closes. One whose subject
@@ -45,9 +33,7 @@ const ACCEPTANCE_FORBIDDEN = /^(the |an? |all |active |end[- ])*(user|users|cust
 const REVIEW = /^Reviewed by:\s*\S/m;
 const REVIEW_SECTION = /^## Review\b/;   // a review round, written into the task file of the scene it reviews
 const REVIEW_EXEMPT = /^(Done before adoption; no record\.|Migrated from )/m;
-// -----------------------------------------------------------------------
 
-const strict = SCENE === "commit";
 const codex = process.argv.includes("--codex");
 const argv = process.argv.slice(2).filter(a => a !== "--codex");
 const mode = argv[0] ?? "--branch";
@@ -56,9 +42,27 @@ const input = mode === "--pr" || process.stdin.isTTY ? {} : JSON.parse((await re
 const cwd = input.cwd ?? process.cwd();
 const lines = s => s.split("\n").map(l => l.trim()).filter(Boolean);
 
+
 // PreToolUse's `if` filter is best-effort; make sure this really is a commit.
 if (input.hook_event_name === "PreToolUse" &&
     !/(^|[;&|]\s*)git\s+commit\b/.test(input.tool_input?.command ?? "")) process.exit(0);
+
+// ---- per-repo, from CONFIG ----
+const config = readConfig();
+const SCENE = process.env.UNITIES_SCENE ?? config.scene;   // "commit" (strict) or "pr" (adapted)
+const RULES = Object.fromEntries(Object.entries(config.rules).map(([role, re]) => [role, new RegExp(re)]));
+// What a change in a role must be accompanied by: a list for source alone, or a map from
+// role to list where some files are held to less (a procedure that has no test, say).
+const REQUIRED = Array.isArray(config.required) ? { source: config.required } : config.required;
+const BASE = config.base;                                  // the branch pull requests target
+const RELEASE_FILES = new RegExp(config.releaseFiles);     // what a release PR may touch
+// docs/DECISIONS.md and docs/PLAN.md are compiled from the task files (Appendix K). Nobody
+// writes them by hand: a decision is written in the task file of the work that made it.
+// A repository that keeps no plan ("plan": false) compiles only the decisions, and a
+// docs/PLAN.md there, if any, is an ordinary file.
+const RECORD_FILES = config.plan === false ? /^docs\/DECISIONS\.md$/ : /^docs\/(DECISIONS|PLAN)\.md$/;
+const RUN = config.run ?? "node";                          // how the compilers are invoked (Deno, Bun: Appendix H)
+const strict = SCENE === "commit";
 
 let files, base, deleted;   // deleting a tombstone is not editing it
 if (mode === "--pr") {
@@ -105,9 +109,10 @@ if (mode === "--pr") {
 // The compiled record is nobody's doc line: it does not count toward any role.
 const has = re => files.some(f => re.test(f) && !RECORD_FILES.test(f));
 const missing = [];
-if (has(RULES.source)) {
-  for (const part of REQUIRED)
-    if (!has(RULES[part])) missing.push(`no ${part} change`);
+for (const [role, needs] of Object.entries(REQUIRED)) {
+  if (!has(RULES[role])) continue;
+  for (const part of needs)
+    if (!has(RULES[part]) && !missing.includes(`no ${part} change`)) missing.push(`no ${part} change`);
 }
 let shared = files.filter(f => RULES.shared.test(f) || (RULES.retired.test(f) && !deleted.includes(f)));
 
@@ -119,7 +124,7 @@ if (mode === "--pr" && shared.length && files.every(f => RELEASE_FILES.test(f)))
   let compiled, why;
   try {
     const since = sh(`git describe --tags --abbrev=0 ${base}`) || git("rev-list --max-parents=0 HEAD").trim();
-    const out = sh(`${COMPILER} --dry-run --since ${since}`);
+    const out = sh(`${RUN} ${COMPILER} --dry-run --since ${since}`);
     if (/^\(no task records/.test(out)) why = " (no task records to release)";
     else compiled = lines(out).slice(1);                       // drop the version heading
   } catch { why = " (compiler failed)"; }
@@ -139,7 +144,7 @@ const record = files.filter(f => RECORD_FILES.test(f) && head(show(from, f)) !==
 const compileOnly = files.length > 0 && files.every(f => RECORD_FILES.test(f));
 if (files.length && existsSync(join(cwd, RECORD_COMPILER))) {
   // The compiler reads the work tree; in --pr that is the checkout of the PR's tip.
-  const run = spawnSync(RECORD_CHECK, { cwd, shell: true, encoding: "utf8" });
+  const run = spawnSync(`${RUN} ${RECORD_COMPILER} --check`, { cwd, shell: true, encoding: "utf8" });
   if (run.status === 3) missing.push(run.stderr.trim());
   if (strict || compileOnly) {
     if (run.status === 1) missing.push(`compiled record is out of date: ${run.stderr.trim()}`);
@@ -167,20 +172,21 @@ for (const f of files.filter(f => RULES.task.test(f) && !deleted.includes(f))) {
     const m = /^\s*[-*] \[[ xX]\]\s+(.+)$/.exec(line);
     // "Done when" boxes of a review describe behaviour and may well start with "the user".
     if (m && !REVIEW_SECTION.test(heading) && ACCEPTANCE_FORBIDDEN.test(m[1].trim()))
-      missing.push(`acceptance box in ${f} names an outcome, not a check: "${m[1].trim()}" (make it the promise or a PLAN.md milestone)`);
+      missing.push(`acceptance box in ${f} names an outcome, not a check: "${m[1].trim()}" (make it the promise${config.plan === false ? "" : " or a PLAN.md milestone"})`);
   }
-  // Every record this scene adds names its cold reader.
-  const added = addedLines(f);
-  for (const section of contents(f).split(/^(?=## )/m)) {
-    if (!/^## What was done/.test(section) || !isNew(section, added)) continue;
+  // Every record this scene adds names its cold reader. A section is the scene's unless
+  // the base held it word for word, in any task file (scenesSections).
+  const sections = scenesSections(f);
+  for (const section of sections) {
+    if (!/^## What was done/.test(section)) continue;
     if (!REVIEW.test(section) && !REVIEW_EXEMPT.test(section))
       missing.push(`record in ${f} has no "Reviewed by:" line (a reader that has not seen the work; see Appendix G)`);
   }
   // Every review round this scene adds: each item says what was found, when it is done
   // (one box per case, as "case → outcome") and what was not asked. An item with an open
   // box does not merge. Who ticks is not the gate's business; that every case is named is.
-  for (const section of contents(f).split(/^(?=## )/m)) {
-    if (!REVIEW_SECTION.test(section) || !isNew(section, added)) continue;
+  for (const section of sections) {
+    if (!REVIEW_SECTION.test(section)) continue;
     for (const item of section.split(/^(?=### )/m).slice(1)) {
       const name = item.split("\n")[0].replace(/^### /, "").trim();
       const doneWhen = item.split(/^\*\*Done when\*\*/m)[1]?.split(/^\*\*/m)[0] ?? "";
@@ -191,6 +197,48 @@ for (const f of files.filter(f => RULES.task.test(f) && !deleted.includes(f))) {
         if (!text.includes("→")) missing.push(`review item "${name}" in ${f}: "${text.trim()}" is not "case → outcome"`);
       if (mode === "--pr" && boxes.some(b => b[1] === " ")) missing.push(`review item "${name}" in ${f} is still open`);
     }
+  }
+}
+
+// The planted scripts are the plugin's, byte for byte. A copy edited in place is a second
+// version of the gate; the fix belongs in the plugin, and an upgrade is a copy of the
+// scripts and the manifest together. Judged when the scene touches one of them, so that a
+// clean tree still passes. Line endings are left out of the hash: a checkout that writes
+// CRLF has not edited anything. A scene that deletes the manifest is judged against the
+// one it deleted.
+const manifestNow = contents(MANIFEST, null);
+const manifestBefore = show(from, MANIFEST) || null;
+if (manifestNow === null && manifestBefore !== null)
+  missing.push(`planted manifest deleted: ${MANIFEST} (an upgrade replaces it; nothing removes it)`);
+const manifest = manifestNow ?? manifestBefore;
+if (manifest !== null) {
+  let planted = null;
+  try { planted = JSON.parse(manifest).files; } catch {}
+  if (!planted) missing.push(`${MANIFEST} has no "files" map`);
+  else if (files.some(f => f === MANIFEST || f in planted)) {
+    for (const [file, hash] of Object.entries(planted)) {
+      const text = contents(file, null);
+      if (text === null) missing.push(`planted file missing: ${file} (copy it from the plugin)`);
+      else if (sha256(text) !== hash)
+        missing.push(`planted file edited: ${file} differs from the plugin's (change the plugin, then copy it here)`);
+    }
+  }
+}
+// The plugin's own repository holds the masters as well as planted copies ("plugin" in
+// CONFIG names their folder). There a changed master must arrive in the copies in the
+// same scene, or the repository's gate is not the one it ships.
+if (config.plugin) {
+  const masterManifest = contents(`${config.plugin}/manifest.json`, null);
+  let shipped = [];
+  try { shipped = Object.keys(JSON.parse(masterManifest ?? "{}").files ?? {}); }
+  catch { missing.push(`${config.plugin}/manifest.json is not valid JSON (run make-manifest.mjs)`); }
+  const touched = files.some(f => f.startsWith(`${config.plugin}/`) || f === MANIFEST || shipped.includes(f));
+  if (touched) {
+    if (masterManifest !== manifestNow)
+      missing.push(`planted copy out of date: ${MANIFEST} differs from ${config.plugin}/manifest.json`);
+    for (const file of shipped)
+      if (contents(file, null) !== contents(`${config.plugin}/${file.split("/").pop()}`, null))
+        missing.push(`planted copy out of date: ${file} differs from ${config.plugin}/${file.split("/").pop()}`);
   }
 }
 
@@ -235,30 +283,98 @@ if (input.hook_event_name === "Stop") {
 process.exit(0);
 
 function adopted(ref) { return gitOk(`cat-file -e ${ref}:${SELF}`); }
-function addedLines(file) {  // lines this scene adds to the file
-  let diff;
-  if (mode === "--pr") diff = git(`diff ${base} HEAD -- ${file}`);
-  else if (mode === "--staged") diff = git("diff --cached -- " + file);
-  else if (gitOk(`ls-files --error-unmatch ${file}`)) diff = git(`diff ${base} -- ${file}`);
-  else return new Set(lines(contents(file)));            // untracked: all of it is new
-  return new Set(lines(diff).filter(l => l.startsWith("+") && !l.startsWith("+++")).map(l => l.slice(1).trim()));
+// The sections of a task file that are this scene's: every one the base did not hold, word
+// for word, in some task file. A section that only moved (reordered, renamed with its file,
+// split or copied into another) is still the base's. One the scene edited is the scene's,
+// and is judged whole: a record is not edited once merged, and one that is must then say
+// who read it. Nothing is paired or guessed, so no deletion, length or git setting can
+// make one section stand for another.
+function scenesSections(file) {
+  return sectionsOf(contents(file)).filter(section => !baseSections().has(section));
 }
-// A section is this scene's when one of its body lines is. Not its heading: every
-// "## What was done" heading reads the same, so appending one would otherwise make
-// each earlier record in the file count as new (local deviation from Appendix A, D51).
-function isNew(section, added) {
-  return section.split("\n").slice(1).map(l => l.trim()).filter(Boolean).some(l => added.has(l));
-}
-function contents(file) {   // the file as this scene has it
+function baseSections() {   // every section of every task file at the scene's base
+  if (baseSections.cache) return baseSections.cache;
+  // One git call for all of them: a repository keeps a task file for every task it ever had.
+  let blobs = [];
   try {
-    if (mode === "--pr") return git(`show HEAD:${file}`);
-    if (mode === "--staged") return git(`show :${file}`);
-    return readFileSync(join(cwd, file), "utf8");
-  } catch { return ""; }
+    blobs = lines(git(`ls-tree -r ${from} -- tasks/`))
+      .map(l => /^\d+ blob ([0-9a-f]+)\t(.+)$/.exec(l))
+      .filter(m => m && RULES.task.test(m[2]))
+      .map(m => m[1]);
+  } catch {}
+  const texts = [];
+  if (blobs.length) {
+    const out = execSync("git cat-file --batch", { cwd, input: blobs.join("\n") + "\n", stdio: ["pipe", "pipe", "ignore"], maxBuffer: 1 << 30 });
+    // Each object: "<oid> blob <size>\n", then <size> bytes, then "\n".
+    for (let at = 0; at < out.length;) {
+      const eol = out.indexOf(10, at);
+      const size = Number(out.toString("utf8", at, eol).split(" ")[2]);
+      texts.push(out.toString("utf8", eol + 1, eol + 1 + size));
+      at = eol + 1 + size + 1;
+    }
+  }
+  return baseSections.cache = new Set(texts.flatMap(sectionsOf));
+}
+function sectionsOf(text) {   // the "## " sections of a file; line endings and trailing blanks are not content
+  const out = [];
+  for (const raw of lf(text).split("\n")) {
+    const line = raw.replace(/[ \t]+$/, "");
+    if (line.startsWith("## ")) out.push(line);
+    else if (out.length) out[out.length - 1] += "\n" + line;
+  }
+  return out.map(section => section.replace(/\n+$/, ""));
+}
+function contents(file, absent = "") {   // the file as this scene has it
+  try {
+    if (mode === "--pr") return lf(git(`show HEAD:${file}`));
+    if (mode === "--staged") return lf(git(`show :${file}`));
+    return lf(readFileSync(join(cwd, file), "utf8"));
+  } catch { return absent; }
+}
+function sha256(text) { return createHash("sha256").update(text.replace(/\r\n/g, "\n")).digest("hex"); }
+function readConfig() {
+  // The configuration missing or broken is an incomplete adoption: refused like an
+  // incomplete scene, and like one, a Stop that was already sent back lets the turn end.
+  const fail = message => {
+    if (input.hook_event_name === "Stop" && input.stop_hook_active) {
+      console.log(JSON.stringify({ systemMessage: message }));
+      process.exit(0);
+    }
+    console.error(message);
+    process.exit(2);
+  };
+  const path = join(cwd, CONFIG);
+  if (!existsSync(path)) fail(`${CONFIG} is missing; it holds this repository's roles and staging (UNITIES.md, Appendix A).`);
+  let c;
+  try { c = JSON.parse(lf(readFileSync(path, "utf8"))); } catch (e) { fail(`${CONFIG} is not valid JSON: ${e.message}`); }
+  for (const key of ["scene", "rules", "required", "base", "releaseFiles"])
+    if (c[key] === undefined) fail(`${CONFIG} has no "${key}"`);
+  for (const role of ["source", "test", "doc", "task", "shared", "retired"])
+    if (typeof c.rules[role] !== "string") fail(`${CONFIG}: rules.${role} must be a regular expression, as a string`);
+  if (!["commit", "pr"].includes(c.scene)) fail(`${CONFIG}: scene must be "commit" or "pr"`);
+  if (c.plan !== undefined && typeof c.plan !== "boolean") fail(`${CONFIG}: plan must be true or false`);
+  for (const [role, re] of Object.entries(c.rules))
+    if (typeof re !== "string") fail(`${CONFIG}: rules.${role} must be a regular expression, as a string`);
+  const isMap = v => typeof v === "object" && v !== null && !Array.isArray(v);
+  if (!Array.isArray(c.required) && !isMap(c.required))
+    fail(`${CONFIG}: required must be a list of roles, or a map from role to list`);
+  const required = Array.isArray(c.required) ? { source: c.required } : c.required;
+  if (!Object.hasOwn(required, "source") || (Array.isArray(required.source) && required.source.length === 0))
+    fail(`${CONFIG}: required has no "source", or an empty one; a source change must be held to something`);
+  for (const [role, needs] of Object.entries(required)) {
+    if (!Array.isArray(needs)) fail(`${CONFIG}: required.${role} must be a list of roles`);
+    for (const name of [role, ...needs])
+      if (!Object.hasOwn(c.rules, name)) fail(`${CONFIG}: required names "${name}", which is not a role in rules`);
+  }
+  return c;
 }
 function show(ref, file) {   // the file as the scene's base has it; "" if absent
-  try { return git(`show ${ref}:${file}`); } catch { return ""; }
+  try { return lf(git(`show ${ref}:${file}`)); } catch { return ""; }
 }
+// A Windows checkout commits and hands back CRLF line endings, and some editors put a
+// byte-order mark first; neither is content. Without this a line such as "- [ ] box\r"
+// matches none of the patterns that end in (.+)$.
+function lf(text) { return text.replace(/^\uFEFF/, "").replace(/\r\n/g, "\n"); }
 function head(text) {        // the part above the compile marker; null if the file is not compiled
   const i = text.indexOf(RECORD_MARKER);
   return i < 0 ? null : text.slice(0, i).trimEnd();

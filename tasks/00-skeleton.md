@@ -145,6 +145,32 @@ Not in scope: Phase 2 is not planned here.
 
 Supersedes: D66
 
+### 2026-11-28 · The gate and the compilers are the plugin's files; this repo's values are in unities.json
+
+**Decision** — Upgrade to the 2026-11-22 runbook (0.6.5) by its 5.5. `.claude/hooks/check-unit.mjs`, `.claude/hooks/check-unit.test.mjs`, `scripts/compile-record.mjs` and `scripts/compile-changelog.mjs` are byte-for-byte copies of the plugin's files, with their hashes in `.claude/hooks/unities.manifest.json`. What was this repo's block in the gate (staging, roles, required roles, base, release files, the Deno invocation of the compilers) is `.claude/hooks/unities.json`. The local `isNew` in the gate and the local test that pinned it are dropped, not carried into the copy.
+
+**Rejected** — Carrying `isNew` into the new copy, which the gate's manifest check would refuse as a planted file edited in place. Raising it as a task in the plugin's repository, since the master already does what D51 asked, by another rule: a section is the scene's unless the base held it word for word. Staying on 0.5.5 with hand-patched copies.
+
+**Why** — D51 said the fix belonged in the master, and it is there now. The old and the new gate were run on the same three scenes in scratch clones of this repo (a source-only probe; a hand-edited `CHANGELOG.md`; a record with no reader appended to this file, which holds earlier records without one) and gave the same refusals, the last naming one record and not the earlier ones. With no local change left, the next upgrade is a copy and not a patch.
+
+Supersedes: D51
+
+### 2026-11-28 · The gate runs both compilers with one Deno invocation
+
+**Decision** — `run` in `.claude/hooks/unities.json` is `deno run --allow-run=git,/bin/sh --allow-read --allow-env`. The gate uses it for the changelog compiler's dry run and for `compile-record.mjs --check` alike, so the record check, which the old copy ran with `--allow-read` alone, now runs with the same line. That line is the old gate's changelog invocation less `--allow-write=CHANGELOG.md`: the gate only ever asks the changelog compiler for a dry run, which writes nothing, so the gate's calls no longer carry a write permission at all. `deno task record` and `deno task changelog` keep their own, narrower lines.
+
+**Rejected** — Leaving `run` out, which makes the gate call the compilers with `node` and so makes every commit here depend on Node. Editing the planted gate to keep two invocations, which the manifest check refuses.
+
+**Why** — The configuration has one `run` for both calls, and it must be enough for the wider of the two. The changelog compiler needs git, and Deno 2.9's `execSync` needs `/bin/sh` and full `--allow-env` (this file's Notes). The record compiler reads `tasks/`, the two compiled files and the configuration and does nothing with the extra permissions. Still no `-A`, and `tests/unities-config.test.ts` says so.
+
+### 2026-11-28 · This scene's test is of the configuration, not of the scripts
+
+**Decision** — `tests/unities-config.test.ts` reads `.claude/hooks/unities.json` and states what it must mean here: the staging is strict; `server/`, `front/`, `scripts/` and `mod.ts` are source; `tests/`, the docs and the task files play their roles; `docs/reference/`, `tasks/README.md`, `tasks/_template.md` and the gate's own files play none, and every path it names is held to exactly its roles, because the gate tests each role on its own and a source path that also matched `test` would be its own test; a release touches `CHANGELOG.md` and `deno.json` only; the compilers are run by Deno without `-A`. It also checks each planted script against its hash in the manifest.
+
+**Rejected** — A test of `"plan": false`, the one setting the record compiler reads, which this repo does not use. Re-testing the gate's behaviour under `tests/`, which the gate's own 84 tests do and which would be a second copy to keep.
+
+**Why** — `scripts/` is source here, so the scene needs a change under `tests/` (D50). What this scene changes that is the repo's own is where its values live; a typo in a regular expression in the JSON would silently change what counts as a complete scene, and nothing else would notice. The hash check is the same comparison the gate makes, but the gate makes it only when a scene touches a planted file; the test makes it on every `deno task test`.
+
 ## What was done
 
 2026-11-14. The Unities runbook upgraded to the master copy dated 2026-11-11 (0.4.0) and carried out again; the staging stays strict. `docs/UNITIES.md` is replaced byte for byte; the old copy had no date line.
@@ -235,3 +261,59 @@ Reviewed by: a read-only Explore subagent, cold, against the staged diff and `do
 Verified in Claude's workspace: `deno task record` then `compile-record --check` exits 0; `deno task test` 198/198; `deno task check` clean; `node --test .claude/hooks/check-unit.test.mjs` 39/39. Nothing in the app changed.
 
 Reviewed by: a read-only Explore subagent, cold, against the staged diff and `docs/reviewer.md`, re-read after D67 gained the doc line. No findings: the licence line equals line 2 of Appendices F and K, D67 sits under `## Decisions` with `Supersedes: D66` and D66 unchanged, and `compile-record --check` exits 0.
+
+## What was done
+
+2026-11-28. The Unities runbook upgraded to the master copy dated 2026-11-22 (0.6.5) and carried out again, by its 5.5: the scripts stop being copies of listings with this repo's values written into them and become the plugin's files, with the values in one configuration file. The staging stays strict (D12) and Claude Code is still the only agent (D52); neither was asked again. Erez approved the report on 2026-11-28 before anything was written.
+
+- `docs/UNITIES.md` is replaced byte for byte (was 2026-11-19 · 0.5.5).
+- `.claude/hooks/check-unit.mjs`, `.claude/hooks/check-unit.test.mjs`, `scripts/compile-record.mjs` and `scripts/compile-changelog.mjs` are replaced by the files in the plugin's `files/` folder, unedited. `.claude/hooks/unities.manifest.json` is new: the plugin's version and the hash of each of the four. The gate now refuses a scene that touches one of them when it differs from its hash.
+- `.claude/hooks/unities.json` is new and holds what the old gate's per-repo block held: `scene` `commit`; the six role rules (source `server/`, `front/`, `scripts/`, `mod.ts`; test `tests/`; doc `docs/` except `docs/reference/`, with `README.md`, `CLAUDE.md`, `AGENTS.md`; task files; `CHANGELOG.md` shared; nothing retired); `required` test, doc, task; `base` `origin/main`; `releaseFiles` `CHANGELOG.md` and `deno.json`; and `run`, the Deno invocation the gate uses for both compilers (second decision above). `run` is the one value not carried as it was: the old block's changelog line also had `--allow-write=CHANGELOG.md`, which `run` leaves out because the gate's dry run never writes, and the old record check had `--allow-read` alone. No `changelog.recorded` and no `plan`: the old compilers equalled their 0.5.5 listings, so both defaults hold.
+- Local changes found against the 0.5.5 listings: one, the `isNew` rule of D51 with its test, dropped because the master now covers the case (first decision above, superseding D51). The other differences in the old test file were this repo's fixture values and the order of the Codex tests, which the new file, carrying its own fixture, makes moot.
+- `tests/unities-config.test.ts` is new (third decision above). `docs/working-on-a-task.md` says the scripts are the plugin's and never edited here, where the repo's values are, and that the gate run from a shell is given no stdin.
+
+Unchanged: `.claude/settings.json`, `.githooks/pre-commit` and the tasks in `deno.json` (the invocations and their permissions are as they were), `CLAUDE.md`, `tasks/README.md`, `tasks/_template.md` and `docs/reviewer.md` (Appendices D, E and G give the same text as before). `docs/DECISIONS.md` is recompiled for the three decisions; `docs/PLAN.md` is recompiled and does not change.
+
+Old gate against new, each in a scratch clone of this repo at `1681c1f`, `--staged`, strict:
+
+- a source-only probe (`server/_unities_probe`) → both exit 2, "no test change; no doc change; no task change";
+- `CHANGELOG.md` written by hand → both exit 2, "shared file edited directly: CHANGELOG.md";
+- a complete scene whose record, appended to this file, has no `Reviewed by:` line → both exit 2 with that one refusal, for the new record only.
+
+They agree on all three. No complete scene was passed through the old gate; the new one passed this commit.
+
+Verified in Claude's workspace (Deno, and Node for the gate's tests): the probe is refused by the new gate in the repo itself and by `.githooks/pre-commit`; a line appended to `scripts/compile-record.mjs` in a temporary index is refused as "planted file edited" and the file restored; `compile-record --check` exits 0; `deno task changelog --dry-run` compiles; `.claude/settings.json` parses with `Stop` and `PreToolUse`; `node --test .claude/hooks/check-unit.test.mjs` 84 tests, 83 pass, 1 skipped (the manifest test that runs only in the plugin's own repository); `deno task test` 292/292; `deno task check` clean. `deno lint` reports 5 problems, all in the two planted hook files (2 before this change, in the same files); they are not fixed here because the files are not edited here. Nothing in the app changed, so there is nothing for Erez to run in the browser. The fresh-session test of Phase 6 step 3 was not run.
+
+Reviewed by: a read-only Explore subagent, cold, against the staged diff, the plugin's master files and `docs/reviewer.md`. It found two items, recorded below and fixed in this change. It confirmed by `cmp` and `shasum` that the runbook, the four scripts and the manifest equal the plugin's files and their hashes; that every value in `unities.json` other than `run` equals the old block's; that the old compilers equalled Appendices F and K; that Appendices D, E and G did not change; and that D12, D50, D51 and D52 say what they are cited for. It ran `deno task test` (292 pass) and `compile-record --check` (exit 0) itself. It took on trust the scratch-clone comparison, the hook and manifest probes, the changelog dry run and the `node --test` count.
+
+## Review · 2026-11-28
+
+### The record says `run` carries the old values "value for value", but `--allow-write=CHANGELOG.md` was dropped
+
+**Found** — The old gate called the changelog compiler with `--allow-write=CHANGELOG.md`; `run` in `.claude/hooks/unities.json` is the same line without it. Nothing breaks, because the gate only asks for a dry run and the compiler exits before writing. But the record said the configuration holds the old block "value for value", and the second decision said the record check "now runs with the changelog compiler's permissions", when the shared line is narrower than the old changelog call.
+
+**Done when**
+
+- [x] The 2026-11-28 record → names `--allow-write=CHANGELOG.md` as the one value of the old block that is not in `run`, and says the dry run never writes
+- [x] The second 2026-11-28 decision → says the shared `run` is the old changelog line less `--allow-write=CHANGELOG.md`
+- [x] Every other value carried over (scene, the six rules, required, base, releaseFiles) → still equals the old block, and the record's wording for them is unchanged
+- [x] `compile-record.mjs --check` after the task file is edited and recompiled → exits 0
+
+**Not asked** — Adding `--allow-write` to `run`. Editing any planted file.
+
+### The config test maps a path to its first matching role, but the gate matches every role on its own
+
+**Found** — `roleOf` in `tests/unities-config.test.ts` returned the first role whose rule matched. The gate tests each role separately, so a `test` or `doc` rule widened to match a source path would still pass the test while the gate counted a source change as its own test or doc line. The test also named only two of the gate's four files under `.claude/hooks/` as playing no role.
+
+**Done when**
+
+- [x] A `test` rule that also matches `server/rules/score.ts` → `tests/unities-config.test.ts` fails
+- [x] A `doc` or `task` rule that also matches a listed source path (`mod.ts`, `front/app.ts`) → it fails
+- [x] A `source` rule that also matches `tests/rules.test.ts`, `docs/SPEC.md` or `tasks/03-rules.md` → it fails
+- [x] Each listed source, test, doc, task and shared path against the current `unities.json` → matches exactly one role, and the test passes
+- [x] `.claude/hooks/check-unit.test.mjs` and `.claude/hooks/unities.manifest.json` → asserted to match no role, beside the other no-role paths
+- [x] The current `unities.json` → `deno task test` stays green
+
+**Not asked** — Re-testing the gate's own behaviour under `tests/`. Editing the planted gate or its tests.
+
+Both answered in this same change: `roleOf` is `rolesOf`, every assertion holds a path to exactly its roles, and the first five boxes of the second item were each tried by widening the rule in `unities.json`, seeing the test fail, and restoring the file.
