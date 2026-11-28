@@ -1928,3 +1928,13 @@ Source: [tasks/00-skeleton.md](../tasks/00-skeleton.md)
 **Why** — `scripts/` is source here, so the scene needs a change under `tests/` (D50). What this scene changes that is the repo's own is where its values live; a typo in a regular expression in the JSON would silently change what counts as a complete scene, and nothing else would notice. The hash check is the same comparison the gate makes, but the gate makes it only when a scene touches a planted file; the test makes it on every `deno task test`.
 
 Source: [tasks/00-skeleton.md](../tasks/00-skeleton.md)
+
+## D162 · 2026-11-28 · deno lint leaves out .claude/
+
+**Decision** — `lint.exclude` in `deno.json` names `.claude/`, as `fmt.exclude` already does. The planted `scripts/compile-record.mjs` and `scripts/compile-changelog.mjs` stay linted; they pass.
+
+**Rejected** — Fixing the five problems `deno lint` reports in `.claude/hooks/check-unit.mjs` and `.claude/hooks/check-unit.test.mjs`, which would be editing planted files, and the gate refuses that. Leaving `deno lint` failing on files nobody here may change.
+
+**Why** — Erez asked on 2026-11-28 whether the plugin requires its files to pass a linter. It does not: neither the runbook nor the skill mentions one. The files are the plugin's, written for Node, and are held to their own tests and their hashes, not to this repo's lint rules. A lint run that always fails on them hides a real finding in the code that is this repo's own.
+
+Source: [tasks/00-skeleton.md](../tasks/00-skeleton.md)

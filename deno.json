@@ -45,6 +45,9 @@
     ]
   },
   "lint": {
+    "exclude": [
+      ".claude/"
+    ],
     "rules": {
       "tags": [
         "recommended"

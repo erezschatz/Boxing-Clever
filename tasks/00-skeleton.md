@@ -171,6 +171,14 @@ Supersedes: D51
 
 **Why** — `scripts/` is source here, so the scene needs a change under `tests/` (D50). What this scene changes that is the repo's own is where its values live; a typo in a regular expression in the JSON would silently change what counts as a complete scene, and nothing else would notice. The hash check is the same comparison the gate makes, but the gate makes it only when a scene touches a planted file; the test makes it on every `deno task test`.
 
+### 2026-11-28 · deno lint leaves out .claude/
+
+**Decision** — `lint.exclude` in `deno.json` names `.claude/`, as `fmt.exclude` already does. The planted `scripts/compile-record.mjs` and `scripts/compile-changelog.mjs` stay linted; they pass.
+
+**Rejected** — Fixing the five problems `deno lint` reports in `.claude/hooks/check-unit.mjs` and `.claude/hooks/check-unit.test.mjs`, which would be editing planted files, and the gate refuses that. Leaving `deno lint` failing on files nobody here may change.
+
+**Why** — Erez asked on 2026-11-28 whether the plugin requires its files to pass a linter. It does not: neither the runbook nor the skill mentions one. The files are the plugin's, written for Node, and are held to their own tests and their hashes, not to this repo's lint rules. A lint run that always fails on them hides a real finding in the code that is this repo's own.
+
 ## What was done
 
 2026-11-14. The Unities runbook upgraded to the master copy dated 2026-11-11 (0.4.0) and carried out again; the staging stays strict. `docs/UNITIES.md` is replaced byte for byte; the old copy had no date line.
@@ -317,3 +325,11 @@ Reviewed by: a read-only Explore subagent, cold, against the staged diff, the pl
 **Not asked** — Re-testing the gate's own behaviour under `tests/`. Editing the planted gate or its tests.
 
 Both answered in this same change: `roleOf` is `rolesOf`, every assertion holds a path to exactly its roles, and the first five boxes of the second item were each tried by widening the rule in `unities.json`, seeing the test fail, and restoring the file.
+
+## What was done
+
+2026-11-28. `deno lint` no longer reads `.claude/`: `lint.exclude` in `deno.json` names it (decision above). The five problems it reported were all in the two planted hook files, which are not edited here. `docs/SETUP.md` says so on its `deno lint` line. Nothing else changed; no source, so no test.
+
+Verified in Claude's workspace: `deno lint` reports no problems; `compile-record --check` exits 0 after recompiling for the decision.
+
+Reviewed by: a read-only Explore subagent, cold, against the staged diff and `docs/reviewer.md`. No findings. It ran `deno lint` (100 files, no problems) and `compile-record --check` (exit 0) itself, found the same five problems by linting `.claude/hooks/` without the config, confirmed the two compilers in `scripts/` are still linted and pass, and found no mention of a linter anywhere in the plugin's folder.

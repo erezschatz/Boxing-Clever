@@ -34,7 +34,7 @@ deno task check    # type-check mod.ts, front/app.ts, scripts/build.ts and tests
 deno task build    # emit front/dist/app.js, the browser bundle served when BOXING_DEV is unset (D7, D33)
 deno task migrate  # apply pending migrations to data/boxing.db (the server also does, on first use: D29)
 deno task record   # compile docs/DECISIONS.md and docs/PLAN.md from tasks/; run before every commit
-deno lint / deno fmt --check   # built-ins, not tasks; fmt covers code only (Markdown and the runbook's scripts excluded)
+deno lint / deno fmt --check   # built-ins, not tasks; fmt covers code only (Markdown and the runbook's scripts excluded); lint leaves out .claude/, the plugin's files
 deno task hooks     # once per clone: git config core.hooksPath .githooks
 deno task changelog -- <version>   # the only writer of CHANGELOG.md
 deno task check-unit-test          # the gate's own tests (node --test)
